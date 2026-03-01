@@ -8,22 +8,22 @@ namespace Oahu.SystemManagement.Mac
 {
   public class MacHardwareIdProvider : IHardwareIdProvider
   {
-    private string _cachedCpuId;
-    private string _cachedMotherboardId;
-    private string _cachedDiskId;
+    private string cachedCpuId;
+    private string cachedMotherboardId;
+    private string cachedDiskId;
 
     public string GetCpuId()
     {
-      if (_cachedCpuId is not null)
+      if (cachedCpuId is not null)
       {
-        return _cachedCpuId;
+        return cachedCpuId;
       }
 
       try
       {
         // Use sysctl to get CPU brand string as a stable identifier
-        _cachedCpuId = runCommand("sysctl", "-n machdep.cpu.brand_string")?.Trim() ?? string.Empty;
-        return _cachedCpuId;
+        cachedCpuId = RunCommand("sysctl", "-n machdep.cpu.brand_string")?.Trim() ?? string.Empty;
+        return cachedCpuId;
       }
       catch (Exception)
       {
@@ -33,17 +33,17 @@ namespace Oahu.SystemManagement.Mac
 
     public string GetMotherboardId()
     {
-      if (_cachedMotherboardId is not null)
+      if (cachedMotherboardId is not null)
       {
-        return _cachedMotherboardId;
+        return cachedMotherboardId;
       }
 
       try
       {
         // Hardware UUID is the macOS equivalent of a motherboard serial
-        _cachedMotherboardId = runCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")
+        cachedMotherboardId = RunCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")
           ?.ExtractIoregValue("IOPlatformUUID") ?? string.Empty;
-        return _cachedMotherboardId;
+        return cachedMotherboardId;
       }
       catch (Exception)
       {
@@ -56,7 +56,7 @@ namespace Oahu.SystemManagement.Mac
       try
       {
         // Serial number serves as a secondary identifier on macOS
-        return runCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")
+        return RunCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")
           ?.ExtractIoregValue("IOPlatformSerialNumber") ?? string.Empty;
       }
       catch (Exception)
@@ -67,17 +67,17 @@ namespace Oahu.SystemManagement.Mac
 
     public string GetDiskId()
     {
-      if (_cachedDiskId is not null)
+      if (cachedDiskId is not null)
       {
-        return _cachedDiskId;
+        return cachedDiskId;
       }
 
       try
       {
         // Get the volume UUID of the root filesystem
-        _cachedDiskId = runCommand("diskutil", "info -plist /")
+        cachedDiskId = RunCommand("diskutil", "info -plist /")
           ?.ExtractPlistValue("VolumeUUID") ?? string.Empty;
-        return _cachedDiskId;
+        return cachedDiskId;
       }
       catch (Exception)
       {
@@ -85,7 +85,7 @@ namespace Oahu.SystemManagement.Mac
       }
     }
 
-    private static string runCommand(string command, string arguments)
+    private static string RunCommand(string command, string arguments)
     {
       try
       {

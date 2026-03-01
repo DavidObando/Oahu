@@ -13,66 +13,66 @@ public class Ec3IndependentSubstream
   /// ETSI TS 102 366 4.4.1.3 fscod - Sample rate code - 2 bits
   /// Table 4.1: Sample rate codes
   /// </summary>
-  public byte fscod;
+  public byte Fscod;
 
   /// <summary>
   /// ETSI TS 102 366 4.4.2.1 bsid - Bit stream identification
   /// </summary>
-  public byte bsid;
+  public byte Bsid;
 
   /// <summary>
   /// ETSI TS 102 366 F.6.2.7 asvc - is a main audio service
   /// Value must be 16 for E-AC-3 (E.1.1 Indication of Enhanced AC-3 bit stream syntax)
   /// </summary>
-  public bool asvc;
+  public bool Asvc;
 
   /// <summary>
   /// ETSI TS 102 366 4.4.2.2 bsmod - Bit stream mode - 3 bits
   /// Table 4.2: Bit stream mode
   /// </summary>
-  public byte bsmod;
+  public byte Bsmod;
 
   /// <summary>
   /// ETSI TS 102 366 4.4.2.3 acmod - Audio coding mode
   /// </summary>
-  public AudioCodingMode acmod;
+  public AudioCodingMode Acmod;
 
   /// <summary>
   /// ETSI TS 102 366 4.4.2.7 lfeon - Low frequency effects channel on
   /// </summary>
-  public bool lfeon;
+  public bool Lfeon;
 
   /// <summary>
   /// ETSI TS 102 366 F.6.2.12 num_dep_sub
   /// </summary>
-  public byte num_dep_sub;
+  public byte NumDepSub;
 
   /// <summary>
   /// ETSI TS 102 366 F.6.2.13 chan_loc - channel locations
   /// </summary>
-  public ChannelLocation chan_loc;
+  public ChannelLocation ChanLoc;
 
   public Ec3IndependentSubstream(BitReader reader)
   {
-    fscod = (byte)reader.Read(2);
-    bsid = (byte)reader.Read(5);
-    if (bsid != 16)
+    Fscod = (byte)reader.Read(2);
+    Bsid = (byte)reader.Read(5);
+    if (Bsid != 16)
     {
-      throw new InvalidDataException($"Invalid bsid value: {bsid}. Expected 16 for E-AC-3.");
+      throw new InvalidDataException($"Invalid bsid value: {Bsid}. Expected 16 for E-AC-3.");
     }
 
     reader.Position += 1;
 
-    asvc = reader.ReadBool();
-    bsmod = (byte)reader.Read(3);
-    acmod = (AudioCodingMode)reader.Read(3);
-    lfeon = reader.Read(1) > 0;
+    Asvc = reader.ReadBool();
+    Bsmod = (byte)reader.Read(3);
+    Acmod = (AudioCodingMode)reader.Read(3);
+    Lfeon = reader.Read(1) > 0;
     reader.Position += 3;
-    var num_dep_sub = reader.Read(4);
+    var numDepSub = reader.Read(4);
 
-    if (num_dep_sub > 0)
+    if (numDepSub > 0)
     {
-      chan_loc = (ChannelLocation)reader.Read(9);
+      ChanLoc = (ChannelLocation)reader.Read(9);
     }
     else
     {

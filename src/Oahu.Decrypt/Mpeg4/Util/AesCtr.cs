@@ -6,72 +6,72 @@ namespace Oahu.Decrypt.Mpeg4.Util;
 // https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/aes_ctr.c
 public unsafe class AesCtr : IDisposable
 {
-  public const int AES_BLOCK_SIZE = 16;
+  public const int AesBlockSize = 16;
 
-  private readonly ICryptoTransform Encryptor;
-  private readonly Aes Aes;
-  private readonly byte[] encrypted_counter = new byte[AES_BLOCK_SIZE];
+  private readonly ICryptoTransform encryptor;
+  private readonly Aes aes;
+  private readonly byte[] encryptedCounter = new byte[AesBlockSize];
   private bool isDisposed;
 
   public AesCtr(byte[] key)
   {
     ArgumentNullException.ThrowIfNull(key, nameof(key));
-    if (key.Length != AES_BLOCK_SIZE)
+    if (key.Length != AesBlockSize)
     {
-      throw new ArgumentException($"{nameof(key)} must be exactly {AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(key)} must be exactly {AesBlockSize} bytes long.");
     }
 
-    Aes = Aes.Create();
-    Aes.Padding = PaddingMode.None;
-    Aes.Mode = CipherMode.ECB;
-    Encryptor = Aes.CreateEncryptor(key, null);
+    aes = Aes.Create();
+    aes.Padding = PaddingMode.None;
+    aes.Mode = CipherMode.ECB;
+    encryptor = aes.CreateEncryptor(key, null);
   }
 
   public unsafe void Decrypt(byte[] iv, ReadOnlySpan<byte> source, Span<byte> destination)
   {
     ArgumentNullException.ThrowIfNull(iv, nameof(iv));
-    ArgumentOutOfRangeException.ThrowIfNotEqual(iv.Length, AES_BLOCK_SIZE, nameof(iv));
+    ArgumentOutOfRangeException.ThrowIfNotEqual(iv.Length, AesBlockSize, nameof(iv));
 
     if (destination.Length < source.Length)
     {
       throw new ArithmeticException($"Destination array is not long enough. (Parameter '{nameof(destination)}')");
     }
 
-    const int AES_NUM_DWORDS = AES_BLOCK_SIZE / sizeof(uint);
+    const int aesNumDwords = AesBlockSize / sizeof(uint);
 
     fixed (byte* pD = destination)
     {
       fixed (byte* pS = source)
       {
-        fixed (byte* pEc = encrypted_counter)
+        fixed (byte* pEc = encryptedCounter)
         {
           uint* pD32 = (uint*)pD;
           uint* pS32 = (uint*)pS;
           uint* pEc32 = (uint*)pEc;
 
-          int data_pos = 0, count = source.Length;
+          int dataPos = 0, count = source.Length;
 
-          while (count >= AES_BLOCK_SIZE)
+          while (count >= AesBlockSize)
           {
-            Encryptor.TransformBlock(iv, 0, AES_BLOCK_SIZE, encrypted_counter, 0);
+            encryptor.TransformBlock(iv, 0, AesBlockSize, encryptedCounter, 0);
             IncrementBE(iv);
 
-            for (int i = 0; i < AES_NUM_DWORDS; i++)
+            for (int i = 0; i < aesNumDwords; i++)
             {
               *pD32++ = pEc32[i] ^ *pS32++;
             }
 
-            data_pos += AES_BLOCK_SIZE;
-            count -= AES_BLOCK_SIZE;
+            dataPos += AesBlockSize;
+            count -= AesBlockSize;
           }
 
           if (count > 0)
           {
-            Encryptor.TransformBlock(iv, 0, AES_BLOCK_SIZE, encrypted_counter, 0);
+            encryptor.TransformBlock(iv, 0, AesBlockSize, encryptedCounter, 0);
 
-            for (int i = 0; i < count; i++, data_pos++)
+            for (int i = 0; i < count; i++, dataPos++)
             {
-              pD[data_pos] = (byte)(pEc[i] ^ pS[data_pos]);
+              pD[dataPos] = (byte)(pEc[i] ^ pS[dataPos]);
             }
           }
         }
@@ -99,8 +99,8 @@ public unsafe class AesCtr : IDisposable
   {
     if (disposing & !isDisposed)
     {
-      Encryptor.Dispose();
-      Aes.Dispose();
+      encryptor.Dispose();
+      aes.Dispose();
       isDisposed = true;
     }
   }

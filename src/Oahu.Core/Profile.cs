@@ -11,7 +11,7 @@ using System.Web;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.CommonTypes;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 
 namespace Oahu.Core
 {
@@ -238,11 +238,11 @@ namespace Oahu.Core
 
   class Configuration
   {
-    private static readonly string CONFIG_DIR = Path.Combine(ApplEnv.LocalApplDirectory, "config");
+    private static readonly string ConfigDir = Path.Combine(ApplEnv.LocalApplDirectory, "config");
 
-    private List<Profile> _profiles;
+    private List<Profile> profiles;
 
-    public IReadOnlyList<Profile> Profiles => _profiles;
+    public IReadOnlyList<Profile> Profiles => profiles;
 
     public bool Existed { get; private set; }
 
@@ -250,17 +250,17 @@ namespace Oahu.Core
 
     public IProfile AddOrReplace(Profile profile)
     {
-      if (_profiles is null)
+      if (profiles is null)
       {
-        _profiles = new List<Profile>();
+        profiles = new List<Profile>();
       }
 
       // uniqueness constraint is customer account id and region
       // this may create zombies unless old profile device is deregistered
       uint nextId = 0;
-      if (_profiles.Any())
+      if (profiles.Any())
       {
-        nextId = _profiles.Select(p => p.Id).Max() + 1;
+        nextId = profiles.Select(p => p.Id).Max() + 1;
       }
 
       profile.Id = nextId;
@@ -270,13 +270,13 @@ namespace Oahu.Core
 
       if (existing is null)
       {
-        _profiles.Add(profile);
+        profiles.Add(profile);
         return null;
       }
 
-      int i = _profiles.IndexOf(existing);
-      IProfile prevProfile = _profiles[i];
-      _profiles[i] = profile;
+      int i = profiles.IndexOf(existing);
+      IProfile prevProfile = profiles[i];
+      profiles[i] = profile;
       return prevProfile;
     }
 
@@ -295,7 +295,7 @@ namespace Oahu.Core
         return null;
       }
 
-      bool succ = _profiles.Remove(existing);
+      bool succ = profiles.Remove(existing);
 
       return existing;
     }
@@ -311,7 +311,7 @@ namespace Oahu.Core
 
     public async Task ReadAsync(string token)
     {
-      var config = await FileExtensions.ReadJsonFileAsync<SerializableConfig>(CONFIG_DIR, this.GetType().Name);
+      var config = await FileExtensions.ReadJsonFileAsync<SerializableConfig>(ConfigDir, this.GetType().Name);
       if (config is null)
       {
         return;
@@ -322,30 +322,30 @@ namespace Oahu.Core
       Logging.Log(3, this, () => $"{(encrypted ? "decrypt" : string.Empty)}");
       if (!token.IsNullOrWhiteSpace())
       {
-        decrypt(config, token);
+        Decrypt(config, token);
       }
 
       IsEncrypted = config.Profiles is null && !config.Secure.IsNullOrWhiteSpace();
-      _profiles = config.Profiles;
+      profiles = config.Profiles;
     }
 
     public async Task WriteAsync(string token)
     {
-      var config = new SerializableConfig { Profiles = _profiles };
+      var config = new SerializableConfig { Profiles = profiles };
       bool encrypted = !token.IsNullOrWhiteSpace();
       Logging.Log(3, this, () => $"{(encrypted ? "encrypt" : string.Empty)}");
       if (encrypted)
       {
-        encrypt(config, token);
+        Encrypt(config, token);
       }
 
       Existed = true;
-      Directory.CreateDirectory(CONFIG_DIR);
-      await config.WriteJsonFileAsync(CONFIG_DIR, this.GetType().Name);
+      Directory.CreateDirectory(ConfigDir);
+      await config.WriteJsonFileAsync(ConfigDir, this.GetType().Name);
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "SerializableConfig and Profile types are preserved via TrimMode=partial.")]
-    private static void encrypt(SerializableConfig configuration, string token)
+    private static void Encrypt(SerializableConfig configuration, string token)
     {
       if (configuration.Profiles is null)
       {
@@ -360,7 +360,7 @@ namespace Oahu.Core
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "SerializableConfig and Profile types are preserved via TrimMode=partial.")]
-    private static void decrypt(SerializableConfig configuration, string token)
+    private static void Decrypt(SerializableConfig configuration, string token)
     {
       if (configuration.Secure is null || configuration.Secure.IsNullOrWhiteSpace())
       {

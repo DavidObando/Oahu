@@ -4,23 +4,23 @@ namespace Oahu.Common.Util
 {
   public abstract class ThreadProgressBase<T> : IDisposable
   {
-    private readonly Action<T> _report;
+    private readonly Action<T> report;
 
-    private int _accuValuePerMax;
+    private int accuValuePerMax;
 
     protected ThreadProgressBase(Action<T> report)
     {
-      _report = report;
+      this.report = report;
     }
 
     protected abstract int Max { get; }
 
     public void Dispose()
     {
-      int inc = Max - _accuValuePerMax;
+      int inc = Max - accuValuePerMax;
       if (inc > 0)
       {
-        _report?.Invoke(getProgressMessage(inc));
+        report?.Invoke(GetProgressMessage(inc));
       }
     }
 
@@ -28,15 +28,15 @@ namespace Oahu.Common.Util
     {
       int val = (int)(value * Max);
       int total = Math.Min(Max, val);
-      int inc = total - _accuValuePerMax;
-      _accuValuePerMax = total;
+      int inc = total - accuValuePerMax;
+      accuValuePerMax = total;
       if (inc > 0)
       {
-        _report?.Invoke(getProgressMessage(inc));
+        report?.Invoke(GetProgressMessage(inc));
       }
     }
 
-    protected abstract T getProgressMessage(int inc);
+    protected abstract T GetProgressMessage(int inc);
   }
 
   public class ThreadProgressPerMille : ThreadProgressBase<ProgressMessage>
@@ -47,7 +47,7 @@ namespace Oahu.Common.Util
 
     protected override int Max => 1000;
 
-    protected override ProgressMessage getProgressMessage(int inc) => new(null, null, null, inc);
+    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, null, inc);
   }
 
   public class ThreadProgressPerCent : ThreadProgressBase<ProgressMessage>
@@ -58,6 +58,6 @@ namespace Oahu.Common.Util
 
     protected override int Max => 100;
 
-    protected override ProgressMessage getProgressMessage(int inc) => new(null, null, inc, null);
+    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, inc, null);
   }
 }

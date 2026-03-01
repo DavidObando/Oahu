@@ -6,8 +6,8 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 public class AudioSampleEntry : SampleEntry
 {
   private readonly byte[] reserved;
-  private readonly byte[] reserved_2;
-  private readonly ushort SampleRate_loworder;
+  private readonly byte[] reserved2;
+  private readonly ushort sampleRateLoworder;
 
   public AudioSampleEntry(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
@@ -15,9 +15,9 @@ public class AudioSampleEntry : SampleEntry
     ChannelCount = file.ReadUInt16BE();
     SampleSize = file.ReadUInt16BE();
     PreDefined = file.ReadInt16BE();
-    reserved_2 = file.ReadBlock(2);
+    reserved2 = file.ReadBlock(2);
     SampleRate = file.ReadUInt16BE();
-    SampleRate_loworder = file.ReadUInt16BE();
+    sampleRateLoworder = file.ReadUInt16BE();
     LoadChildren(file);
   }
 
@@ -47,8 +47,8 @@ public class AudioSampleEntry : SampleEntry
     file.WriteUInt16BE(ChannelCount);
     file.WriteUInt16BE(SampleSize);
     file.WriteInt16BE(PreDefined);
-    file.Write(reserved_2);
+    file.Write(reserved2);
     file.WriteUInt16BE(SampleRate);
-    file.WriteUInt16BE(SampleRate_loworder);
+    file.WriteUInt16BE(sampleRateLoworder);
   }
 }

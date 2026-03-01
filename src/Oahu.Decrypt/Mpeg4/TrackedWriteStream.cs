@@ -8,26 +8,26 @@ namespace Oahu.Decrypt.Mpeg4
   /// </summary>
   public class TrackedWriteStream : Stream
   {
-    private readonly Stream BaseStream;
-    private long WritePosition;
+    private readonly Stream baseStream;
+    private long writePosition;
 
     public TrackedWriteStream(Stream baseStream, long initialPosition = 0)
     {
-      BaseStream = baseStream;
-      WritePosition = initialPosition;
+      this.baseStream = baseStream;
+      writePosition = initialPosition;
     }
 
     public override bool CanRead => false;
 
-    public override bool CanSeek => BaseStream.CanSeek;
+    public override bool CanSeek => this.baseStream.CanSeek;
 
-    public override long Length => WritePosition;
+    public override long Length => writePosition;
 
-    public override bool CanWrite => BaseStream.CanWrite;
+    public override bool CanWrite => this.baseStream.CanWrite;
 
     public override long Position
     {
-      get => CanSeek ? BaseStream.Position : WritePosition;
+      get => CanSeek ? this.baseStream.Position : writePosition;
       set
       {
         if (!CanSeek)
@@ -35,19 +35,19 @@ namespace Oahu.Decrypt.Mpeg4
           throw new NotSupportedException();
         }
 
-        BaseStream.Position = value;
+        this.baseStream.Position = value;
       }
     }
 
     public override void Flush()
-        => BaseStream.Flush();
+        => this.baseStream.Flush();
 
     public override int Read(byte[] buffer, int offset, int count)
         => throw new NotSupportedException();
 
     public override long Seek(long offset, SeekOrigin origin)
     {
-      return CanSeek ? BaseStream.Seek(offset, origin)
+      return CanSeek ? this.baseStream.Seek(offset, origin)
           : throw new NotSupportedException();
     }
 
@@ -56,15 +56,15 @@ namespace Oahu.Decrypt.Mpeg4
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-      BaseStream.Write(buffer, offset, count);
-      WritePosition += count;
+      this.baseStream.Write(buffer, offset, count);
+      writePosition += count;
     }
 
     protected override void Dispose(bool disposing)
     {
       if (disposing)
       {
-        BaseStream.Dispose();
+        this.baseStream.Dispose();
       }
 
       base.Dispose(disposing);

@@ -18,11 +18,11 @@ namespace Oahu.App.Avalonia
 {
   public partial class MainWindow : Window
   {
-    private readonly MainWindowViewModel _viewModel;
-    private readonly UserSettings _userSettings;
-    private bool _initDone;
-    private CancellationTokenSource _cts;
-    private WindowNotificationManager _notificationManager;
+    private readonly MainWindowViewModel viewModel;
+    private readonly UserSettings userSettings;
+    private bool initDone;
+    private CancellationTokenSource cts;
+    private WindowNotificationManager notificationManager;
 
     public MainWindow()
     {
@@ -31,105 +31,105 @@ namespace Oahu.App.Avalonia
 
     public MainWindow(MainWindowViewModel viewModel, UserSettings userSettings) : this()
     {
-      _viewModel = viewModel;
-      _userSettings = userSettings;
+      this.viewModel = viewModel;
+      this.userSettings = userSettings;
       DataContext = viewModel;
     }
 
     protected override async void OnOpened(EventArgs e)
     {
       base.OnOpened(e);
-      if (_initDone || _viewModel is null)
+      if (initDone || viewModel is null)
       {
         return;
       }
 
-      _initDone = true;
-      await initAsync();
+      initDone = true;
+      await InitAsync();
     }
 
-    private async Task initAsync()
+    private async Task InitAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
-      _notificationManager = new WindowNotificationManager(this)
+      notificationManager = new WindowNotificationManager(this)
       {
         Position = NotificationPosition.BottomRight,
         MaxItems = 3
       };
 
-      _viewModel.SetBusy(true, "Initializing...");
+      viewModel.SetBusy(true, "Initializing...");
 
       try
       {
-        var client = _viewModel.AudibleClient;
+        var client = viewModel.AudibleClient;
 
         // Run setup wizard if no profiles exist (mirrors Windows runWizardAsync)
         Log(4, this, () => "before wizard");
-        await runWizardAsync(client);
+        await RunWizardAsync(client);
 
         // Initialize the database (mirrors Windows init)
         Log(4, this, () => "before db");
-        _viewModel.SetBusy(true, "Initializing database...");
+        viewModel.SetBusy(true, "Initializing database...");
         await BookDbContextLazyLoad.StartupAsync();
 
         // Load profile from config file (mirrors Windows ConfigFromFileAsync)
         Log(4, this, () => "before config");
-        _viewModel.SetBusy(true, "Loading configuration...");
-        _viewModel.CurrentProfile = await client.ConfigFromFileAsync(
-          _userSettings.DownloadSettings?.Profile,
-          getAccountAlias);
+        viewModel.SetBusy(true, "Loading configuration...");
+        viewModel.CurrentProfile = await client.ConfigFromFileAsync(
+          userSettings.DownloadSettings?.Profile,
+          GetAccountAlias);
 
-        if (_viewModel.CurrentProfile is not null)
+        if (viewModel.CurrentProfile is not null)
         {
-          _userSettings.DownloadSettings.Profile = new ProfileAliasKey(_viewModel.CurrentProfile);
-          _userSettings.Save();
+          userSettings.DownloadSettings.Profile = new ProfileAliasKey(viewModel.CurrentProfile);
+          userSettings.Save();
 
           // Initialize the API and library (mirrors Windows initLibraryAsync)
-          _viewModel.Api = client.Api;
-          if (_viewModel.Api is not null)
+          viewModel.Api = client.Api;
+          if (viewModel.Api is not null)
           {
-            _viewModel.Api.GetAccountAliasFunc = getAccountAlias;
+            viewModel.Api.GetAccountAliasFunc = GetAccountAlias;
 
-            if (_userSettings.DownloadSettings.AutoUpdateLibrary)
+            if (userSettings.DownloadSettings.AutoUpdateLibrary)
             {
-              _viewModel.SetBusy(true, "Updating library...");
-              await _viewModel.Api.GetLibraryAsync(false);
+              viewModel.SetBusy(true, "Updating library...");
+              await viewModel.Api.GetLibraryAsync(false);
 
-              _viewModel.SetBusy(true, "Downloading cover images...");
-              await _viewModel.Api.DownloadCoverImagesAsync();
+              viewModel.SetBusy(true, "Downloading cover images...");
+              await viewModel.Api.DownloadCoverImagesAsync();
             }
 
             // Load books into the library view
-            var books = _viewModel.Api.GetBooks();
+            var books = viewModel.Api.GetBooks();
             if (books is not null)
             {
-              _viewModel.BookLibrary.LoadBooks(books);
+              viewModel.BookLibrary.LoadBooks(books);
             }
 
             // Wire download button to move selected books to Downloads tab
-            _viewModel.BookLibrary.DownloadRequested += onDownloadRequested;
+            viewModel.BookLibrary.DownloadRequested += OnDownloadRequested;
 
             // Wire the download pipeline
-            _viewModel.Conversion.RunRequested += onRunDownloadPipeline;
-            _viewModel.Conversion.CancelRequested += onCancelDownload;
+            viewModel.Conversion.RunRequested += OnRunDownloadPipeline;
+            viewModel.Conversion.CancelRequested += OnCancelDownload;
           }
         }
 
-        _viewModel.SetBusy(false, "Ready");
-        _viewModel.IsInitialized = true;
+        viewModel.SetBusy(false, "Ready");
+        viewModel.IsInitialized = true;
         Log(4, this, () => "all done");
       }
       catch (Exception ex)
       {
         Log(1, this, () => $"init error: {ex.Message}");
-        _viewModel.SetBusy(false, $"Initialization error: {ex.Message}");
+        viewModel.SetBusy(false, $"Initialization error: {ex.Message}");
       }
     }
 
-    private async Task runWizardAsync(AudibleClient client)
+    private async Task RunWizardAsync(AudibleClient client)
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       var profiles = await client.GetProfilesAsync();
       bool needsProfile = profiles.IsNullOrEmpty();
@@ -144,7 +144,7 @@ namespace Oahu.App.Avalonia
 
       var wizardVm = new ProfileWizardViewModel();
       wizardVm.SetClient(client);
-      wizardVm.SetSettings(_userSettings.DownloadSettings, _userSettings.ExportSettings);
+      wizardVm.SetSettings(userSettings.DownloadSettings, userSettings.ExportSettings);
 
       var wizardWindow = new SetupWizardWindow(wizardVm);
       await wizardWindow.ShowWizardAsync(this);
@@ -152,38 +152,38 @@ namespace Oahu.App.Avalonia
       if (!wizardVm.RegistrationSucceeded)
       {
         Log(1, this, () => "wizard: no profile was created");
-        _viewModel.StatusMessage = "Warning: No profile was created. You can create one later via Settings.";
+        viewModel.StatusMessage = "Warning: No profile was created. You can create one later via Settings.";
       }
     }
 
-    private void onDownloadRequested(object sender, IEnumerable<BookItemViewModel> selectedBooks)
+    private void OnDownloadRequested(object sender, IEnumerable<BookItemViewModel> selectedBooks)
     {
       var books = selectedBooks.ToList();
       Log(3, this, () => $"download requested for {books.Count} book(s)");
 
       foreach (var bookVm in books)
       {
-        _viewModel.Conversion.AddConversion(bookVm.Book);
+        viewModel.Conversion.AddConversion(bookVm.Book);
       }
 
-      _viewModel.StatusMessage = $"{_viewModel.Conversion.QueuedCount} book(s) queued for download.";
+      viewModel.StatusMessage = $"{viewModel.Conversion.QueuedCount} book(s) queued for download.";
     }
 
-    private void onCancelDownload()
+    private void OnCancelDownload()
     {
       Log(3, this, () => "cancel requested");
-      _cts?.Cancel();
+      cts?.Cancel();
     }
 
-    private async Task onRunDownloadPipeline(IReadOnlyList<ConversionItemViewModel> items)
+    private async Task OnRunDownloadPipeline(IReadOnlyList<ConversionItemViewModel> items)
     {
       using var lg = new LogGuard(3, this, () => $"#items={items.Count}");
 
-      _cts = new CancellationTokenSource();
-      var api = _viewModel.Api;
+      cts = new CancellationTokenSource();
+      var api = viewModel.Api;
       if (api is null)
       {
-        _viewModel.StatusMessage = "Error: API not initialized.";
+        viewModel.StatusMessage = "Error: API not initialized.";
         return;
       }
 
@@ -194,7 +194,7 @@ namespace Oahu.App.Avalonia
 
       if (conversions.Count == 0)
       {
-        _viewModel.StatusMessage = "No downloadable items in queue.";
+        viewModel.StatusMessage = "No downloadable items in queue.";
         return;
       }
 
@@ -214,7 +214,7 @@ namespace Oahu.App.Avalonia
           }
 
           double pct = totalItems > 0 ? (double)completedItems / totalItems : 0;
-          _viewModel.Conversion.UpdateOverallProgress(pct,
+          viewModel.Conversion.UpdateOverallProgress(pct,
             $"Processing {completedItems} of {totalItems}...");
         });
       });
@@ -236,44 +236,44 @@ namespace Oahu.App.Avalonia
           itemVm.UpdateState(conv.State);
 
           // Check if this item has reached a terminal success state
-          bool done = conv.State is EConversionState.local_unlocked
-            or EConversionState.exported
-            or EConversionState.converted;
+          bool done = conv.State is EConversionState.LocalUnlocked
+            or EConversionState.Exported
+            or EConversionState.Converted;
 
           if (done)
           {
             string title = conv.Book.Title ?? conv.Book.Asin;
             string stateLabel = conv.State switch
             {
-              EConversionState.exported => "downloaded and exported",
+              EConversionState.Exported => "downloaded and exported",
               _ => "downloaded and decrypted"
             };
-            _notificationManager?.Show(
+            notificationManager?.Show(
               new Notification(
                 "Download Complete",
                 $"\"{title}\" has been {stateLabel}.",
                 NotificationType.Success));
-            _viewModel.Conversion.RemoveConversion(conv.Book.Asin);
+            viewModel.Conversion.RemoveConversion(conv.Book.Asin);
             lookup.Remove(conv.Book.Asin);
           }
         });
       };
 
       // Build the export action
-      bool doExport = _userSettings.ExportSettings?.ExportToAax ?? false;
+      bool doExport = userSettings.ExportSettings?.ExportToAax ?? false;
       AaxExporter exporter = null;
       if (doExport)
       {
-        exporter = new AaxExporter(_userSettings.ExportSettings, _userSettings.DownloadSettings);
+        exporter = new AaxExporter(userSettings.ExportSettings, userSettings.DownloadSettings);
       }
 
-      _viewModel.StatusMessage = "Downloading...";
+      viewModel.StatusMessage = "Downloading...";
 
       try
       {
         using var job = new DownloadDecryptJob<SimpleCancellation>(
           api,
-          _userSettings.DownloadSettings,
+          userSettings.DownloadSettings,
           onStateChanged);
 
         ConvertDelegate<SimpleCancellation> convertAction = null;
@@ -285,7 +285,7 @@ namespace Oahu.App.Avalonia
           };
         }
 
-        var context = new SimpleCancellation(_cts.Token);
+        var context = new SimpleCancellation(cts.Token);
 
         await job.DownloadDecryptAndConvertAsync(
           conversions,
@@ -293,23 +293,23 @@ namespace Oahu.App.Avalonia
           context,
           convertAction);
 
-        _viewModel.StatusMessage = _cts.IsCancellationRequested
+        viewModel.StatusMessage = cts.IsCancellationRequested
           ? "Download cancelled."
           : "Download complete.";
       }
       catch (OperationCanceledException)
       {
-        _viewModel.StatusMessage = "Download cancelled.";
+        viewModel.StatusMessage = "Download cancelled.";
       }
       catch (Exception ex)
       {
         Log(1, this, () => $"pipeline error: {ex.Message}");
-        _viewModel.StatusMessage = $"Download error: {ex.Message}";
+        viewModel.StatusMessage = $"Download error: {ex.Message}";
       }
       finally
       {
-        _cts?.Dispose();
-        _cts = null;
+        cts?.Dispose();
+        cts = null;
 
         // Refresh states for any items still in the queue (errors, cancelled, etc.)
         foreach (var kvp in lookup)
@@ -321,12 +321,12 @@ namespace Oahu.App.Avalonia
           }
         }
 
-        _viewModel.Conversion.UpdateOverallProgress(1.0, "Finished");
-        _viewModel.Conversion.UpdateQueuedCount();
+        viewModel.Conversion.UpdateOverallProgress(1.0, "Finished");
+        viewModel.Conversion.UpdateQueuedCount();
       }
     }
 
-    private bool getAccountAlias(AccountAliasContext ctxt)
+    private bool GetAccountAlias(AccountAliasContext ctxt)
     {
       // Auto-accept the alias with customer name for now
       if (ctxt.Alias.IsNullOrWhiteSpace())

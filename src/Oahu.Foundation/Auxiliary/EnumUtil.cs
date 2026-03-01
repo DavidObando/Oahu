@@ -10,7 +10,7 @@ namespace Oahu.Aux
   public static class EnumUtil
   {
     const char USCORE = '_';
-    static readonly byte __a = Convert.ToByte('a');
+    static readonly byte ByteA = Convert.ToByte('a');
 
     // Note: constraint System.Enum available in C# 7.3
     public static IEnumerable<T> GetValues<T>() where T : struct, Enum
@@ -74,7 +74,7 @@ namespace Oahu.Aux
             byte x = Convert.ToByte(parts[i][0]);
             try
             {
-              parts[i] = punct.Infix?[x - __a];
+              parts[i] = punct.Infix?[x - ByteA];
             }
             catch (IndexOutOfRangeException)
             {

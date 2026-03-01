@@ -33,12 +33,12 @@ namespace Oahu.Aux.Win32
     // Written by Robert G. Bryan in Feb, 2011.
     //
     // Constants required to handle file I/O:
-    private const uint GENERIC_READ = 0x80000000;
-    private const uint GENERIC_WRITE = 0x40000000;
-    private const uint OPEN_EXISTING = 3;
-    private const uint CREATE_ALWAYS = 2;
-    private const uint CREATE_NEW = 1;
-    private const uint FILE_SHARE_READ = 1;
+    private const uint GenericRead = 0x80000000;
+    private const uint GenericWrite = 0x40000000;
+    private const uint OpenExisting = 3;
+    private const uint CreateAlways = 2;
+    private const uint CreateNew = 1;
+    private const uint FileShareRead = 1;
     private const int BlockSize = 65536;
 
     private GCHandle gchBuf;            // Handle to GCHandle object used to pin the I/O buffer in memory.
@@ -49,11 +49,11 @@ namespace Oahu.Aux.Win32
     {
     }
 
-    public WinFileIO(Array Buffer)
+    public WinFileIO(Array buffer)
     {
       // This constructor is provided so that the buffer can be pinned in memory.
       // Cleanup must be called in order to unpin the buffer.
-      PinBuffer(Buffer);
+      PinBuffer(buffer);
     }
 
     ~WinFileIO()
@@ -71,7 +71,7 @@ namespace Oahu.Aux.Win32
       GC.SuppressFinalize(this);
     }
 
-    public void PinBuffer(Array Buffer)
+    public void PinBuffer(Array buffer)
     {
       // This function must be called to pin the buffer in memory before any file I/O is done.
       // This shows how to pin a buffer in memory for an extended period of time without using
@@ -80,8 +80,8 @@ namespace Oahu.Aux.Win32
       //
       // Make sure we don't leak memory if this function was called before and the UnPinBuffer was not called.
       UnpinBuffer();
-      gchBuf = GCHandle.Alloc(Buffer, GCHandleType.Pinned);
-      IntPtr pAddr = Marshal.UnsafeAddrOfPinnedArrayElement(Buffer, 0);
+      gchBuf = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+      IntPtr pAddr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
 
       // pBuffer is the pointer used for all of the I/O functions in this class.
       pBuffer = (void*)pAddr.ToPointer();
@@ -98,51 +98,51 @@ namespace Oahu.Aux.Win32
       }
     }
 
-    public void OpenForReading(string FileName)
+    public void OpenForReading(string fileName)
     {
       // This function uses the Windows API CreateFile function to open an existing file.
       // A return value of true indicates success.
       Close();
-      handle = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+      handle = CreateFile(fileName, GenericRead, FileShareRead, 0, OpenExisting, 0, 0);
       if (handle.IsInvalid)
       {
-        Win32Exception WE = new Win32Exception();
-        IOException AE = new IOException("WinFileIO:OpenForReading - Could not open file " +
-          FileName + " - " + WE.Message);
-        throw AE;
+        Win32Exception we = new Win32Exception();
+        IOException ae = new IOException("WinFileIO:OpenForReading - Could not open file " +
+          fileName + " - " + we.Message);
+        throw ae;
       }
     }
 
-    public void OpenForWriting(string FileName, bool overwrite)
+    public void OpenForWriting(string fileName, bool overwrite)
     {
       // This function uses the Windows API CreateFile function to open an existing file.
       // If the file exists, it will be overwritten.
       Close();
-      uint create = overwrite ? CREATE_ALWAYS : CREATE_NEW;
-      handle = CreateFile(FileName, GENERIC_WRITE, 0, 0, create, 0, 0);
+      uint create = overwrite ? CreateAlways : CreateNew;
+      handle = CreateFile(fileName, GenericWrite, 0, 0, create, 0, 0);
       if (handle.IsInvalid)
       {
-        Win32Exception WE = new Win32Exception();
-        IOException AE = new IOException("WinFileIO:OpenForWriting - Could not open file " +
-          FileName + " - " + WE.Message);
-        throw AE;
+        Win32Exception we = new Win32Exception();
+        IOException ae = new IOException("WinFileIO:OpenForWriting - Could not open file " +
+          fileName + " - " + we.Message);
+        throw ae;
       }
     }
 
-    public int Read(int BytesToRead)
+    public int Read(int bytesToRead)
     {
       // This function reads in a file up to BytesToRead using the Windows API function ReadFile.  The return value
       // is the number of bytes read.
-      int BytesRead = 0;
-      if (!ReadFile(handle, pBuffer, BytesToRead, &BytesRead, 0))
+      int bytesRead = 0;
+      if (!ReadFile(handle, pBuffer, bytesToRead, &bytesRead, 0))
       {
-        Win32Exception WE = new Win32Exception();
-        IOException AE = new IOException("WinFileIO:Read - Error occurred reading a file. - " +
-          WE.Message);
-        throw AE;
+        Win32Exception we = new Win32Exception();
+        IOException ae = new IOException("WinFileIO:Read - Error occurred reading a file. - " +
+          we.Message);
+        throw ae;
       }
 
-      return BytesRead;
+      return bytesRead;
     }
 
     public int ReadUntilEOF()
@@ -151,107 +151,107 @@ namespace Oahu.Aux.Win32
       // Also, if the buffer is not large enough to read the file, then an ApplicationException will be thrown.
       // No check is made to see if the buffer is large enough to hold the file.  If this is needed, then
       // use the ReadBlocks function below.
-      int BytesReadInBlock = 0, BytesRead = 0;
+      int bytesReadInBlock = 0, bytesRead = 0;
       byte* pBuf = (byte*)pBuffer;
 
       // Do until there are no more bytes to read or the buffer is full.
       for (; ;)
       {
-        if (!ReadFile(handle, pBuf, BlockSize, &BytesReadInBlock, 0))
+        if (!ReadFile(handle, pBuf, BlockSize, &bytesReadInBlock, 0))
         {
           // This is an error condition.  The error msg can be obtained by creating a Win32Exception and
           // using the Message property to obtain a description of the error that was encountered.
-          Win32Exception WE = new Win32Exception();
-          IOException AE = new IOException("WinFileIO:ReadUntilEOF - Error occurred reading a file. - "
-            + WE.Message);
-          throw AE;
+          Win32Exception we = new Win32Exception();
+          IOException ae = new IOException("WinFileIO:ReadUntilEOF - Error occurred reading a file. - "
+            + we.Message);
+          throw ae;
         }
 
-        if (BytesReadInBlock == 0)
+        if (bytesReadInBlock == 0)
         {
           break;
         }
 
-        BytesRead += BytesReadInBlock;
-        pBuf += BytesReadInBlock;
+        bytesRead += bytesReadInBlock;
+        pBuf += bytesReadInBlock;
       }
 
-      return BytesRead;
+      return bytesRead;
     }
 
-    public int ReadBlocks(int BytesToRead)
+    public int ReadBlocks(int bytesToRead)
     {
       // This function reads a total of BytesToRead at a time.  There is a limit of 2gb per call.
-      int BytesReadInBlock = 0, BytesRead = 0, BlockByteSize;
+      int bytesReadInBlock = 0, bytesRead = 0, blockByteSize;
       byte* pBuf = (byte*)pBuffer;
 
       // Do until there are no more bytes to read or the buffer is full.
       do
       {
-        BlockByteSize = Math.Min(BlockSize, BytesToRead - BytesRead);
-        if (!ReadFile(handle, pBuf, BlockByteSize, &BytesReadInBlock, 0))
+        blockByteSize = Math.Min(BlockSize, bytesToRead - bytesRead);
+        if (!ReadFile(handle, pBuf, blockByteSize, &bytesReadInBlock, 0))
         {
-          Win32Exception WE = new Win32Exception();
-          IOException AE = new IOException("WinFileIO:ReadBytes - Error occurred reading a file. - "
-            + WE.Message);
-          throw AE;
+          Win32Exception we = new Win32Exception();
+          IOException ae = new IOException("WinFileIO:ReadBytes - Error occurred reading a file. - "
+            + we.Message);
+          throw ae;
         }
 
-        if (BytesReadInBlock == 0)
+        if (bytesReadInBlock == 0)
         {
           break;
         }
 
-        BytesRead += BytesReadInBlock;
-        pBuf += BytesReadInBlock;
+        bytesRead += bytesReadInBlock;
+        pBuf += bytesReadInBlock;
       }
-      while (BytesRead < BytesToRead);
-      return BytesRead;
+      while (bytesRead < bytesToRead);
+      return bytesRead;
     }
 
-    public int Write(int BytesToWrite)
+    public int Write(int bytesToWrite)
     {
       // Writes out the file in one swoop using the Windows WriteFile function.
-      int NumberOfBytesWritten;
-      if (!WriteFile(handle, pBuffer, BytesToWrite, &NumberOfBytesWritten, 0))
+      int numberOfBytesWritten;
+      if (!WriteFile(handle, pBuffer, bytesToWrite, &numberOfBytesWritten, 0))
       {
-        Win32Exception WE = new Win32Exception();
-        IOException AE = new IOException("WinFileIO:Write - Error occurred writing a file. - " +
-          WE.Message);
-        throw AE;
+        Win32Exception we = new Win32Exception();
+        IOException ae = new IOException("WinFileIO:Write - Error occurred writing a file. - " +
+          we.Message);
+        throw ae;
       }
 
-      return NumberOfBytesWritten;
+      return numberOfBytesWritten;
     }
 
-    public int WriteBlocks(int NumBytesToWrite)
+    public int WriteBlocks(int numBytesToWrite)
     {
       // This function writes out chunks at a time instead of the entire file.  This is the fastest write function,
       // perhaps because the block size is an even multiple of the sector size.
-      int BytesWritten = 0, BytesToWrite, RemainingBytes, BytesOutput = 0;
+      int bytesWritten = 0, bytesToWrite, remainingBytes, bytesOutput = 0;
       byte* pBuf = (byte*)pBuffer;
-      RemainingBytes = NumBytesToWrite;
+      remainingBytes = numBytesToWrite;
 
       // Do until there are no more bytes to write.
       do
       {
-        BytesToWrite = Math.Min(RemainingBytes, BlockSize);
-        if (!WriteFile(handle, pBuf, BytesToWrite, &BytesWritten, 0))
+        bytesToWrite = Math.Min(remainingBytes, BlockSize);
+        if (!WriteFile(handle, pBuf, bytesToWrite, &bytesWritten, 0))
         {
           // This is an error condition.  The error msg can be obtained by creating a Win32Exception and
           // using the Message property to obtain a description of the error that was encountered.
-          Win32Exception WE = new Win32Exception();
-          IOException AE = new IOException("WinFileIO:WriteBlocks - Error occurred writing a file. - "
-            + WE.Message);
-          throw AE;
+          Win32Exception we = new Win32Exception();
+          IOException ae = new IOException("WinFileIO:WriteBlocks - Error occurred writing a file. - "
+            + we.Message);
+          throw ae;
         }
 
-        pBuf += BytesToWrite;
-        BytesOutput += BytesToWrite;
-        RemainingBytes -= BytesToWrite;
+        pBuf += bytesToWrite;
+        bytesOutput += bytesToWrite;
+        remainingBytes -= bytesToWrite;
       }
-      while (RemainingBytes > 0);
-      return BytesOutput;
+      while (remainingBytes > 0);
+      return bytesOutput;
     }
 
     public bool Close()
@@ -277,12 +277,12 @@ namespace Oahu.Aux.Win32
     [System.Runtime.InteropServices.DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
     static extern unsafe SafeFileHandle CreateFile
     (
-       string FileName,          // file name
-       uint DesiredAccess,       // access mode
-       uint ShareMode,           // share mode
-       uint SecurityAttributes,  // Security Attributes
-       uint CreationDisposition, // how to create
-       uint FlagsAndAttributes,  // file attributes
+       string fileName,          // file name
+       uint desiredAccess,       // access mode
+       uint shareMode,           // share mode
+       uint securityAttributes,  // Security Attributes
+       uint creationDisposition, // how to create
+       uint flagsAndAttributes,  // file attributes
        int hTemplateFile);         // handle to template file
 
     [System.Runtime.InteropServices.DllImport("kernel32", SetLastError = true)]
@@ -290,18 +290,18 @@ namespace Oahu.Aux.Win32
     (
        SafeHandle handle,         // handle to file
        void* pBuffer,            // data buffer
-       int NumberOfBytesToRead,  // number of bytes to read
+       int numberOfBytesToRead,  // number of bytes to read
        int* pNumberOfBytesRead,  // number of bytes read
-       int Overlapped);            // overlapped buffer which is used for async I/O.  Not used here.
+       int overlapped);            // overlapped buffer which is used for async I/O.  Not used here.
 
     [System.Runtime.InteropServices.DllImport("kernel32", SetLastError = true)]
     static extern unsafe bool WriteFile
     (
       SafeHandle handle,               // handle to file
       void* pBuffer,             // data buffer
-      int NumberOfBytesToWrite,  // Number of bytes to write.
+      int numberOfBytesToWrite,  // Number of bytes to write.
       int* pNumberOfBytesWritten, // Number of bytes that were written..
-      int Overlapped);                     // Overlapped buffer which is used for async I/O.  Not used here.
+      int overlapped);                     // Overlapped buffer which is used for async I/O.  Not used here.
 
     [System.Runtime.InteropServices.DllImport("kernel32", SetLastError = true)]
     static extern unsafe bool CloseHandle

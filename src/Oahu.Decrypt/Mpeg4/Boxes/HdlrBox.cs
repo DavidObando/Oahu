@@ -7,7 +7,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 
 public class HdlrBox : FullBox
 {
-  private readonly byte[] Reserved;
+  private readonly byte[] reserved;
 
   public HdlrBox(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
@@ -15,7 +15,7 @@ public class HdlrBox : FullBox
 
     PreDefined = file.ReadUInt32BE();
     HandlerType = Encoding.UTF8.GetString(file.ReadBlock(4));
-    Reserved = file.ReadBlock(12);
+    reserved = file.ReadBlock(12);
 
     var readToEnd = file.ReadBlock((int)(endPos - file.Position));
 
@@ -37,7 +37,7 @@ public class HdlrBox : FullBox
     }
 
     HandlerType = type;
-    Reserved = new byte[12];
+    reserved = new byte[12];
     HandlerName = name ?? "";
     NullTerminatorCount = 1;
   }
@@ -59,7 +59,7 @@ public class HdlrBox : FullBox
     ArgumentOutOfRangeException.ThrowIfGreaterThan(reservedData.Length, 12, nameof(reservedData));
 
     var hdlr = new HdlrBox(type, name, parent);
-    Array.Copy(reservedData, 0, hdlr.Reserved, 0, reservedData.Length);
+    Array.Copy(reservedData, 0, hdlr.reserved, 0, reservedData.Length);
     parent.Children.Add(hdlr);
     return hdlr;
   }
@@ -69,7 +69,7 @@ public class HdlrBox : FullBox
     base.Render(file);
     file.WriteUInt32BE(PreDefined);
     file.Write(Encoding.UTF8.GetBytes(HandlerType));
-    file.Write(Reserved);
+    file.Write(reserved);
     file.Write(Encoding.UTF8.GetBytes(HandlerName));
     file.Write(new byte[NullTerminatorCount]);
   }

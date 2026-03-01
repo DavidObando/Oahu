@@ -11,14 +11,14 @@ public class Dac4Box : Box
 {
   public ac4_dsi_v1? Ac4DsiV1;
 
-  private readonly byte[] Ac4Data;
+  private readonly byte[] ac4Data;
 
   public Dac4Box(Stream file, BoxHeader header, IBox? parent) : base(header, parent)
   {
-    Ac4Data = file.ReadBlock((int)(header.TotalBoxSize - header.HeaderSize));
+    ac4Data = file.ReadBlock((int)(header.TotalBoxSize - header.HeaderSize));
     try
     {
-      var reader = new BitReader(Ac4Data);
+      var reader = new BitReader(ac4Data);
       Ac4DsiV1 = new ac4_dsi_v1(reader);
     }
     catch
@@ -31,7 +31,7 @@ public class Dac4Box : Box
     NumberOfChannels = Ac4DsiV1.Channels()?.ChannelCount();
   }
 
-  public override long RenderSize => base.RenderSize + Ac4Data.Length;
+  public override long RenderSize => base.RenderSize + ac4Data.Length;
 
   public uint? AverageBitrate { get; }
 
@@ -41,6 +41,6 @@ public class Dac4Box : Box
 
   protected override void Render(Stream file)
   {
-    file.Write(Ac4Data);
+    file.Write(ac4Data);
   }
 }

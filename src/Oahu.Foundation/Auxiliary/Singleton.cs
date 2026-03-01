@@ -8,15 +8,15 @@ namespace Oahu.Aux
   /// <typeparam name="T">Type of class to be instantiated as a singleton.</typeparam>
   public class Singleton<T> where T : class, new()
   {
-    private static readonly object __lockable;
-    private static T __t;
+    private static readonly object Lockable;
+    private static T instance;
 
     /// <summary>
     /// Static ctor. Initializes the <see cref="Singleton{T}"/> class, but does not yet create the instance.
     /// </summary>
     static Singleton()
     {
-      __lockable = new object();
+      Lockable = new object();
     }
 
     /// <summary>
@@ -30,28 +30,28 @@ namespace Oahu.Aux
     {
       get
       {
-        lock (__lockable)
+        lock (Lockable)
         {
-          if (__t is null)
+          if (instance is null)
           {
-            __t = new T();
+            instance = new T();
           }
 
-          return __t;
+          return instance;
         }
       }
     }
 
     public static void Dispose()
     {
-      lock (__lockable)
+      lock (Lockable)
       {
-        if (__t is IDisposable obj)
+        if (instance is IDisposable obj)
         {
           obj.Dispose();
         }
 
-        __t = null;
+        instance = null;
       }
     }
   }

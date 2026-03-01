@@ -8,22 +8,22 @@ namespace Oahu.Decrypt
 {
   public class Mp4Operation
   {
-    private readonly CancellationTokenSource _cancellationSource = new();
-    private readonly Func<CancellationTokenSource, Task> _startAction;
-    private readonly Action<Task>? _continuationAction;
-    private ConversionProgressEventArgs? _lastArgs;
-    private Task? _continuation;
-    private Task? _readerTask;
+    private readonly CancellationTokenSource cancellationSource = new();
+    private readonly Func<CancellationTokenSource, Task> startAction;
+    private readonly Action<Task>? continuationAction;
+    private ConversionProgressEventArgs? lastArgs;
+    private Task? continuation;
+    private Task? readerTask;
 
     internal Mp4Operation(Func<CancellationTokenSource, Task> startAction, Mp4File? mp4File, Action<Task> continuationTask)
         : this(startAction, mp4File)
     {
-      _continuationAction = continuationTask;
+      continuationAction = continuationTask;
     }
 
     protected Mp4Operation(Func<CancellationTokenSource, Task> startAction, Mp4File? mp4File)
     {
-      _startAction = startAction;
+      this.startAction = startAction;
       Mp4File = mp4File;
     }
 
@@ -31,23 +31,23 @@ namespace Oahu.Decrypt
 
     public bool IsCompleted => Continuation?.IsCompleted is true;
 
-    public bool IsFaulted => _readerTask?.IsFaulted is true;
+    public bool IsFaulted => readerTask?.IsFaulted is true;
 
-    public bool IsCanceled => _readerTask?.IsCanceled is true;
+    public bool IsCanceled => readerTask?.IsCanceled is true;
 
-    public bool IsCompletedSuccessfully => _readerTask?.IsCompletedSuccessfully is true && Continuation?.IsCompletedSuccessfully is true;
+    public bool IsCompletedSuccessfully => readerTask?.IsCompletedSuccessfully is true && Continuation?.IsCompletedSuccessfully is true;
 
-    public TimeSpan CurrentProcessPosition => _lastArgs?.ProcessPosition ?? TimeSpan.Zero;
+    public TimeSpan CurrentProcessPosition => lastArgs?.ProcessPosition ?? TimeSpan.Zero;
 
-    public double ProcessSpeed => _lastArgs?.ProcessSpeed ?? 0;
+    public double ProcessSpeed => lastArgs?.ProcessSpeed ?? 0;
 
-    public TaskStatus TaskStatus => _readerTask?.Status ?? TaskStatus.Created;
+    public TaskStatus TaskStatus => readerTask?.Status ?? TaskStatus.Created;
 
     public Task OperationTask => Continuation;
 
     public Mp4File? Mp4File { get; }
 
-    protected virtual Task Continuation => _continuation ?? Task.CompletedTask;
+    protected virtual Task Continuation => continuation ?? Task.CompletedTask;
 
     public static Mp4Operation FromCompleted(Mp4File? mp4File)
         => new Mp4Operation(c => Task.CompletedTask, mp4File, _ => { });
@@ -55,17 +55,17 @@ namespace Oahu.Decrypt
     /// <summary>Cancel the operation</summary>
     public Task CancelAsync()
     {
-      _cancellationSource.Cancel();
-      return Continuation is null ? Task.FromCanceled(_cancellationSource.Token) : Continuation;
+      cancellationSource.Cancel();
+      return Continuation is null ? Task.FromCanceled(cancellationSource.Token) : Continuation;
     }
 
     /// <summary>Start the Mp4 operation</summary>
     public void Start()
     {
-      if (_readerTask is null)
+      if (readerTask is null)
       {
-        _readerTask = Task.Run(() => _startAction(_cancellationSource));
-        SetContinuation(_readerTask);
+        readerTask = Task.Run(() => startAction(cancellationSource));
+        SetContinuation(readerTask);
       }
     }
 
@@ -77,18 +77,18 @@ namespace Oahu.Decrypt
 
     internal void OnProgressUpdate(ConversionProgressEventArgs args)
     {
-      _lastArgs = args;
+      lastArgs = args;
       ConversionProgressUpdate?.Invoke(this, args);
     }
 
     protected virtual void SetContinuation(Task readerTask)
     {
-      _continuation = readerTask.ContinueWith(t =>
+      continuation = readerTask.ContinueWith(t =>
       {
         // Call the continuation delegate to cleanup disposables
         try
         {
-          _continuationAction?.Invoke(t);
+          continuationAction?.Invoke(t);
         }
         catch (Exception ex)
         {

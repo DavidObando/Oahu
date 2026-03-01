@@ -35,7 +35,7 @@ namespace Oahu.App.Avalonia
 
         var userSettings = SettingsManager.GetUserSettings<UserSettings>();
 
-        var hardwareIdProvider = getHardwareIdProvider();
+        var hardwareIdProvider = GetHardwareIdProvider();
         var audibleClient = new AudibleClient(
           userSettings.ConfigSettings,
           userSettings.DownloadSettings,
@@ -56,7 +56,7 @@ namespace Oahu.App.Avalonia
       base.OnFrameworkInitializationCompleted();
     }
 
-    private static IHardwareIdProvider getHardwareIdProvider()
+    private static IHardwareIdProvider GetHardwareIdProvider()
     {
       if (OperatingSystem.IsWindows())
       {

@@ -13,10 +13,10 @@ namespace Oahu.Decrypt.Mpeg4;
 public class Mpeg4File : IDisposable
 {
   private readonly Lazy<MetadataItems> lazyMetadataItems;
-  private int m_Disposed;
-  private int? m_timescale = null;
-  private int? m_audioChannels = null;
-  private int? m_averageBitrate = null;
+  private int disposed;
+  private int? timescale = null;
+  private int? audioChannels = null;
+  private int? averageBitrate = null;
 
   public Mpeg4File(Stream file) : this(file, file.Length)
   {
@@ -66,25 +66,25 @@ public class Mpeg4File : IDisposable
 
   public List<IBox> TopLevelBoxes { get; }
 
-  public int TimeScale => m_timescale ??=
+  public int TimeScale => timescale ??=
       AudioSampleEntry.Esds?.ES_Descriptor.DecoderConfig.AudioSpecificConfig.SamplingFrequency ??
       AudioSampleEntry.Dec3?.SampleRate ??
       AudioSampleEntry.Dac4?.SampleRate ??
       (int)Moov.AudioTrack.Mdia.Mdhd.Timescale;
 
-  public int AudioChannels => m_audioChannels ??=
+  public int AudioChannels => audioChannels ??=
       AudioSampleEntry.Esds?.ES_Descriptor.DecoderConfig.AudioSpecificConfig.ChannelConfiguration ??
       AudioSampleEntry.Dec3?.NumberOfChannels ??
       AudioSampleEntry.Dac4?.NumberOfChannels ??
       AudioSampleEntry.ChannelCount;
 
-  public int AverageBitrate => m_averageBitrate ??=
+  public int AverageBitrate => averageBitrate ??=
       (int)(AudioSampleEntry.Esds?.ES_Descriptor.DecoderConfig.AverageBitrate ??
       AudioSampleEntry.Dec3?.AverageBitrate ??
       AudioSampleEntry?.Dac4?.AverageBitrate ??
       CalculateBitrate());
 
-  protected bool Disposed => m_Disposed != 0;
+  protected bool Disposed => disposed != 0;
 
   public static async Task RelocateMoovToBeginningAsync(string mp4FilePath, ProgressTracker? progressTracker = null, CancellationToken cancellationToken = default)
   {
@@ -318,7 +318,7 @@ public class Mpeg4File : IDisposable
 
   protected virtual void Dispose(bool disposing)
   {
-    if (disposing && Interlocked.CompareExchange(ref m_Disposed, 1, 0) == 0)
+    if (disposing && Interlocked.CompareExchange(ref disposed, 1, 0) == 0)
     {
       InputStream.Dispose();
       foreach (var box in TopLevelBoxes)

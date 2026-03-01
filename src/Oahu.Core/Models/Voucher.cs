@@ -1,27 +1,35 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace Oahu.Audible.Json
 {
   public class Voucher : Serialization<Voucher>
   {
-    public string key { get; set; }
+    [JsonPropertyName("key")]
+    public string Key { get; set; }
 
-    public string iv { get; set; }
+    [JsonPropertyName("iv")]
+    public string Iv { get; set; }
 
-    public Rule[] rules { get; set; }
+    [JsonPropertyName("rules")]
+    public Rule[] Rules { get; set; }
   }
 
   public class Rule
   {
-    public Parameter[] parameters { get; set; }
+    [JsonPropertyName("parameters")]
+    public Parameter[] Parameters { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
   }
 
   public class Parameter
   {
-    public DateTime expireDate { get; set; }
+    [JsonPropertyName("expireDate")]
+    public DateTime ExpireDate { get; set; }
 
-    public string type { get; set; }
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
   }
 }

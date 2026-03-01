@@ -64,7 +64,7 @@ public static class MotherboardInfo
       {
         foreach (ManagementObject queryObj in baseboardSearcher.Get())
         {
-          return convertToDateTime(queryObj["InstallDate"]?.ToString());
+          return ConvertToDateTime(queryObj["InstallDate"]?.ToString());
         }
 
         return string.Empty;
@@ -413,7 +413,7 @@ public static class MotherboardInfo
     }
   }
 
-  private static string convertToDateTime(string unconvertedTime)
+  private static string ConvertToDateTime(string unconvertedTime)
   {
     if (unconvertedTime is null)
     {

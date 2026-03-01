@@ -28,15 +28,15 @@ namespace Oahu.Aux.Diagnostics
     public readonly ToStringConverter Converter;
     public readonly string Format;
 
-    static readonly Dictionary<Type, ToStringConverter> __converters = new Dictionary<Type, ToStringConverter>();
+    static readonly Dictionary<Type, ToStringConverter> Converters = new Dictionary<Type, ToStringConverter>();
 
     public ToStringAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type, string format = null)
     {
       if (typeof(ToStringConverter).IsAssignableFrom(type))
       {
-        lock (__converters)
+        lock (Converters)
         {
-          bool succ = __converters.TryGetValue(type, out var converter);
+          bool succ = Converters.TryGetValue(type, out var converter);
           if (succ)
           {
             Converter = converter;
@@ -46,7 +46,7 @@ namespace Oahu.Aux.Diagnostics
             try
             {
               Converter = (ToStringConverter)Activator.CreateInstance(type);
-              __converters.Add(type, Converter);
+              Converters.Add(type, Converter);
             }
             catch (Exception)
             {

@@ -8,23 +8,23 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 using static Oahu.Aux.Logging;
 
 namespace Oahu.Core
 {
   class Authorize
   {
-    const string HTTP_AUTHORITY_AMZN = @"https://api.amazon.";
-    const string HTTP_AUTHORITY_ADBL = @"https://api.audible.";
-    const string HTTP_PATH_REGISTER = @"/auth/register";
-    const string HTTP_PATH_DEREGISTER = @"/auth/deregister";
-    const string HTTP_PATH_TOKEN = @"/auth/token";
+    const string HttpAuthorityAmzn = @"https://api.amazon.";
+    const string HttpAuthorityAdbl = @"https://api.audible.";
+    const string HttpPathRegister = @"/auth/register";
+    const string HttpPathDeregister = @"/auth/deregister";
+    const string HttpPathToken = @"/auth/token";
 
-    const string IOS_VERSION = "15.0.0";
-    const string APP_VERSION = "3.56.2";
-    const string SOFTWARE_VERSION = "35602678";
-    const string APP_NAME = "Audible";
+    const string IosVersion = "15.0.0";
+    const string AppVersion = "3.56.2";
+    const string SoftwareVersion = "35602678";
+    const string AppName = "Audible";
 
     public Authorize(ConfigTokenDelegate getTokenFunc, IAuthorizeSettings settings)
     {
@@ -48,15 +48,15 @@ namespace Oahu.Core
 
     public async Task<(bool, IProfile)> RegisterAsync(Profile profile)
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
-      ensureHttpClient(profile);
+      EnsureHttpClient(profile);
 
       try
       {
-        var request = buildRegisterRequest(profile);
+        var request = BuildRegisterRequest(profile);
 
-        var http = httpClient(profile);
+        var http = HttpClient(profile);
 
         await request.LogAsync(4, this, http.DefaultRequestHeaders, http.CookieContainer, http.BaseAddress);
 
@@ -66,7 +66,7 @@ namespace Oahu.Core
         response.EnsureSuccessStatusCode();
         string content = await response.Content.ReadAsStringAsync();
 
-        return await addProfileToConfig(profile, content);
+        return await AddProfileToConfig(profile, content);
       }
       catch (Exception exc)
       {
@@ -77,14 +77,14 @@ namespace Oahu.Core
 
     public async Task<bool> DeregisterAsync(IProfile profile)
     {
-      ensureHttpClient(profile);
+      EnsureHttpClient(profile);
       try
       {
-        await refreshTokenAsync(profile);
+        await RefreshTokenAsync(profile);
 
-        var request = buildDeregisterRequest(profile);
+        var request = BuildDeregisterRequest(profile);
 
-        var http = httpClient(profile);
+        var http = HttpClient(profile);
 
         await request.LogAsync(4, this, http.DefaultRequestHeaders, http.CookieContainer, http.BaseAddress);
 
@@ -110,16 +110,16 @@ namespace Oahu.Core
       IProfile profile = Configuration.Remove(key);
       if (profile is null)
       {
-        return EAuthorizeResult.removeProfileFailed;
+        return EAuthorizeResult.RemoveProfileFailed;
       }
 
       await WriteConfigurationAsync();
 
       // TODO modify/test
       // bool succ = await DeregisterAsync (profile);
-      // EAuthorizeResult result = succ ? EAuthorizeResult.succ : EAuthorizeResult.deregistrationFailed;
+      // EAuthorizeResult result = succ ? EAuthorizeResult.Succ : EAuthorizeResult.DeregistrationFailed;
       // return result;
-      return EAuthorizeResult.succ;
+      return EAuthorizeResult.Succ;
     }
 
     public async Task RefreshTokenAsync(IProfile profile) =>
@@ -129,7 +129,7 @@ namespace Oahu.Core
     {
       if (Configuration is null)
       {
-        await readConfigurationAsync();
+        await ReadConfigurationAsync();
       }
 
       return Configuration.GetSorted();
@@ -138,15 +138,15 @@ namespace Oahu.Core
     internal IProfile GetProfile(IProfileKey key) => Configuration?.Get(key);
 
     // internal instead of private for testing only
-    internal async Task<(bool, IProfile)> addProfileToConfig(Profile profile, string content)
+    internal async Task<(bool, IProfile)> AddProfileToConfig(Profile profile, string content)
     {
-      bool succ = updateProfile(profile, content);
+      bool succ = UpdateProfile(profile, content);
       if (!succ)
       {
         return (false, null);
       }
 
-      await readConfigurationAsync();
+      await ReadConfigurationAsync();
 
       IProfile prevProfile = Configuration.AddOrReplace(profile);
 
@@ -177,23 +177,23 @@ namespace Oahu.Core
 
     internal async Task RefreshTokenAsync(IProfile profile, bool onAutoRefreshOnly)
     {
-      using var _ = new LogGuard(3, this, () => $"auto={Settings?.AutoRefresh}, onAutoRefeshOnly={onAutoRefreshOnly}");
-      ensureHttpClient(profile);
+      using var logGuard = new LogGuard(3, this, () => $"auto={Settings?.AutoRefresh}, onAutoRefeshOnly={onAutoRefreshOnly}");
+      EnsureHttpClient(profile);
 
-      await readConfigurationAsync();
+      await ReadConfigurationAsync();
 
       if (onAutoRefreshOnly && (Settings?.AutoRefresh ?? false))
       {
         if (profile is Profile prof1 && (Configuration.Profiles?.Contains(prof1) ?? false))
         {
-          await refreshTokenAsync(prof1);
+          await RefreshTokenCoreAsync(prof1);
         }
         else
         {
           Profile prof2 = Configuration.Profiles?.FirstOrDefault(d => d.Matches(profile));
           if (prof2 is not null)
           {
-            await refreshTokenAsync(prof2);
+            await RefreshTokenCoreAsync(prof2);
           }
         }
 
@@ -202,7 +202,7 @@ namespace Oahu.Core
     }
 
     // internal instead of private for testing only
-    internal bool updateProfile(Profile profile, string json)
+    internal bool UpdateProfile(Profile profile, string json)
     {
       try
       {
@@ -227,28 +227,28 @@ namespace Oahu.Core
           return false;
         }
 
-        var response = root.response;
-        var success = response.success;
-        var extensions = success.extensions;
-        var device_info = extensions.device_info;
+        var response = root.Response;
+        var success = response.Success;
+        var extensions = success.Extensions;
+        var device_info = extensions.DeviceInfoJson;
 
         var deviceInfo = new DeviceInfo
         {
-          Name = device_info.device_name,
-          Type = device_info.device_type,
-          Serial = device_info.device_serial_number
+          Name = device_info.DeviceName,
+          Type = device_info.DeviceType,
+          Serial = device_info.DeviceSerialNumber
         };
 
-        var customer_info = extensions.customer_info;
+        var customer_info = extensions.CustomerInfoJson;
 
         var customerInfo = new CustomerInfo
         {
-          Name = customer_info.name,
-          AccountId = customer_info.user_id
+          Name = customer_info.Name,
+          AccountId = customer_info.UserId
         };
 
-        var tokens = success.tokens;
-        var website_cookies = tokens.website_cookies;
+        var tokens = success.Tokens;
+        var website_cookies = tokens.WebsiteCookies;
 
         var cookies = new List<KeyValuePair<string, string>>();
         if (website_cookies is not null)
@@ -261,19 +261,19 @@ namespace Oahu.Core
           }
         }
 
-        var store_authentication_cookie = tokens.store_authentication_cookie;
-        string storeAuthentCookie = store_authentication_cookie.cookie;
+        var store_authentication_cookie = tokens.StoreAuthenticationCookie;
+        string storeAuthentCookie = store_authentication_cookie.Cookie;
 
-        var mac_dms = tokens.mac_dms;
-        string devicePrivateKey = mac_dms.device_private_key;
-        string adpToken = mac_dms.adp_token;
+        var mac_dms = tokens.MacDms;
+        string devicePrivateKey = mac_dms.DevicePrivateKey;
+        string adpToken = mac_dms.AdpToken;
 
-        var bearer = tokens.bearer;
-        int.TryParse(bearer.expires_in, out var expires);
+        var bearer = tokens.Bearer;
+        int.TryParse(bearer.ExpiresIn, out var expires);
 
         var tokenBearer = new TokenBearer(
-          bearer.access_token,
-          bearer.refresh_token,
+          bearer.AccessToken,
+          bearer.RefreshToken,
           DateTime.UtcNow.AddSeconds(expires));
 
         profile.Update(
@@ -295,16 +295,16 @@ namespace Oahu.Core
       return true;
     }
 
-    private HttpClientEx httpClient(IProfile profile) => profile.PreAmazon ? HttpClientAudible : HttpClientAmazon;
+    private HttpClientEx HttpClient(IProfile profile) => profile.PreAmazon ? HttpClientAudible : HttpClientAmazon;
 
-    private void ensureHttpClient(IProfile profile)
+    private void EnsureHttpClient(IProfile profile)
     {
       string domain = Locale.FromCountryCode(profile.Region).Domain;
 
-      HttpClientAmazon = ensureHttpClient(HTTP_AUTHORITY_AMZN, HttpClientAmazon);
-      HttpClientAudible = ensureHttpClient(HTTP_AUTHORITY_ADBL, HttpClientAudible);
+      HttpClientAmazon = EnsureHttpClient(HttpAuthorityAmzn, HttpClientAmazon);
+      HttpClientAudible = EnsureHttpClient(HttpAuthorityAdbl, HttpClientAudible);
 
-      HttpClientEx ensureHttpClient(string authority, HttpClientEx httpClient)
+      HttpClientEx EnsureHttpClient(string authority, HttpClientEx httpClient)
       {
         Uri baseUri = new Uri(authority + domain);
 
@@ -324,14 +324,14 @@ namespace Oahu.Core
       }
     }
 
-    private async Task refreshTokenAsync(IProfile profile)
+    private async Task RefreshTokenCoreAsync(IProfile profile)
     {
       if (profile is null)
       {
         return;
       }
 
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       try
       {
@@ -342,9 +342,9 @@ namespace Oahu.Core
 
         Log(3, this, () => "from server");
 
-        HttpRequestMessage request = buildRefreshRequest(profile);
+        HttpRequestMessage request = BuildRefreshRequest(profile);
 
-        var http = httpClient(profile);
+        var http = HttpClient(profile);
 
         await request.LogAsync(4, this, http.DefaultRequestHeaders, http.CookieContainer, http.BaseAddress);
 
@@ -354,7 +354,7 @@ namespace Oahu.Core
         response.EnsureSuccessStatusCode();
         string content = await response.Content.ReadAsStringAsync();
 
-        refreshToken(profile, content);
+        RefreshToken(profile, content);
       }
       catch (Exception exc)
       {
@@ -362,20 +362,20 @@ namespace Oahu.Core
       }
     }
 
-    private HttpRequestMessage buildRefreshRequest(IProfile profile)
+    private HttpRequestMessage BuildRefreshRequest(IProfile profile)
     {
       var content = new Dictionary<string, string>
       {
-        ["app_name"] = APP_NAME,
-        ["app_version"] = APP_VERSION,
+        ["app_name"] = AppName,
+        ["app_version"] = AppVersion,
         ["source_token"] = profile.Token.RefreshToken,
         ["requested_token_type"] = "access_token",
         ["source_token_type"] = "refresh_token"
       };
 
-      var http = httpClient(profile);
+      var http = HttpClient(profile);
 
-      Uri uri = new Uri(HTTP_PATH_TOKEN, UriKind.Relative);
+      Uri uri = new Uri(HttpPathToken, UriKind.Relative);
 
       var request = new HttpRequestMessage
       {
@@ -388,7 +388,7 @@ namespace Oahu.Core
       return request;
     }
 
-    private void refreshToken(IProfile profile, string json)
+    private void RefreshToken(IProfile profile, string json)
     {
       try
       {
@@ -411,9 +411,9 @@ namespace Oahu.Core
       }
     }
 
-    private async Task readConfigurationAsync()
+    private async Task ReadConfigurationAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       if (Configuration is not null)
       {
@@ -421,24 +421,24 @@ namespace Oahu.Core
       }
 
       Configuration = new Configuration();
-      await readConfigAsync(false);
+      await ReadConfigAsync(false);
       if (Configuration.IsEncrypted)
       {
-        await readConfigAsync(true);
+        await ReadConfigAsync(true);
       }
 
-      async Task readConfigAsync(bool enforce)
+      async Task ReadConfigAsync(bool enforce)
       {
         var cfgToken = GetTokenFunc?.Invoke(enforce);
         await Configuration.ReadAsync(cfgToken?.Token);
       }
     }
 
-    private HttpRequestMessage buildRegisterRequest(IProfile profile)
+    private HttpRequestMessage BuildRegisterRequest(IProfile profile)
     {
       ILocale locale = profile.Region.FromCountryCode();
-      Uri uri = new Uri(HTTP_PATH_REGISTER, UriKind.Relative);
-      string jsonBody = buildRegisterBody(profile, locale);
+      Uri uri = new Uri(HttpPathRegister, UriKind.Relative);
+      string jsonBody = BuildRegisterBody(profile, locale);
       HttpContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
       var request = new HttpRequestMessage
       {
@@ -451,9 +451,9 @@ namespace Oahu.Core
       return request;
     }
 
-    private HttpRequestMessage buildDeregisterRequest(IProfile profile)
+    private HttpRequestMessage BuildDeregisterRequest(IProfile profile)
     {
-      Uri uri = new Uri(HTTP_PATH_DEREGISTER, UriKind.Relative);
+      Uri uri = new Uri(HttpPathDeregister, UriKind.Relative);
 
       var content = new Dictionary<string, string>
       {
@@ -472,7 +472,7 @@ namespace Oahu.Core
       return request;
     }
 
-    private string buildRegisterBody(IProfile profile, ILocale locale)
+    private string BuildRegisterBody(IProfile profile, ILocale locale)
     {
       string json = $@"{{
         ""requested_token_type"":
@@ -484,18 +484,18 @@ namespace Oahu.Core
         }},
         ""registration_data"": {{
           ""domain"": ""Device"",
-          ""app_version"": ""{APP_VERSION}"",
+          ""app_version"": ""{AppVersion}"",
           ""device_serial"": ""{profile.DeviceInfo.Serial}"",
-          ""device_type"": ""{AudibleLogin.DEVICE_TYPE}"",
+          ""device_type"": ""{AudibleLogin.DeviceType}"",
           ""device_name"":
               ""%FIRST_NAME%%FIRST_NAME_POSSESSIVE_STRING%%DUPE_STRATEGY_1ST%Audible for iPhone"",
-          ""os_version"": ""{IOS_VERSION}"",
-          ""software_version"": ""{SOFTWARE_VERSION}"",
+          ""os_version"": ""{IosVersion}"",
+          ""software_version"": ""{SoftwareVersion}"",
           ""device_model"": ""iPhone"",
-          ""app_name"": ""{APP_NAME}""
+          ""app_name"": ""{AppName}""
           }},
         ""auth_data"": {{
-          ""client_id"": ""{AudibleLogin.buildClientId(profile.DeviceInfo.Serial)}"",
+          ""client_id"": ""{AudibleLogin.BuildClientId(profile.DeviceInfo.Serial)}"",
           ""authorization_code"": ""{profile.Authorization.AuthorizationCode}"",
           ""code_verifier"": ""{profile.Authorization.CodeVerifier}"",
           ""code_algorithm"": ""SHA-256"",

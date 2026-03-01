@@ -28,16 +28,16 @@ namespace Oahu.Decrypt
   /// </summary>
   public class ChapterQueue
   {
-    private readonly double SampleScaleFactor;
-    private readonly SampleRate OutputSampleRate;
+    private readonly double sampleScaleFactor;
+    private readonly SampleRate outputSampleRate;
     private readonly object lockObj = new();
     private readonly Queue<ChapterEntry> chapterEntries = new();
     private int subtractNext = 0;
 
     public ChapterQueue(SampleRate inputRate, SampleRate outputRate)
     {
-      OutputSampleRate = outputRate;
-      SampleScaleFactor = (double)outputRate / (double)inputRate;
+      outputSampleRate = outputRate;
+      sampleScaleFactor = (double)outputRate / (double)inputRate;
     }
 
     public bool TryGetNextChapter([NotNullWhen(true)] out ChapterEntry? chapterEntry)
@@ -72,7 +72,7 @@ namespace Oahu.Decrypt
 
       using var ms = new MemoryStream(frameData);
       chapter.WriteChapter(ms);
-      uint sampleDelta = (uint)(chapter.Duration.TotalSeconds * (int)OutputSampleRate);
+      uint sampleDelta = (uint)(chapter.Duration.TotalSeconds * (int)outputSampleRate);
 
       lock (lockObj)
       {
@@ -101,7 +101,7 @@ namespace Oahu.Decrypt
         chapterEntries.Enqueue(new ChapterEntry(title)
         {
           FrameData = entry.FrameData,
-          SamplesInFrame = (uint)(Math.Max(0, sif + subtractNext) * SampleScaleFactor)
+          SamplesInFrame = (uint)(Math.Max(0, sif + subtractNext) * sampleScaleFactor)
         });
       }
 

@@ -13,7 +13,7 @@ namespace Oahu.Decrypt
   {
     // Constant key
     // https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mov.c
-    private static readonly byte[] audible_fixed_key = [0x77, 0x21, 0x4d, 0x4b, 0x19, 0x6a, 0x87, 0xcd, 0x52, 0x00, 0x45, 0xfd, 0x20, 0xa5, 0x1d, 0x67];
+    private static readonly byte[] AudibleFixedKey = [0x77, 0x21, 0x4d, 0x4b, 0x19, 0x6a, 0x87, 0xcd, 0x52, 0x00, 0x45, 0xfd, 0x20, 0xa5, 0x1d, 0x67];
 
     public AaxFile(Stream file, long fileSize, bool additionalFixups = true) : base(file, fileSize)
     {
@@ -103,11 +103,11 @@ namespace Oahu.Decrypt
       // Adrm key derrivation from
       // https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mov.c in mov_read_adrm
       byte[] intermediate_key = Crypto.Sha1(
-         (audible_fixed_key, 0, audible_fixed_key.Length),
+         (AudibleFixedKey, 0, AudibleFixedKey.Length),
          (activationBytes, 0, activationBytes.Length));
 
       byte[] intermediate_iv = Crypto.Sha1(
-          (audible_fixed_key, 0, audible_fixed_key.Length),
+          (AudibleFixedKey, 0, AudibleFixedKey.Length),
           (intermediate_key, 0, intermediate_key.Length),
           (activationBytes, 0, activationBytes.Length));
 
@@ -137,7 +137,7 @@ namespace Oahu.Decrypt
       byte[] file_iv = Crypto.Sha1(
           (drmBlob, 26, 16),
           (file_key, 0, 16),
-          (audible_fixed_key, 0, 16));
+          (AudibleFixedKey, 0, 16));
 
       AudioSampleEntry.Children.Remove(adrm);
 

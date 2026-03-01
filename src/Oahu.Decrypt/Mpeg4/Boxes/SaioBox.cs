@@ -14,8 +14,8 @@ public interface ISaioBox : IBox
 
 public class SaioBox : FullBox, ISaioBox
 {
-  private readonly uint[]? offsets_32;
-  private readonly long[]? offsets_64;
+  private readonly uint[]? offsets32;
+  private readonly long[]? offsets64;
 
   public SaioBox(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
@@ -28,23 +28,23 @@ public class SaioBox : FullBox, ISaioBox
     EntryCount = file.ReadInt32BE();
     if (Version == 0)
     {
-      offsets_32 = new uint[EntryCount];
+      offsets32 = new uint[EntryCount];
       for (int i = 0; i < EntryCount; i++)
       {
-        offsets_32[i] = file.ReadUInt32BE();
+        offsets32[i] = file.ReadUInt32BE();
       }
     }
     else
     {
-      offsets_64 = new long[EntryCount];
+      offsets64 = new long[EntryCount];
       for (int i = 0; i < EntryCount; i++)
       {
-        offsets_64[i] = file.ReadInt64BE();
+        offsets64[i] = file.ReadInt64BE();
       }
     }
   }
 
-  public override long RenderSize => base.RenderSize + ((Flags & 1) == 1 ? 8 : 0) + 4 + (Version == 0 ? (offsets_32?.Length ?? 0) * 4 : (offsets_64?.Length ?? 0) * 8);
+  public override long RenderSize => base.RenderSize + ((Flags & 1) == 1 ? 8 : 0) + 4 + (Version == 0 ? (offsets32?.Length ?? 0) * 4 : (offsets64?.Length ?? 0) * 8);
 
   public uint AuxInfoType { get; }
 
@@ -63,16 +63,16 @@ public class SaioBox : FullBox, ISaioBox
 
     file.WriteInt32BE(EntryCount);
 
-    if (offsets_32 != null)
+    if (offsets32 != null)
     {
-      foreach (var offset in offsets_32)
+      foreach (var offset in offsets32)
       {
         file.WriteUInt32BE(offset);
       }
     }
-    else if (offsets_64 != null)
+    else if (offsets64 != null)
     {
-      foreach (var offset in offsets_64)
+      foreach (var offset in offsets64)
       {
         file.WriteInt64BE(offset);
       }

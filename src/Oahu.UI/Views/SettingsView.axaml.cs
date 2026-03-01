@@ -18,7 +18,7 @@ namespace Oahu.Core.UI.Avalonia.Views
       base.OnLoaded(e);
       if (DataContext is SettingsViewModel vm)
       {
-        vm.BrowseFolderRequested += browseFolderAsync;
+        vm.BrowseFolderRequested += BrowseFolderAsync;
       }
     }
 
@@ -26,13 +26,13 @@ namespace Oahu.Core.UI.Avalonia.Views
     {
       if (DataContext is SettingsViewModel vm)
       {
-        vm.BrowseFolderRequested -= browseFolderAsync;
+        vm.BrowseFolderRequested -= BrowseFolderAsync;
       }
 
       base.OnUnloaded(e);
     }
 
-    private async Task<string> browseFolderAsync(string title)
+    private async Task<string> BrowseFolderAsync(string title)
     {
       var topLevel = TopLevel.GetTopLevel(this);
       if (topLevel is null)

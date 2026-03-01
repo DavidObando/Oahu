@@ -1,115 +1,160 @@
+using System.Text.Json.Serialization;
+
 namespace Oahu.Audible.Json
 {
   public class LicenseResponse : Serialization<LicenseResponse>
   {
-    public ContentLicense content_license { get; set; }
+    [JsonPropertyName("content_license")]
+    public ContentLicense ContentLicense { get; set; }
 
-    public string[] response_groups { get; set; }
+    [JsonPropertyName("response_groups")]
+    public string[] ResponseGroups { get; set; }
   }
 
   public class MetadataContainer : Serialization<MetadataContainer>
   {
-    public ContentMetadata content_metadata { get; set; }
+    [JsonPropertyName("content_metadata")]
+    public ContentMetadata ContentMetadata { get; set; }
   }
 
   public partial class ContentLicense
   {
-    public string acr { get; set; }
+    [JsonPropertyName("acr")]
+    public string Acr { get; set; }
 
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public ContentMetadata content_metadata { get; set; }
+    [JsonPropertyName("content_metadata")]
+    public ContentMetadata ContentMetadata { get; set; }
 
-    public string drm_type { get; set; }
+    [JsonPropertyName("drm_type")]
+    public string DrmType { get; set; }
 
-    public string license_id { get; set; }
+    [JsonPropertyName("license_id")]
+    public string LicenseId { get; set; }
 
-    public string license_response { get; set; }
+    [JsonPropertyName("license_response")]
+    public string LicenseResponseText { get; set; }
 
-    public string message { get; set; }
+    [JsonPropertyName("message")]
+    public string Message { get; set; }
 
-    public string request_id { get; set; }
+    [JsonPropertyName("request_id")]
+    public string RequestId { get; set; }
 
-    public bool? requires_ad_supported_playback { get; set; }
+    [JsonPropertyName("requires_ad_supported_playback")]
+    public bool? RequiresAdSupportedPlayback { get; set; }
 
-    public string status_code { get; set; }
+    [JsonPropertyName("status_code")]
+    public string StatusCode { get; set; }
 
-    public string voucher_id { get; set; }
+    [JsonPropertyName("voucher_id")]
+    public string VoucherId { get; set; }
 
-    public Voucher voucher { get; set; }
+    [JsonPropertyName("voucher")]
+    public Voucher Voucher { get; set; }
   }
 
   public class ContentMetadata
   {
-    public ChapterInfo chapter_info { get; set; }
+    [JsonPropertyName("chapter_info")]
+    public ChapterInfo ChapterInfo { get; set; }
 
-    public ContentReference content_reference { get; set; }
+    [JsonPropertyName("content_reference")]
+    public ContentReference ContentReference { get; set; }
 
-    public ContentUrl content_url { get; set; }
+    [JsonPropertyName("content_url")]
+    public ContentUrl ContentUrl { get; set; }
 
-    public LastPositionHeard last_position_heard { get; set; }
+    [JsonPropertyName("last_position_heard")]
+    public LastPositionHeard LastPositionHeard { get; set; }
   }
 
   public class ChapterInfo
   {
-    public int? brandIntroDurationMs { get; set; }
+    [JsonPropertyName("brandIntroDurationMs")]
+    public int? BrandIntroDurationMs { get; set; }
 
-    public int? brandOutroDurationMs { get; set; }
+    [JsonPropertyName("brandOutroDurationMs")]
+    public int? BrandOutroDurationMs { get; set; }
 
-    public Chapter[] chapters { get; set; }
+    [JsonPropertyName("chapters")]
+    public Chapter[] Chapters { get; set; }
 
-    public bool? is_accurate { get; set; }
+    [JsonPropertyName("is_accurate")]
+    public bool? IsAccurate { get; set; }
 
-    public int? runtime_length_ms { get; set; }
+    [JsonPropertyName("runtime_length_ms")]
+    public int? RuntimeLengthMs { get; set; }
 
-    public int? runtime_length_sec { get; set; }
+    [JsonPropertyName("runtime_length_sec")]
+    public int? RuntimeLengthSec { get; set; }
   }
 
   public class Chapter
   {
-    public int? length_ms { get; set; }
+    [JsonPropertyName("length_ms")]
+    public int? LengthMs { get; set; }
 
-    public int? start_offset_ms { get; set; }
+    [JsonPropertyName("start_offset_ms")]
+    public int? StartOffsetMs { get; set; }
 
-    public int? start_offset_sec { get; set; }
+    [JsonPropertyName("start_offset_sec")]
+    public int? StartOffsetSec { get; set; }
 
-    public string title { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 
-    public Chapter[] chapters { get; set; }
+    [JsonPropertyName("chapters")]
+    public Chapter[] Chapters { get; set; }
   }
 
   public class ContentReference
   {
-    public string acr { get; set; }
+    [JsonPropertyName("acr")]
+    public string Acr { get; set; }
 
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string content_format { get; set; }
+    [JsonPropertyName("content_format")]
+    public string ContentFormat { get; set; }
 
-    public long? content_size_in_bytes { get; set; }
+    [JsonPropertyName("content_size_in_bytes")]
+    public long? ContentSizeInBytes { get; set; }
 
-    public string file_version { get; set; }
+    [JsonPropertyName("file_version")]
+    public string FileVersion { get; set; }
 
-    public string marketplace { get; set; }
+    [JsonPropertyName("marketplace")]
+    public string Marketplace { get; set; }
 
-    public string sku { get; set; }
+    [JsonPropertyName("sku")]
+    public string Sku { get; set; }
 
-    public string tempo { get; set; }
+    [JsonPropertyName("tempo")]
+    public string Tempo { get; set; }
 
-    public string version { get; set; }
+    [JsonPropertyName("version")]
+    public string Version { get; set; }
   }
 
   public class ContentUrl
   {
-    public string offline_url { get; set; }
+    [JsonPropertyName("offline_url")]
+    public string OfflineUrl { get; set; }
   }
 
   public class LastPositionHeard
   {
-    public string last_updated { get; set; }
+    [JsonPropertyName("last_updated")]
+    public string LastUpdated { get; set; }
 
-    public int? position_ms { get; set; }
+    [JsonPropertyName("position_ms")]
+    public int? PositionMs { get; set; }
 
-    public string status { get; set; }
+    [JsonPropertyName("status")]
+    public string Status { get; set; }
   }
 }

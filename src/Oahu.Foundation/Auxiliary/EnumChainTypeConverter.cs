@@ -14,25 +14,25 @@ namespace Oahu.Aux
     where TPunct : class, IChainPunctuation, new()
   {
     // const char USCORE = '_';
-    readonly TEnum[] _values;
+    readonly TEnum[] values;
 
     // readonly IChainPunctuation _punct;
-    private ResourceManager _resourceManager;
-    Dictionary<string, TEnum> _reverseLookup;
+    private ResourceManager resourceManager;
+    Dictionary<string, TEnum> reverseLookup;
 
     public EnumChainConverter()
     {
       // _punct = Singleton<TPunct>.Instance;
-      _values = GetValues<TEnum>().ToArray();
+      values = GetValues<TEnum>().ToArray();
     }
 
     protected ResourceManager ResourceManager
     {
-      get => _resourceManager;
+      get => resourceManager;
       set
       {
-        _resourceManager = value;
-        initReverseLookup();
+        resourceManager = value;
+        InitReverseLookup();
       }
     }
 
@@ -42,7 +42,7 @@ namespace Oahu.Aux
 
     public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
     {
-      StandardValuesCollection svc = new StandardValuesCollection(_values);
+      StandardValuesCollection svc = new StandardValuesCollection(values);
       return svc;
     }
 
@@ -80,7 +80,7 @@ namespace Oahu.Aux
         default:
           return base.ConvertTo(context, culture, value, destinationType);
         case TEnum enm:
-          return toDisplayString(enm);
+          return ToDisplayString(enm);
       }
     }
 
@@ -89,11 +89,11 @@ namespace Oahu.Aux
 #if TRACE && EXTRA
       Trace.WriteLine ($"{nameof (ConvertFrom)}: \"{value}\", from: {value.GetType ().Name}");
 #endif
-      if (!(_reverseLookup is null))
+      if (!(reverseLookup is null))
       {
         if (value is string s)
         {
-          bool succ = _reverseLookup.TryGetValue(s, out TEnum e);
+          bool succ = reverseLookup.TryGetValue(s, out TEnum e);
           if (succ)
           {
             return e;
@@ -105,7 +105,7 @@ namespace Oahu.Aux
     }
 
     // static readonly byte __a = Convert.ToByte ('a');
-    private string toDisplayString(TEnum value) => value.ToDisplayString<TEnum, TPunct>(ResourceManager);
+    private string ToDisplayString(TEnum value) => value.ToDisplayString<TEnum, TPunct>(ResourceManager);
 
     // private string toDisplayString (TEnum value) {
     //  string sval = value.ToString ();
@@ -139,15 +139,15 @@ namespace Oahu.Aux
     //  }
     //  return sb.ToString ();
     // }
-    private void initReverseLookup()
+    private void InitReverseLookup()
     {
-      _reverseLookup = new Dictionary<string, TEnum>();
-      foreach (var v in _values)
+      reverseLookup = new Dictionary<string, TEnum>();
+      foreach (var v in values)
       {
-        initReverseLookup(v);
+        InitReverseLookup(v);
       }
     }
 
-    private void initReverseLookup(TEnum value) => _reverseLookup.Add(toDisplayString(value), value);
+    private void InitReverseLookup(TEnum value) => reverseLookup.Add(ToDisplayString(value), value);
   }
 }

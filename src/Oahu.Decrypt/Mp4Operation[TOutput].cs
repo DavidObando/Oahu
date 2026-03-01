@@ -7,18 +7,18 @@ namespace Oahu.Decrypt
 {
   public class Mp4Operation<TOutput> : Mp4Operation
   {
-    private readonly Func<Task, TOutput?> _continuationFunc;
-    private Task<TOutput?>? _continuation;
+    private readonly Func<Task, TOutput?> continuationFunc;
+    private Task<TOutput?>? continuation;
 
     internal Mp4Operation(Func<CancellationTokenSource, Task> startAction, Mp4File mp4File, Func<Task, TOutput> continuationFunc)
         : base(startAction, mp4File)
     {
-      _continuationFunc = continuationFunc;
+      this.continuationFunc = continuationFunc;
     }
 
-    public new Task<TOutput?> OperationTask => _continuation ?? Task.FromResult<TOutput?>(default);
+    public new Task<TOutput?> OperationTask => continuation ?? Task.FromResult<TOutput?>(default);
 
-    protected override Task Continuation => _continuation ?? Task.CompletedTask;
+    protected override Task Continuation => continuation ?? Task.CompletedTask;
 
     public static Mp4Operation<TOutput> FromCompleted(Mp4File mp4File, TOutput result)
         => new Mp4Operation<TOutput>(c => Task.CompletedTask, mp4File, _ => result);
@@ -26,21 +26,21 @@ namespace Oahu.Decrypt
     public new TaskAwaiter<TOutput?> GetAwaiter()
     {
       Start();
-      return (_continuation ?? Task.FromResult<TOutput?>(default)).GetAwaiter();
+      return (continuation ?? Task.FromResult<TOutput?>(default)).GetAwaiter();
     }
 
     protected override void SetContinuation(Task readerTask)
     {
-      _continuation = readerTask.ContinueWith(t =>
+      continuation = readerTask.ContinueWith(t =>
       {
         if (t.IsFaulted)
         {
           // Call the continuation delegate to cleanup disposables
-          _continuationFunc(t);
+          continuationFunc(t);
           throw t.Exception;
         }
 
-        return _continuationFunc(t);
+        return continuationFunc(t);
       }, TaskContinuationOptions.ExecuteSynchronously);
     }
   }

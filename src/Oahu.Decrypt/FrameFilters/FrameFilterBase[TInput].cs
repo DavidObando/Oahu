@@ -8,7 +8,7 @@ namespace Oahu.Decrypt.FrameFilters
   public abstract class FrameFilterBase<TInput> : IDisposable
   {
     private readonly Channel<BufferEntry> filterChannel;
-    private CancellationToken CancellationToken;
+    private CancellationToken cancellationToken;
     private Task? filterLoop;
     private TInput[] buffer;
     private int bufferPosition = 0;
@@ -30,9 +30,9 @@ namespace Oahu.Decrypt.FrameFilters
 
     public virtual async Task AddInputAsync(TInput input)
     {
-      filterLoop ??= Task.Run(Encoder, CancellationToken);
+      filterLoop ??= Task.Run(Encoder, cancellationToken);
 
-      if (CancellationToken.IsCancellationRequested)
+      if (cancellationToken.IsCancellationRequested)
       {
         return;
       }
@@ -41,9 +41,9 @@ namespace Oahu.Decrypt.FrameFilters
 
       if (bufferPosition == InputBufferSize)
       {
-        if (await filterChannel.Writer.WaitToWriteAsync(CancellationToken))
+        if (await filterChannel.Writer.WaitToWriteAsync(cancellationToken))
         {
-          await filterChannel.Writer.WriteAsync(new BufferEntry(bufferPosition, buffer), CancellationToken);
+          await filterChannel.Writer.WriteAsync(new BufferEntry(bufferPosition, buffer), cancellationToken);
           bufferPosition = 0;
           buffer = new TInput[InputBufferSize];
         }
@@ -58,7 +58,7 @@ namespace Oahu.Decrypt.FrameFilters
       GC.SuppressFinalize(this);
     }
 
-    public virtual void SetCancellationToken(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
+    public virtual void SetCancellationToken(CancellationToken cancellationToken) => this.cancellationToken = cancellationToken;
 
     protected abstract Task FlushAsync();
 
@@ -68,7 +68,7 @@ namespace Oahu.Decrypt.FrameFilters
     {
       try
       {
-        await filterChannel.Writer.WriteAsync(new BufferEntry(bufferPosition, buffer), CancellationToken);
+        await filterChannel.Writer.WriteAsync(new BufferEntry(bufferPosition, buffer), cancellationToken);
         filterChannel.Writer.Complete();
       }
       catch (OperationCanceledException)
@@ -98,9 +98,9 @@ namespace Oahu.Decrypt.FrameFilters
     {
       try
       {
-        while (await filterChannel.Reader.WaitToReadAsync(CancellationToken))
+        while (await filterChannel.Reader.WaitToReadAsync(cancellationToken))
         {
-          await foreach (var messages in filterChannel.Reader.ReadAllAsync(CancellationToken))
+          await foreach (var messages in filterChannel.Reader.ReadAllAsync(cancellationToken))
           {
             for (int i = 0; i < messages.NumEntries; i++)
             {

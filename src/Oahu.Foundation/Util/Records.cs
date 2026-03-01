@@ -48,12 +48,12 @@ namespace Oahu.Common.Util
     {
       Url = pi.Url;
       AppName = pi.AppName;
-      Version = tryParse(pi.Version);
+      Version = TryParse(pi.Version);
       Preview = pi.Preview;
       Desc = pi.Desc;
       Md5 = pi.Md5;
 
-      static Version tryParse(string s)
+      static Version TryParse(string s)
       {
         bool succ = Version.TryParse(s, out Version version);
         return succ ? version : null;

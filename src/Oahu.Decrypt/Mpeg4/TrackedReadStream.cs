@@ -8,27 +8,27 @@ namespace Oahu.Decrypt.Mpeg4
   /// </summary>
   public class TrackedReadStream : Stream
   {
-    private readonly Stream BaseStream;
-    private readonly long BaseStreamLength;
-    private long ReadPosition = 0;
+    private readonly Stream baseStream;
+    private readonly long baseStreamLength;
+    private long readPosition = 0;
 
     public TrackedReadStream(Stream baseStream, long streamLength)
     {
-      BaseStream = baseStream;
-      BaseStreamLength = streamLength;
+      this.baseStream = baseStream;
+      baseStreamLength = streamLength;
     }
 
-    public override bool CanRead => BaseStream.CanRead;
+    public override bool CanRead => this.baseStream.CanRead;
 
-    public override bool CanSeek => BaseStream.CanSeek;
+    public override bool CanSeek => this.baseStream.CanSeek;
 
-    public override long Length => BaseStreamLength;
+    public override long Length => baseStreamLength;
 
-    public override bool CanWrite => BaseStream.CanWrite;
+    public override bool CanWrite => this.baseStream.CanWrite;
 
     public override long Position
     {
-      get => CanSeek ? BaseStream.Position : ReadPosition;
+      get => CanSeek ? this.baseStream.Position : readPosition;
       set
       {
         if (!CanSeek)
@@ -36,7 +36,7 @@ namespace Oahu.Decrypt.Mpeg4
           throw new NotSupportedException();
         }
 
-        BaseStream.Position = ReadPosition = value;
+        this.baseStream.Position = readPosition = value;
       }
     }
 
@@ -45,28 +45,28 @@ namespace Oahu.Decrypt.Mpeg4
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-      BaseStream.ReadExactly(buffer, offset, count);
-      ReadPosition += count;
+      this.baseStream.ReadExactly(buffer, offset, count);
+      readPosition += count;
       return count;
     }
 
     public override long Seek(long offset, SeekOrigin origin)
     {
-      return ReadPosition = CanSeek ? BaseStream.Seek(offset, origin)
+      return readPosition = CanSeek ? this.baseStream.Seek(offset, origin)
           : throw new NotSupportedException();
     }
 
     public override void SetLength(long value)
-        => BaseStream.SetLength(value);
+        => this.baseStream.SetLength(value);
 
     public override void Write(byte[] buffer, int offset, int count)
-        => BaseStream.Write(buffer, offset, count);
+        => this.baseStream.Write(buffer, offset, count);
 
     protected override void Dispose(bool disposing)
     {
       if (disposing)
       {
-        BaseStream.Dispose();
+        this.baseStream.Dispose();
       }
 
       base.Dispose(disposing);

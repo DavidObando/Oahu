@@ -33,7 +33,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat);
+        SendOrPost(sync.Post, delgat);
       }
     }
 
@@ -48,7 +48,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1);
+        SendOrPost(sync.Post, delgat, p1);
       }
     }
 
@@ -63,7 +63,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2);
+        SendOrPost(sync.Post, delgat, p1, p2);
       }
     }
 
@@ -78,7 +78,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3);
+        SendOrPost(sync.Post, delgat, p1, p2, p3);
       }
     }
 
@@ -93,7 +93,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3, p4);
+        SendOrPost(sync.Post, delgat, p1, p2, p3, p4);
       }
     }
 
@@ -108,7 +108,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5);
+        SendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -123,7 +123,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6);
+        SendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -138,7 +138,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6, p7);
+        SendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -153,7 +153,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        SendOrPost(sync.Post, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Asynchronous Post Methods
@@ -169,7 +169,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat);
+        SendOrPost(sync.Send, delgat);
       }
     }
 
@@ -184,7 +184,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1);
+        SendOrPost(sync.Send, delgat, p1);
       }
     }
 
@@ -199,7 +199,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2);
+        SendOrPost(sync.Send, delgat, p1, p2);
       }
     }
 
@@ -214,7 +214,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3);
+        SendOrPost(sync.Send, delgat, p1, p2, p3);
       }
     }
 
@@ -229,7 +229,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3, p4);
+        SendOrPost(sync.Send, delgat, p1, p2, p3, p4);
       }
     }
 
@@ -244,7 +244,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5);
+        SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -259,7 +259,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6);
+        SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -274,7 +274,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7);
+        SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -289,7 +289,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Synchronous Send Methods
@@ -305,7 +305,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat);
+        return SendOrPost(sync.Send, delgat);
       }
     }
 
@@ -320,7 +320,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1);
+        return SendOrPost(sync.Send, delgat, p1);
       }
     }
 
@@ -335,7 +335,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2);
+        return SendOrPost(sync.Send, delgat, p1, p2);
       }
     }
 
@@ -350,7 +350,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3);
       }
     }
 
@@ -365,7 +365,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3, p4);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3, p4);
       }
     }
 
@@ -380,7 +380,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -395,7 +395,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -410,7 +410,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -425,7 +425,7 @@ namespace Oahu.Aux.Extensions
       }
       else
       {
-        return sendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        return SendOrPost(sync.Send, delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Synchronous Send Methods With Return Value
@@ -434,14 +434,14 @@ namespace Oahu.Aux.Extensions
 
     #region Private Methods
 
-    private static void sendOrPost(
+    private static void SendOrPost(
       Action<SendOrPostCallback, object> sendOrPost,
       Action delgat)
     {
       sendOrPost(o => delgat(), null);
     }
 
-    private static void sendOrPost<T1>(
+    private static void SendOrPost<T1>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1> delgat,
       T1 p1)
@@ -449,7 +449,7 @@ namespace Oahu.Aux.Extensions
       sendOrPost(o => delgat((T1)o), p1);
     }
 
-    private static void sendOrPost<T1, T2>(
+    private static void SendOrPost<T1, T2>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2> delgat,
       T1 p1, T2 p2)
@@ -461,7 +461,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2 });
     }
 
-    private static void sendOrPost<T1, T2, T3>(
+    private static void SendOrPost<T1, T2, T3>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3> delgat,
       T1 p1, T2 p2, T3 p3)
@@ -473,7 +473,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3 });
     }
 
-    private static void sendOrPost<T1, T2, T3, T4>(
+    private static void SendOrPost<T1, T2, T3, T4>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3, T4> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4)
@@ -485,7 +485,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3, p4 });
     }
 
-    private static void sendOrPost<T1, T2, T3, T4, T5>(
+    private static void SendOrPost<T1, T2, T3, T4, T5>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3, T4, T5> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5)
@@ -497,7 +497,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3, p4, p5 });
     }
 
-    private static void sendOrPost<T1, T2, T3, T4, T5, T6>(
+    private static void SendOrPost<T1, T2, T3, T4, T5, T6>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3, T4, T5, T6> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6)
@@ -509,7 +509,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3, p4, p5, p6 });
     }
 
-    private static void sendOrPost<T1, T2, T3, T4, T5, T6, T7>(
+    private static void SendOrPost<T1, T2, T3, T4, T5, T6, T7>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3, T4, T5, T6, T7> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7)
@@ -521,7 +521,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3, p4, p5, p6, p7 });
     }
 
-    private static void sendOrPost<T1, T2, T3, T4, T5, T6, T7, T8>(
+    private static void SendOrPost<T1, T2, T3, T4, T5, T6, T7, T8>(
       Action<SendOrPostCallback, object> sendOrPost,
       Action<T1, T2, T3, T4, T5, T6, T7, T8> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7, T8 p8)
@@ -533,7 +533,7 @@ namespace Oahu.Aux.Extensions
       }, new object[] { p1, p2, p3, p4, p5, p6, p7, p8 });
     }
 
-    private static TResult sendOrPost<TResult>(
+    private static TResult SendOrPost<TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<TResult> delgat)
     {
@@ -542,7 +542,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, TResult>(
+    private static TResult SendOrPost<T1, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, TResult> delgat,
       T1 p1)
@@ -552,7 +552,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, TResult>(
+    private static TResult SendOrPost<T1, T2, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, TResult> delgat,
       T1 p1, T2 p2)
@@ -566,7 +566,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, TResult> delgat,
       T1 p1, T2 p2, T3 p3)
@@ -580,7 +580,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, T4, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, T4, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, T4, TResult> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4)
@@ -594,7 +594,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, T4, T5, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, T4, T5, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, T4, T5, TResult> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5)
@@ -608,7 +608,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, T4, T5, T6, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, T4, T5, T6, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, T4, T5, T6, TResult> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6)
@@ -622,7 +622,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, T4, T5, T6, T7, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, T4, T5, T6, T7, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, T4, T5, T6, T7, TResult> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7)
@@ -636,7 +636,7 @@ namespace Oahu.Aux.Extensions
       return retval;
     }
 
-    private static TResult sendOrPost<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(
+    private static TResult SendOrPost<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(
       Action<SendOrPostCallback, object> sendOrPost,
       Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> delgat,
       T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7, T8 p8)

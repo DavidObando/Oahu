@@ -83,7 +83,7 @@ public class DashChunkEntryies : IEnumerable<ChunkEntry>
     }
 
     var frameSizes
-        = trun.sample_size_present ? trun.Samples.Select(s => s.SampleSize).OfType<int>().ToArray()
+        = trun.SampleSizePresent ? trun.Samples.Select(s => s.SampleSize).OfType<int>().ToArray()
         : moofBox.Traf.Tfhd.DefaultSampleSize is uint sampleSize ? Enumerable.Repeat((int)sampleSize, trun.Samples.Length).ToArray()
         : throw new InvalidOperationException("Trun sample infos don't contain sample sizes and no default sample size is set.");
 
@@ -99,7 +99,7 @@ public class DashChunkEntryies : IEnumerable<ChunkEntry>
     }
 
     var frameDurations
-        = trun.sample_duration_present ? trun.Samples.Select(s => s.SampleDuration).OfType<uint>().ToArray()
+        = trun.SampleDurationPresent ? trun.Samples.Select(s => s.SampleDuration).OfType<uint>().ToArray()
         : moofBox.Traf.Tfhd.DefaultSampleDuration is uint sampleDuration ? Enumerable.Repeat(sampleDuration, trun.Samples.Length).ToArray()
         : throw new InvalidOperationException("Trun sample infos don't contain sample durations and no default sample duration is set.");
 

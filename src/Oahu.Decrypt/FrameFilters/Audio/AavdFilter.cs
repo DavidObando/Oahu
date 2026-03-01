@@ -5,25 +5,25 @@ namespace Oahu.Decrypt.FrameFilters.Audio;
 
 internal class AavdFilter : AacValidateFilter
 {
-  private const int AES_BLOCK_SIZE = 16;
-  private readonly Aes Aes;
-  private readonly byte[] IV;
+  private const int AesBlockSize = 16;
+  private readonly Aes aes;
+  private readonly byte[] iv;
 
   public AavdFilter(byte[] key, byte[] iv)
   {
-    if (key is null || key.Length != AES_BLOCK_SIZE)
+    if (key is null || key.Length != AesBlockSize)
     {
-      throw new ArgumentException($"{nameof(key)} must be {AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(key)} must be {AesBlockSize} bytes long.");
     }
 
-    if (iv is null || iv.Length != AES_BLOCK_SIZE)
+    if (iv is null || iv.Length != AesBlockSize)
     {
-      throw new ArgumentException($"{nameof(iv)} must be {AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(iv)} must be {AesBlockSize} bytes long.");
     }
 
-    Aes = Aes.Create();
-    Aes.Key = key;
-    IV = iv;
+    this.aes = Aes.Create();
+    this.aes.Key = key;
+    this.iv = iv;
   }
 
   public override FrameEntry PerformFiltering(FrameEntry input)
@@ -31,7 +31,7 @@ internal class AavdFilter : AacValidateFilter
     if (input.FrameData.Length >= 0x10)
     {
       var encBlocks = input.FrameData.Slice(0, input.FrameData.Length & 0x7ffffff0).Span;
-      Aes.DecryptCbc(encBlocks, IV, encBlocks, PaddingMode.None);
+      aes.DecryptCbc(encBlocks, iv, encBlocks, PaddingMode.None);
     }
 
     return base.PerformFiltering(input);
@@ -41,7 +41,7 @@ internal class AavdFilter : AacValidateFilter
   {
     if (disposing && !Disposed)
     {
-      Aes.Dispose();
+      aes.Dispose();
     }
 
     base.Dispose(disposing);

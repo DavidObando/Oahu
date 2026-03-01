@@ -5,12 +5,12 @@ namespace Oahu.Decrypt.Mpeg4.Descriptors;
 
 public class DecoderConfigDescriptor : BaseDescriptor
 {
-  private readonly byte[] Blob;
+  private readonly byte[] blob;
 
   public DecoderConfigDescriptor(Stream file, DescriptorHeader header) : base(file, header)
   {
     ObjectTypeIndication = (byte)file.ReadByte();
-    Blob = file.ReadBlock(4);
+    blob = file.ReadBlock(4);
     MaxBitrate = file.ReadUInt32BE();
     AverageBitrate = file.ReadUInt32BE();
 
@@ -23,7 +23,7 @@ public class DecoderConfigDescriptor : BaseDescriptor
   private DecoderConfigDescriptor(byte objectTypeIndication, byte[] blob) : base(4)
   {
     ObjectTypeIndication = objectTypeIndication;
-    Blob = blob;
+    this.blob = blob;
   }
 
   public byte ObjectTypeIndication { get; }
@@ -47,7 +47,7 @@ public class DecoderConfigDescriptor : BaseDescriptor
   public override void Render(Stream file)
   {
     file.WriteByte(ObjectTypeIndication);
-    file.Write(Blob);
+    file.Write(blob);
     file.WriteUInt32BE(MaxBitrate);
     file.WriteUInt32BE(AverageBitrate);
   }

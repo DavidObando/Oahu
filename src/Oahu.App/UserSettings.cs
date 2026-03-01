@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Oahu.Aux;
 using Oahu.Core;
 
@@ -6,6 +7,9 @@ namespace Oahu.App.Avalonia
 {
   public class UserSettings : IUserSettings, IInitSettings
   {
+    private static readonly string DefaultDownloadDirectory =
+      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Music", "Oahu", "Downloads");
+
     public DownloadSettings DownloadSettings { get; set; } = new DownloadSettings();
 
     public ConfigSettings ConfigSettings { get; set; } = new ConfigSettings();
@@ -14,11 +18,13 @@ namespace Oahu.App.Avalonia
 
     public void Init()
     {
-      DownloadSettings.ChangedSettings += onChangedSettings;
-      ConfigSettings.ChangedSettings += onChangedSettings;
-      ExportSettings.ChangedSettings += onChangedSettings;
+      DownloadSettings.DownloadDirectory ??= DefaultDownloadDirectory;
+
+      DownloadSettings.ChangedSettings += OnChangedSettings;
+      ConfigSettings.ChangedSettings += OnChangedSettings;
+      ExportSettings.ChangedSettings += OnChangedSettings;
     }
 
-    private void onChangedSettings(object sender, EventArgs e) => this.Save();
+    private void OnChangedSettings(object sender, EventArgs e) => this.Save();
   }
 }

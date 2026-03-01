@@ -8,35 +8,35 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// </summary>
 public class ac4_dsi_v1
 {
-  public byte ac4_dsi_version;
-  public byte bitstream_version;
-  public byte fs_index;
-  public byte frame_rate_index;
-  public ushort n_presentations;
-  public bool? b_program_id;
-  public ushort? short_program_id;
-  public bool? b_uuid;
-  public Guid? program_uuid;
-  public ac4_bitrate_dsi ac4_Bitrate_Dsi;
-  public object?[] presentations;
+  public byte Ac4DsiVersion;
+  public byte BitstreamVersion;
+  public byte FsIndex;
+  public byte FrameRateIndex;
+  public ushort NPresentations;
+  public bool? BProgramId;
+  public ushort? ShortProgramId;
+  public bool? BUuid;
+  public Guid? ProgramUuid;
+  public ac4_bitrate_dsi Ac4BitrateDsi;
+  public object?[] Presentations;
 
   public ac4_dsi_v1(BitReader reader)
   {
-    ac4_dsi_version = (byte)reader.Read(3);
-    bitstream_version = (byte)reader.Read(7);
-    fs_index = (byte)reader.Read(1);
-    frame_rate_index = (byte)reader.Read(4);
-    n_presentations = (ushort)reader.Read(9);
-    if (bitstream_version > 1)
+    Ac4DsiVersion = (byte)reader.Read(3);
+    BitstreamVersion = (byte)reader.Read(7);
+    FsIndex = (byte)reader.Read(1);
+    FrameRateIndex = (byte)reader.Read(4);
+    NPresentations = (ushort)reader.Read(9);
+    if (BitstreamVersion > 1)
     {
-      b_program_id = reader.ReadBool();
-      if (b_program_id.Value)
+      BProgramId = reader.ReadBool();
+      if (BProgramId.Value)
       {
-        short_program_id = (ushort)reader.Read(16);
-        b_uuid = reader.ReadBool();
-        if (b_uuid.Value)
+        ShortProgramId = (ushort)reader.Read(16);
+        BUuid = reader.ReadBool();
+        if (BUuid.Value)
         {
-          program_uuid = new Guid(
+          ProgramUuid = new Guid(
               reader.Read(32),
               (ushort)reader.Read(16),
               (ushort)reader.Read(16),
@@ -52,42 +52,42 @@ public class ac4_dsi_v1
       }
     }
 
-    ac4_Bitrate_Dsi = new ac4_bitrate_dsi(reader);
+    Ac4BitrateDsi = new ac4_bitrate_dsi(reader);
     reader.ByteAlign();
-    presentations = new object[n_presentations];
-    for (int i = 0; i < n_presentations; i++)
+    Presentations = new object[NPresentations];
+    for (int i = 0; i < NPresentations; i++)
     {
-      uint presentation_bytes;
-      var presentation_version = reader.Read(8);
-      var pres_bytes = reader.Read(8);
-      if (pres_bytes == 255)
+      uint presentationBytes;
+      var presentationVersion = reader.Read(8);
+      var presBytes = reader.Read(8);
+      if (presBytes == 255)
       {
-        var add_pres_bytes = reader.Read(16);
-        pres_bytes += add_pres_bytes;
+        var addPresBytes = reader.Read(16);
+        presBytes += addPresBytes;
       }
 
-      if (presentation_version == 0)
+      if (presentationVersion == 0)
       {
         // ac4_presentation_v0_dsi();
         throw new NotSupportedException("ac4_presentation_v0_dsi not yet supported");
       }
       else
       {
-        if (presentation_version is 1 or 2)
+        if (presentationVersion is 1 or 2)
         {
           // 2 is an Extension to AC-4 DSI
           var start = reader.Position;
-          presentations[i] = new ac4_presentation_v1_dsi(presentation_version, pres_bytes, reader);
-          presentation_bytes = (uint)(reader.Position - start) / 8;
+          Presentations[i] = new ac4_presentation_v1_dsi(presentationVersion, presBytes, reader);
+          presentationBytes = (uint)(reader.Position - start) / 8;
         }
         else
         {
-          presentation_bytes = 0;
+          presentationBytes = 0;
         }
       }
 
-      var skip_bytes = pres_bytes - presentation_bytes;
-      reader.Position += 8 * (int)skip_bytes;
+      var skipBytes = presBytes - presentationBytes;
+      reader.Position += 8 * (int)skipBytes;
     }
   }
 }

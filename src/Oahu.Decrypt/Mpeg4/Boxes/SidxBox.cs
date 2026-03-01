@@ -71,74 +71,74 @@ public class SidxBox : FullBox
 
   public class Segment
   {
-    private uint type_and_size;
-    private uint subsegment_duration;
-    private uint SAP;
+    private uint typeAndSize;
+    private uint subsegmentDuration;
+    private uint sap;
 
     internal Segment(Stream file)
     {
-      type_and_size = file.ReadUInt32BE();
-      subsegment_duration = file.ReadUInt32BE();
-      SAP = file.ReadUInt32BE();
+      typeAndSize = file.ReadUInt32BE();
+      subsegmentDuration = file.ReadUInt32BE();
+      sap = file.ReadUInt32BE();
     }
 
     public bool ReferenceType
     {
-      get => (type_and_size & 0x80000000) == 0x80000000;
-      set => type_and_size = value ? type_and_size | 0x80000000 : type_and_size & 0x7FFFFFFF;
+      get => (typeAndSize & 0x80000000) == 0x80000000;
+      set => typeAndSize = value ? typeAndSize | 0x80000000 : typeAndSize & 0x7FFFFFFF;
     }
 
     public int ReferenceSize
     {
-      get => (int)(type_and_size & 0x7FFFFFFF);
+      get => (int)(typeAndSize & 0x7FFFFFFF);
       set
       {
         ArgumentOutOfRangeException.ThrowIfLessThan(value, 0, nameof(ReferenceSize));
 
-        type_and_size = (type_and_size & 0x80000000) | (uint)value;
+        typeAndSize = (typeAndSize & 0x80000000) | (uint)value;
       }
     }
 
     public uint SubsegmentDuration
     {
-      get => subsegment_duration;
-      set => subsegment_duration = value;
+      get => subsegmentDuration;
+      set => subsegmentDuration = value;
     }
 
     public bool StartsWithSAP
     {
-      get => (SAP & 0x80000000) == 0x80000000;
-      set => SAP = value ? SAP | 0x80000000 : SAP & 0x7FFFFFFF;
+      get => (sap & 0x80000000) == 0x80000000;
+      set => sap = value ? sap | 0x80000000 : sap & 0x7FFFFFFF;
     }
 
     public int SapType
     {
-      get => (int)(SAP >> 28) & 7;
+      get => (int)(sap >> 28) & 7;
       set
       {
         ArgumentOutOfRangeException.ThrowIfLessThan(value, 0, nameof(SapType));
         ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 7, nameof(SapType));
 
-        SAP = (SAP & 0x8FFFFFFF) | (uint)(value << 28);
+        sap = (sap & 0x8FFFFFFF) | (uint)(value << 28);
       }
     }
 
     public int SapDeltaTime
     {
-      get => (int)SAP & 0xFFFFFFF;
+      get => (int)sap & 0xFFFFFFF;
       set
       {
         ArgumentOutOfRangeException.ThrowIfLessThan(value, 0, nameof(SapType));
         ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 0xFFFFFFF, nameof(SapType));
-        SAP = (SAP & 0xF0000000) | (uint)value;
+        sap = (sap & 0xF0000000) | (uint)value;
       }
     }
 
     public void Save(Stream file)
     {
-      file.WriteUInt32BE(type_and_size);
-      file.WriteUInt32BE(subsegment_duration);
-      file.WriteUInt32BE(SAP);
+      file.WriteUInt32BE(typeAndSize);
+      file.WriteUInt32BE(subsegmentDuration);
+      file.WriteUInt32BE(sap);
     }
   }
 }

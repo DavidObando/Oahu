@@ -2,7 +2,7 @@
 {
   public enum ECallbackType
   {
-    info, infoCancel, warning, error, errorQuestion, errorQuestion3, question, question3
+    Info, InfoCancel, Warning, Error, ErrorQuestion, ErrorQuestion3, Question, Question3
   }
 
   public record InteractionMessage(

@@ -7,23 +7,23 @@ namespace Oahu.SystemManagement.Linux
 {
   public class LinuxHardwareIdProvider : IHardwareIdProvider
   {
-    private string _cachedCpuId;
-    private string _cachedMotherboardId;
-    private string _cachedDiskId;
+    private string cachedCpuId;
+    private string cachedMotherboardId;
+    private string cachedDiskId;
 
     public string GetCpuId()
     {
-      if (_cachedCpuId is not null)
+      if (cachedCpuId is not null)
       {
-        return _cachedCpuId;
+        return cachedCpuId;
       }
 
       try
       {
         // Try lscpu for CPU model name
-        string output = runCommand("lscpu", "");
-        _cachedCpuId = extractLscpuValue(output, "Model name") ?? string.Empty;
-        return _cachedCpuId;
+        string output = RunCommand("lscpu", "");
+        cachedCpuId = ExtractLscpuValue(output, "Model name") ?? string.Empty;
+        return cachedCpuId;
       }
       catch (Exception)
       {
@@ -33,9 +33,9 @@ namespace Oahu.SystemManagement.Linux
 
     public string GetMotherboardId()
     {
-      if (_cachedMotherboardId is not null)
+      if (cachedMotherboardId is not null)
       {
-        return _cachedMotherboardId;
+        return cachedMotherboardId;
       }
 
       try
@@ -44,20 +44,20 @@ namespace Oahu.SystemManagement.Linux
         string machineIdPath = "/etc/machine-id";
         if (File.Exists(machineIdPath))
         {
-          _cachedMotherboardId = File.ReadAllText(machineIdPath).Trim();
-          return _cachedMotherboardId;
+          cachedMotherboardId = File.ReadAllText(machineIdPath).Trim();
+          return cachedMotherboardId;
         }
 
         // Fallback to DMI board serial
         string dmiPath = "/sys/class/dmi/id/board_serial";
         if (File.Exists(dmiPath))
         {
-          _cachedMotherboardId = File.ReadAllText(dmiPath).Trim();
-          return _cachedMotherboardId;
+          cachedMotherboardId = File.ReadAllText(dmiPath).Trim();
+          return cachedMotherboardId;
         }
 
-        _cachedMotherboardId = string.Empty;
-        return _cachedMotherboardId;
+        cachedMotherboardId = string.Empty;
+        return cachedMotherboardId;
       }
       catch (Exception)
       {
@@ -86,24 +86,24 @@ namespace Oahu.SystemManagement.Linux
 
     public string GetDiskId()
     {
-      if (_cachedDiskId is not null)
+      if (cachedDiskId is not null)
       {
-        return _cachedDiskId;
+        return cachedDiskId;
       }
 
       try
       {
         // Use lsblk to get the serial of the root disk
-        string output = runCommand("lsblk", "-ndo SERIAL /dev/sda");
-        _cachedDiskId = output?.Trim() ?? string.Empty;
-        if (string.IsNullOrEmpty(_cachedDiskId))
+        string output = RunCommand("lsblk", "-ndo SERIAL /dev/sda");
+        cachedDiskId = output?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(cachedDiskId))
         {
           // Fallback: try nvme drive
-          output = runCommand("lsblk", "-ndo SERIAL /dev/nvme0n1");
-          _cachedDiskId = output?.Trim() ?? string.Empty;
+          output = RunCommand("lsblk", "-ndo SERIAL /dev/nvme0n1");
+          cachedDiskId = output?.Trim() ?? string.Empty;
         }
 
-        return _cachedDiskId;
+        return cachedDiskId;
       }
       catch (Exception)
       {
@@ -111,7 +111,7 @@ namespace Oahu.SystemManagement.Linux
       }
     }
 
-    private static string runCommand(string command, string arguments)
+    private static string RunCommand(string command, string arguments)
     {
       try
       {
@@ -134,7 +134,7 @@ namespace Oahu.SystemManagement.Linux
       }
     }
 
-    private static string extractLscpuValue(string lscpuOutput, string key)
+    private static string ExtractLscpuValue(string lscpuOutput, string key)
     {
       if (string.IsNullOrEmpty(lscpuOutput))
       {

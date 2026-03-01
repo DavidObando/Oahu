@@ -11,34 +11,34 @@ namespace Oahu.Aux
   {
     private static readonly SynchronizationContext DefaultContext = new SynchronizationContext();
 
-    private readonly SynchronizationContext _synchronizationContext;
-    private readonly Func<T, TResult> _handler;
+    private readonly SynchronizationContext synchronizationContext;
+    private readonly Func<T, TResult> handler;
 
     public InteractionCallback(Func<T, TResult> handler)
     {
-      _synchronizationContext = SynchronizationContext.Current ?? DefaultContext;
-      Contract.Assert(_synchronizationContext != null);
+      synchronizationContext = SynchronizationContext.Current ?? DefaultContext;
+      Contract.Assert(synchronizationContext != null);
       if (handler is null)
       {
         throw new ArgumentNullException(nameof(handler));
       }
 
-      _handler = handler;
+      this.handler = handler;
     }
 
-    TResult IInteractionCallback<T, TResult>.Interact(T value) => onInteract(value);
+    TResult IInteractionCallback<T, TResult>.Interact(T value) => OnInteract(value);
 
-    protected virtual TResult onInteract(T value)
+    protected virtual TResult OnInteract(T value)
     {
       // If there's no handler, don't bother going through the sync context.
       TResult retval = default(TResult);
-      if (_handler != null)
+      if (handler != null)
       {
         // Post the processing to the sync context.
         // (If T is a value type, it will get boxed here.)
-        _synchronizationContext.Send(new SendOrPostCallback((x) =>
+        synchronizationContext.Send(new SendOrPostCallback((x) =>
         {
-          retval = _handler(value);
+          retval = handler(value);
         }),
         null);
       }

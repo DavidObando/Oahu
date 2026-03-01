@@ -13,26 +13,26 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     public readonly MoovBox Moov;
 
     private readonly long mdatStart;
-    private readonly SttsBox Stts;
-    private readonly StscBox Stsc;
-    private readonly AudioSampleEntry AudioSampleEntry;
-    private readonly ChunkOffsetList AudioChunks = new();
-    private readonly ChunkOffsetList TextChunks = new();
+    private readonly SttsBox stts;
+    private readonly StscBox stsc;
+    private readonly AudioSampleEntry audioSampleEntry;
+    private readonly ChunkOffsetList audioChunks = new();
+    private readonly ChunkOffsetList textChunks = new();
 
     // Since we're only working with audio files, no frame will ever be larger than ushort.MaxValue.
     // Use shorts to save memory.
-    private readonly List<ushort> AudioSampleSizes = new();
-    private readonly List<int> TextSampleSizes = new();
+    private readonly List<ushort> audioSampleSizes = new();
+    private readonly List<int> textSampleSizes = new();
     private readonly object lockObj = new();
     private readonly List<string> chapterTitles = new();
 
-    private long LastSamplesPerChunk = -1;
-    private uint SamplesPerChunk = 0;
-    private uint CurrentChunk = 0;
-    private bool Closed;
-    private bool Closing;
-    private uint CurrentFrameDuration;
-    private uint FrameDurationCount;
+    private long lastSamplesPerChunk = -1;
+    private uint samplesPerChunk = 0;
+    private uint currentChunk = 0;
+    private bool closed;
+    private bool closing;
+    private uint currentFrameDuration;
+    private uint frameDurationCount;
     private bool disposed = false;
 
     public Mp4aWriter(Stream outputFile, FtypBox ftyp, MoovBox moov)
@@ -48,10 +48,10 @@ namespace Oahu.Decrypt.FrameFilters.Audio
       OutputFile = outputFile;
       Moov = MakeBlankMoov(moov);
 
-      Stts = Moov.AudioTrack.Mdia.Minf.Stbl.Stts;
-      Stsc = Moov.AudioTrack.Mdia.Minf.Stbl.Stsc;
+      stts = Moov.AudioTrack.Mdia.Minf.Stbl.Stts;
+      stsc = Moov.AudioTrack.Mdia.Minf.Stbl.Stsc;
 
-      AudioSampleEntry = Moov.AudioTrack.Mdia.Minf.Stbl.Stsd.AudioSampleEntry
+      audioSampleEntry = Moov.AudioTrack.Mdia.Minf.Stbl.Stsd.AudioSampleEntry
           ?? throw new InvalidDataException($"Audio track's stsd box does not contain an {nameof(AudioSampleEntry)}");
 
       ftyp.Save(OutputFile);
@@ -68,19 +68,19 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     {
       ArgumentNullException.ThrowIfNull(ascBytes, nameof(ascBytes));
 
-      AudioSampleEntry.Header.ChangeAtomName("mp4a");
+      audioSampleEntry.Header.ChangeAtomName("mp4a");
 
-      if (AudioSampleEntry.Esds is EsdsBox esds)
+      if (audioSampleEntry.Esds is EsdsBox esds)
       {
-        AudioSampleEntry.Children.Remove(esds);
+        audioSampleEntry.Children.Remove(esds);
       }
 
-      if (AudioSampleEntry.Dec3 is Dec3Box dec3)
+      if (audioSampleEntry.Dec3 is Dec3Box dec3)
       {
-        AudioSampleEntry.Children.Remove(dec3);
+        audioSampleEntry.Children.Remove(dec3);
       }
 
-      esds = EsdsBox.CreateEmpty(AudioSampleEntry);
+      esds = EsdsBox.CreateEmpty(audioSampleEntry);
 
       var asc = esds.ES_Descriptor.DecoderConfig.AudioSpecificConfig;
 
@@ -90,7 +90,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
         throw new NotSupportedException($"Only supports maximum of 2-channel audio. (Channels={asc.ChannelConfiguration})");
       }
 
-      AudioSampleEntry.ChannelCount = (ushort)asc.ChannelConfiguration;
+      audioSampleEntry.ChannelCount = (ushort)asc.ChannelConfiguration;
 
       SetTimeScale((uint)asc.SamplingFrequency);
     }
@@ -106,15 +106,15 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     {
       lock (lockObj)
       {
-        if (Closing)
+        if (closing)
         {
           return;
         }
 
-        Closing = true;
+        closing = true;
       }
 
-      if (Closed || !OutputFile.CanWrite)
+      if (closed || !OutputFile.CanWrite)
       {
         return;
       }
@@ -145,41 +145,41 @@ namespace Oahu.Decrypt.FrameFilters.Audio
 
       WriteChapterMetadata(chapterTitles);
 
-      Stsc.Samples.Add(new StscBox.StscChunkEntry(CurrentChunk, SamplesPerChunk, 1));
-      Stts.Samples.Add(new SttsBox.SampleEntry(FrameDurationCount, CurrentFrameDuration));
-      FrameDurationCount = 0;
-      Debug.Assert(AudioSampleSizes.Count == Stts.Samples.Sum(s => s.FrameCount));
-      IStszBox stsz = StszBox.CreateBlank(Moov.AudioTrack.Mdia.Minf.Stbl, AudioSampleSizes);
+      stsc.Samples.Add(new StscBox.StscChunkEntry(currentChunk, samplesPerChunk, 1));
+      stts.Samples.Add(new SttsBox.SampleEntry(frameDurationCount, currentFrameDuration));
+      frameDurationCount = 0;
+      Debug.Assert(audioSampleSizes.Count == stts.Samples.Sum(s => s.FrameCount));
+      IStszBox stsz = StszBox.CreateBlank(Moov.AudioTrack.Mdia.Minf.Stbl, audioSampleSizes);
 
-      IChunkOffsets.Create(Moov.AudioTrack.Mdia.Minf.Stbl, AudioChunks);
+      IChunkOffsets.Create(Moov.AudioTrack.Mdia.Minf.Stbl, audioChunks);
 
       if (Moov.TextTrack is not null)
       {
-        IChunkOffsets.Create(Moov.TextTrack.Mdia.Minf.Stbl, TextChunks);
+        IChunkOffsets.Create(Moov.TextTrack.Mdia.Minf.Stbl, textChunks);
       }
 
-      SetDuration((ulong)Stts.Samples.Sum(s => (decimal)s.FrameCount * s.FrameDelta));
+      SetDuration((ulong)stts.Samples.Sum(s => (decimal)s.FrameCount * s.FrameDelta));
 
       (uint maxBitRate, uint avgBitrate)
           = CalculateBitrate(
               Moov.AudioTrack.Mdia.Mdhd.Timescale,
               Moov.AudioTrack.Mdia.Mdhd.Duration,
               stsz,
-              Stts);
+              stts);
 
-      if (AudioSampleEntry.Esds is EsdsBox esds)
+      if (audioSampleEntry.Esds is EsdsBox esds)
       {
         esds.ES_Descriptor.DecoderConfig.MaxBitrate = maxBitRate;
         esds.ES_Descriptor.DecoderConfig.AverageBitrate = avgBitrate;
       }
 
-      if (AudioSampleEntry.GetChild<BtrtBox>() is null)
+      if (audioSampleEntry.GetChild<BtrtBox>() is null)
       {
-        BtrtBox.Create(0, maxBitRate, avgBitrate, AudioSampleEntry);
+        BtrtBox.Create(0, maxBitRate, avgBitrate, audioSampleEntry);
       }
 
       SaveMoov();
-      Closed = true;
+      closed = true;
     }
 
     public void Dispose()
@@ -197,7 +197,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
 
       if (Moov.TextTrack.Mdia.Minf.Stbl.Stsz is null)
       {
-        StszBox.CreateBlank(Moov.TextTrack.Mdia.Minf.Stbl, TextSampleSizes);
+        StszBox.CreateBlank(Moov.TextTrack.Mdia.Minf.Stbl, textSampleSizes);
       }
 
       if (!Moov.TextTrack.Mdia.Minf.Stbl.Stsc.Samples.Any())
@@ -208,8 +208,8 @@ namespace Oahu.Decrypt.FrameFilters.Audio
       chapterTitles.Add(entry.Title);
 
       Moov.TextTrack.Mdia.Minf.Stbl.Stts.Samples.Add(new SttsBox.SampleEntry(sampleCount: 1, entry.SamplesInFrame));
-      TextSampleSizes.Add(entry.FrameData.Length);
-      TextChunks.Add(OutputFile.Position);
+      textSampleSizes.Add(entry.FrameData.Length);
+      textChunks.Add(OutputFile.Position);
 
       OutputFile.Write(entry.FrameData.Span);
     }
@@ -272,41 +272,41 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     {
       lock (lockObj)
       {
-        if (Closing)
+        if (closing)
         {
           return;
         }
 
         if (newChunk)
         {
-          AudioChunks.Add(OutputFile.Position);
+          audioChunks.Add(OutputFile.Position);
 
-          if (SamplesPerChunk > 0 && SamplesPerChunk != LastSamplesPerChunk)
+          if (samplesPerChunk > 0 && samplesPerChunk != lastSamplesPerChunk)
           {
-            Stsc.Samples.Add(new StscBox.StscChunkEntry(CurrentChunk, SamplesPerChunk, 1));
+            stsc.Samples.Add(new StscBox.StscChunkEntry(currentChunk, samplesPerChunk, 1));
 
-            LastSamplesPerChunk = SamplesPerChunk;
+            lastSamplesPerChunk = samplesPerChunk;
           }
 
-          SamplesPerChunk = 0;
-          CurrentChunk++;
+          samplesPerChunk = 0;
+          currentChunk++;
         }
 
-        AudioSampleSizes.Add((ushort)frame.Length);
+        audioSampleSizes.Add((ushort)frame.Length);
 
-        if (CurrentFrameDuration == 0)
+        if (currentFrameDuration == 0)
         {
-          CurrentFrameDuration = frameDelta;
+          currentFrameDuration = frameDelta;
         }
-        else if (CurrentFrameDuration != frameDelta)
+        else if (currentFrameDuration != frameDelta)
         {
-          Stts.Samples.Add(new SttsBox.SampleEntry(FrameDurationCount, CurrentFrameDuration));
-          FrameDurationCount = 0;
-          CurrentFrameDuration = frameDelta;
+          stts.Samples.Add(new SttsBox.SampleEntry(frameDurationCount, currentFrameDuration));
+          frameDurationCount = 0;
+          currentFrameDuration = frameDelta;
         }
 
-        FrameDurationCount++;
-        SamplesPerChunk++;
+        frameDurationCount++;
+        samplesPerChunk++;
       }
 
       OutputFile.Write(frame);
@@ -317,7 +317,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
       Moov.Save(OutputFile);
     }
 
-    private static (uint maxOneSecondBitrate, uint avgBitrate) CalculateBitrate(double timeScale, ulong duration, IStszBox stsz, SttsBox stts)
+    private static (uint MaxOneSecondBitrate, uint AvgBitrate) CalculateBitrate(double timeScale, ulong duration, IStszBox stsz, SttsBox stts)
     {
       // Calculate the actual average bitrate because aaxc file is wrong.
       long audioBits = stsz.TotalSize * 8;
@@ -469,7 +469,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     private void SetTimeScale(uint timeScale)
     {
       Debug.Assert(timeScale <= ushort.MaxValue);
-      AudioSampleEntry.SampleRate = (ushort)timeScale;
+      audioSampleEntry.SampleRate = (ushort)timeScale;
       Moov.AudioTrack.Mdia.Mdhd.Timescale = timeScale;
       if (Moov.TextTrack is not null)
       {
@@ -523,10 +523,10 @@ namespace Oahu.Decrypt.FrameFilters.Audio
       if (disposing && !disposed)
       {
         Close();
-        Stsc?.Samples.Clear();
-        AudioSampleSizes.Clear();
-        AudioChunks.Clear();
-        TextChunks.Clear();
+        stsc?.Samples.Clear();
+        audioSampleSizes.Clear();
+        audioChunks.Clear();
+        textChunks.Clear();
         disposed = true;
       }
     }

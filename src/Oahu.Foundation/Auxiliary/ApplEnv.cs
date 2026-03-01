@@ -9,9 +9,9 @@ namespace Oahu.Aux
 {
   public static class ApplEnv
   {
-    static readonly char[] INVALID_CHARS = Path.GetInvalidFileNameChars();
+    static readonly char[] InvalidChars = Path.GetInvalidFileNameChars();
 
-    public static Version OSVersion { get; } = getOSVersion();
+    public static Version OSVersion { get; } = GetOsVersion();
 
     public static bool Is64BitOperatingSystem => Environment.Is64BitOperatingSystem;
 
@@ -26,17 +26,17 @@ namespace Oahu.Aux
     public static string AssemblyVersion { get; } = ThisAssembly.AssemblyFileVersion;
 
     public static string AssemblyTitle { get; } =
-      getAttribute<AssemblyTitleAttribute>()?.Title ?? Path.GetFileNameWithoutExtension(ExecutingAssembly.Location);
+      GetAttribute<AssemblyTitleAttribute>()?.Title ?? Path.GetFileNameWithoutExtension(ExecutingAssembly.Location);
 
-    public static string AssemblyProduct { get; } = getAttribute<AssemblyProductAttribute>()?.Product;
+    public static string AssemblyProduct { get; } = GetAttribute<AssemblyProductAttribute>()?.Product;
 
-    public static string AssemblyCopyright { get; } = getAttribute<AssemblyCopyrightAttribute>()?.Copyright;
+    public static string AssemblyCopyright { get; } = GetAttribute<AssemblyCopyrightAttribute>()?.Copyright;
 
-    public static string AssemblyCompany { get; } = getAttribute<AssemblyCompanyAttribute>()?.Company;
+    public static string AssemblyCompany { get; } = GetAttribute<AssemblyCompanyAttribute>()?.Company;
 
-    public static string NeutralCultureName { get; } = getAttribute<NeutralResourcesLanguageAttribute>()?.CultureName;
+    public static string NeutralCultureName { get; } = GetAttribute<NeutralResourcesLanguageAttribute>()?.CultureName;
 
-    public static string AssemblyGuid { get; } = getAttribute<GuidAttribute>()?.Value;
+    public static string AssemblyGuid { get; } = GetAttribute<GuidAttribute>()?.Value;
 
     public static string ApplName { get; } = EntryAssembly.GetName().Name;
 
@@ -56,7 +56,7 @@ namespace Oahu.Aux
 
     public static string UserDirectoryRoot { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    private static T getAttribute<T>() where T : Attribute
+    private static T GetAttribute<T>() where T : Attribute
     {
       object[] attributes = EntryAssembly.GetCustomAttributes(typeof(T), false);
       if (attributes.Length == 0)
@@ -67,7 +67,7 @@ namespace Oahu.Aux
       return attributes[0] as T;
     }
 
-    private static Version getOSVersion()
+    private static Version GetOsVersion()
     {
       const string REGEX = @"\s([0-9.]+)";
       string os = RuntimeInformation.OSDescription;

@@ -7,14 +7,14 @@ public static class Ec3Extensions
   /// <summary>
   /// ETSI TS 102 366 4.4.2.3 Table 4.3: Audio coding mode column 4 (Nfchans)
   /// </summary>
-  private static readonly byte[] ff_ac3_channels_tab = [2, 1, 2, 3, 3, 4, 4, 5];
+  private static readonly byte[] FfAc3ChannelsTab = [2, 1, 2, 3, 3, 4, 4, 5];
 
-  public static int GetSampleRate(this Ec3IndependentSubstream ind_sub)
-      => ind_sub.fscod == 0 ? 48000
-      : ind_sub.fscod == 1 ? 44100
-      : ind_sub.fscod == 2 ? 32000
-      : throw new InvalidDataException($"{nameof(ind_sub.fscod)} value of {ind_sub.fscod} is not valid");
+  public static int GetSampleRate(this Ec3IndependentSubstream indSub)
+      => indSub.Fscod == 0 ? 48000
+      : indSub.Fscod == 1 ? 44100
+      : indSub.Fscod == 2 ? 32000
+      : throw new InvalidDataException($"{nameof(indSub.Fscod)} value of {indSub.Fscod} is not valid");
 
-  public static int ChannelCount(this Ec3IndependentSubstream ind_sub)
-       => ff_ac3_channels_tab[(byte)ind_sub.acmod] + (ind_sub.lfeon ? 1 : 0);
+  public static int ChannelCount(this Ec3IndependentSubstream indSub)
+       => FfAc3ChannelsTab[(byte)indSub.Acmod] + (indSub.Lfeon ? 1 : 0);
 }

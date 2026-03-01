@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Oahu.Aux.Extensions;
 
-namespace Oahu.Core.ex
+namespace Oahu.Core.Ex
 {
   static class Anonymizer
   {
@@ -34,7 +34,7 @@ namespace Oahu.Core.ex
       }
 
       const string STUB = "ACCNT";
-      return replaceWithSubstitute(Usernames, source, username, STUB);
+      return ReplaceWithSubstitute(Usernames, source, username, STUB);
     }
 
     public static string AnonymizePassword(this string source, string password)
@@ -45,17 +45,17 @@ namespace Oahu.Core.ex
       }
 
       const string STUB = "PASSW";
-      return replaceWithSubstitute(Passwords, source, password, STUB);
+      return ReplaceWithSubstitute(Passwords, source, password, STUB);
     }
 
-    private static string replaceWithSubstitute(Dictionary<uint, string> dict, string source, string password, string STUB)
+    private static string ReplaceWithSubstitute(Dictionary<uint, string> dict, string source, string password, string stub)
     {
       if (source is null)
       {
         return null;
       }
 
-      string subst = getSubstitute(dict, password, STUB);
+      string subst = GetSubstitute(dict, password, stub);
       if (source is null)
       {
         return subst;
@@ -66,7 +66,7 @@ namespace Oahu.Core.ex
       }
     }
 
-    private static string getSubstitute(Dictionary<uint, string> dict, string key, string stub)
+    private static string GetSubstitute(Dictionary<uint, string> dict, string key, string stub)
     {
       const char C = '¿';
       string lkey = key.ToLower();

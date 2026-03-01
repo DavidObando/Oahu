@@ -9,51 +9,51 @@ namespace Oahu.Aux.Diagnostics
   [Flags]
   public enum EDumpFlags
   {
-    none = 0,
+    None = 0,
 
     /// <summary>
     /// Add a counter to each item in an enumeration
     /// </summary>
-    withItmCnt = 1,
+    WithItmCnt = 1,
 
     /// <summary>
     /// Include properties with <c>null</c> values
     /// </summary>
-    inclNullVals = 2,
+    InclNullVals = 2,
 
     /// <summary>
     /// Include property description, <see cref="DescriptionAttribute"/>
     /// </summary>
-    inclDesc = 4,
+    InclDesc = 4,
 
     /// <summary>
     /// Description above property, if included. Behind property by default.
     /// </summary>
-    descOnTop = 8,
+    DescOnTop = 8,
 
     /// <summary>
     /// Include type description, <see cref="DescriptionAttribute"/>
     /// </summary>
-    inclTypeDesc = 16,
+    InclTypeDesc = 16,
 
     /// <summary>
     /// Include description in enumerations
     /// </summary>
-    inclDescInEnum = 32,
+    InclDescInEnum = 32,
 
     /// <summary>
     /// Inherit attributes defined for properities in base interfaces, <see cref="TreeDecomposition{T}"/> for recognized attributes
     /// </summary>
-    inherInterfaceAttribs = 64,
+    InherInterfaceAttribs = 64,
 
     /// <summary>
     /// Group properties by implemented interfaces and their hierarchy
     /// </summary>
-    byInterface = 128,
+    ByInterface = 128,
 
     /// <summary>
     /// Include grouping by interface for types further down the hierarchy
     /// </summary>
-    byInterfaceNestedTypes = 256,
+    ByInterfaceNestedTypes = 256,
   }
 }

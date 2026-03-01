@@ -9,27 +9,27 @@ public class TfhdBox : FullBox
   {
     TrackID = file.ReadUInt32BE();
 
-    if (base_data_offset_present)
+    if (BaseDataOffsetPresent)
     {
       BaseDataOffset = file.ReadInt64BE();
     }
 
-    if (sample_description_index_present)
+    if (SampleDescriptionIndexPresent)
     {
       SampleDescriptionIndex = file.ReadUInt32BE();
     }
 
-    if (default_sample_duration_present)
+    if (DefaultSampleDurationPresent)
     {
       DefaultSampleDuration = file.ReadUInt32BE();
     }
 
-    if (default_sample_size_present)
+    if (DefaultSampleSizePresent)
     {
       DefaultSampleSize = file.ReadUInt32BE();
     }
 
-    if (default_sample_flags_present)
+    if (DefaultSampleFlagsPresent)
     {
       DefaultSampleFlags = file.ReadUInt32BE();
     }
@@ -54,21 +54,21 @@ public class TfhdBox : FullBox
   public bool DefaultBaseIsMoof => (Flags & 0x020000) == 0x020000;
 
   private int OptionalFieldsSize =>
-      (base_data_offset_present ? 8 : 0) +
-      (sample_description_index_present ? 4 : 0) +
-      (default_sample_duration_present ? 4 : 0) +
-      (default_sample_size_present ? 4 : 0) +
-      (default_sample_flags_present ? 4 : 0);
+      (BaseDataOffsetPresent ? 8 : 0) +
+      (SampleDescriptionIndexPresent ? 4 : 0) +
+      (DefaultSampleDurationPresent ? 4 : 0) +
+      (DefaultSampleSizePresent ? 4 : 0) +
+      (DefaultSampleFlagsPresent ? 4 : 0);
 
-  private bool base_data_offset_present => (Flags & 1) == 1;
+  private bool BaseDataOffsetPresent => (Flags & 1) == 1;
 
-  private bool sample_description_index_present => (Flags & 2) == 2;
+  private bool SampleDescriptionIndexPresent => (Flags & 2) == 2;
 
-  private bool default_sample_duration_present => (Flags & 8) == 8;
+  private bool DefaultSampleDurationPresent => (Flags & 8) == 8;
 
-  private bool default_sample_size_present => (Flags & 16) == 16;
+  private bool DefaultSampleSizePresent => (Flags & 16) == 16;
 
-  private bool default_sample_flags_present => (Flags & 32) == 32;
+  private bool DefaultSampleFlagsPresent => (Flags & 32) == 32;
 
   protected override void Render(Stream file)
   {

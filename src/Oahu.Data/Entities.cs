@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using Oahu.Aux.Extensions;
-using Oahu.BooksDatabase.ex;
+using Oahu.BooksDatabase.Ex;
 using Oahu.CommonTypes;
 
 namespace Oahu.BooksDatabase

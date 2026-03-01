@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.BooksDatabase;
-using Oahu.BooksDatabase.ex;
+using Oahu.BooksDatabase.Ex;
 using Oahu.Common.Util;
 using static Oahu.Aux.Logging;
 using R = Oahu.Core.Properties.Resources;
@@ -17,10 +17,10 @@ namespace Oahu.Core
 {
   public class DownloadDecryptJob<T> : IDisposable where T : ICancellation
   {
-    private readonly ConcurrentDictionary<(Conversion, int), ThreadProgressBase<ProgressMessage>> _threadProgress = new();
-    private readonly ConcurrentBag<Task> _runningTasks = new();
-    private readonly ConcurrentBag<Book> _booksForConversion = new();
-    private readonly Semaphore _throttlingSemaphore = new(MaxDecrypts, MaxDecrypts);
+    private readonly ConcurrentDictionary<(Conversion, int), ThreadProgressBase<ProgressMessage>> threadProgress = new();
+    private readonly ConcurrentBag<Task> runningTasks = new();
+    private readonly ConcurrentBag<Book> booksForConversion = new();
+    private readonly Semaphore throttlingSemaphore = new(MaxDecrypts, MaxDecrypts);
 
     public DownloadDecryptJob(
       IAudibleApi api,
@@ -40,7 +40,7 @@ namespace Oahu.Core
 
     private Action<Conversion> OnNewStateCallback { get; }
 
-    public void Dispose() => _throttlingSemaphore?.Dispose();
+    public void Dispose() => throttlingSemaphore?.Dispose();
 
     public async Task DownloadDecryptAndConvertAsync(
       IEnumerable<Conversion> selectedConversions,
@@ -52,9 +52,9 @@ namespace Oahu.Core
 
       using var rg = new ResourceGuard(() =>
       {
-        _runningTasks.Clear();
-        _threadProgress.Clear();
-        _booksForConversion.Clear();
+        runningTasks.Clear();
+        threadProgress.Clear();
+        booksForConversion.Clear();
       });
 
       progress.Report(new(selectedConversions.Count(), null, null, null));
@@ -67,16 +67,16 @@ namespace Oahu.Core
         }
 
         progress.Report(new(null, 1, null, null));
-        await getLicenseAndDownloadAsync(conv, progress, context, convertAction);
+        await GetLicenseAndDownloadAsync(conv, progress, context, convertAction);
       }
 
-      while (_runningTasks.Any(t => !t.IsCompleted))
+      while (runningTasks.Any(t => !t.IsCompleted))
       {
-        await Task.WhenAll(_runningTasks.ToArray());
+        await Task.WhenAll(runningTasks.ToArray());
       }
     }
 
-    private async Task getLicenseAndDownloadAsync(
+    private async Task GetLicenseAndDownloadAsync(
       Conversion conversion,
       IProgress<ProgressMessage> progress,
       T context,
@@ -86,7 +86,7 @@ namespace Oahu.Core
       using var lg = new LogGuard(3, this, () => conversion.ToString());
 
       using var tp = new ThreadProgressPerMille(pm => progress.Report(pm));
-      _threadProgress.TryAdd((conversion, TP_KEY), tp);
+      threadProgress.TryAdd((conversion, TP_KEY), tp);
 
       bool succ = true;
 
@@ -100,8 +100,8 @@ namespace Oahu.Core
       bool hasUnlockedFile = File.Exists((conversion.DownloadFileName + R.DecryptedFileExt).AsUncIfLong());
 
       // download if neither file exists or state too low
-      bool doDownload = savedState < EConversionState.local_locked || !hasLockedFile;
-      bool doDecrypt = savedState < EConversionState.local_unlocked || !hasUnlockedFile;
+      bool doDownload = savedState < EConversionState.LocalLocked || !hasLockedFile;
+      bool doDecrypt = savedState < EConversionState.LocalUnlocked || !hasUnlockedFile;
 
       var previousQuality = conversion.ParentBook.ApplicableDownloadQuality(Settings.MultiPartDownload);
       var quality = Settings.DownloadQuality;
@@ -128,11 +128,11 @@ namespace Oahu.Core
 
         if (!succ)
         {
-          AudibleApi.SavePersistentState(conversion, EConversionState.license_denied);
+          AudibleApi.SavePersistentState(conversion, EConversionState.LicenseDenied);
           return;
         }
 
-        var dnldTask = AudibleApi.DownloadAsync(conversion, onProgressSize, context.CancellationToken);
+        var dnldTask = AudibleApi.DownloadAsync(conversion, OnProgressSize, context.CancellationToken);
         OnNewStateCallback(conversion);
         succ = await dnldTask;
         OnNewStateCallback(conversion);
@@ -151,13 +151,13 @@ namespace Oahu.Core
       if (succ)
       {
         Log(3, this, () => $"{conversion}; submit for decryption.");
-        var decryptTask = Task.Run(() => decryptAsync(conversion, progress, context, convertAction));
-        _runningTasks.Add(decryptTask);
+        var decryptTask = Task.Run(() => DecryptAsync(conversion, progress, context, convertAction));
+        runningTasks.Add(decryptTask);
       }
 
-      void onProgressSize(Conversion conversion, long progPos)
+      void OnProgressSize(Conversion conversion, long progPos)
       {
-        if (_threadProgress.TryGetValue((conversion, TP_KEY), out var tp))
+        if (threadProgress.TryGetValue((conversion, TP_KEY), out var tp))
         {
           double filesize = conversion.BookCommon.FileSizeBytes ?? 0;
           double val = progPos / filesize;
@@ -166,7 +166,7 @@ namespace Oahu.Core
       }
     }
 
-    private async Task decryptAsync(
+    private async Task DecryptAsync(
       Conversion conversion,
       IProgress<ProgressMessage> progress,
       T context,
@@ -176,7 +176,7 @@ namespace Oahu.Core
       using var lg = new LogGuard(3, this, () => conversion.ToString());
 
       using var tp = new ThreadProgressPerCent(pm => progress.Report(pm));
-      _threadProgress.TryAdd((conversion, TP_KEY), tp);
+      threadProgress.TryAdd((conversion, TP_KEY), tp);
 
       bool succ = true;
 
@@ -187,18 +187,18 @@ namespace Oahu.Core
       bool hasUnlockedFile = File.Exists(conversion.DownloadFileName + R.DecryptedFileExt);
 
       // decrypt if file does not exist or state too low
-      bool doDecrypt = savedState < EConversionState.local_unlocked || !hasUnlockedFile;
+      bool doDecrypt = savedState < EConversionState.LocalUnlocked || !hasUnlockedFile;
 
       if (doDecrypt)
       {
-        _throttlingSemaphore.WaitOne();
+        throttlingSemaphore.WaitOne();
         Log(3, this, () => $"{conversion}; clear to run");
-        using (new ResourceGuard(() => _throttlingSemaphore.Release()))
+        using (new ResourceGuard(() => throttlingSemaphore.Release()))
         {
           int runLengthSecs = conversion.BookCommon.RunTimeLengthSeconds ?? 0;
           TimeSpan length = TimeSpan.FromSeconds(runLengthSecs);
 
-          var decrTask = AudibleApi.DecryptAsync(conversion, onProgressTime, context.CancellationToken);
+          var decrTask = AudibleApi.DecryptAsync(conversion, OnProgressTime, context.CancellationToken);
           OnNewStateCallback(conversion);
           succ = await decrTask;
           OnNewStateCallback(conversion);
@@ -224,7 +224,7 @@ namespace Oahu.Core
       if (succ && convertAction is not null)
       {
         Book book = conversion.ParentBook;
-        if (book.ApplicableState(Settings.MultiPartDownload) >= EConversionState.local_unlocked)
+        if (book.ApplicableState(Settings.MultiPartDownload) >= EConversionState.LocalUnlocked)
         {
           bool filesExist = true;
           if (Settings.MultiPartDownload && !book.Components.IsNullOrEmpty())
@@ -240,19 +240,19 @@ namespace Oahu.Core
             }
           }
 
-          if (filesExist && !_booksForConversion.Contains(book))
+          if (filesExist && !booksForConversion.Contains(book))
           {
-            _booksForConversion.Add(book);
+            booksForConversion.Add(book);
             Log(3, this, () => $"{conversion}; submit for conversion.");
             var convertTask = Task.Run(() => convertAction(book, context, OnNewStateCallback));
-            _runningTasks.Add(convertTask);
+            runningTasks.Add(convertTask);
           }
         }
       }
 
-      void onProgressTime(Conversion conversion, TimeSpan progPos)
+      void OnProgressTime(Conversion conversion, TimeSpan progPos)
       {
-        if (_threadProgress.TryGetValue((conversion, TP_KEY), out var tp))
+        if (threadProgress.TryGetValue((conversion, TP_KEY), out var tp))
         {
           double runLengthSecs = conversion.BookCommon.RunTimeLengthSeconds ?? 0;
           double val = progPos.TotalSeconds / runLengthSecs;

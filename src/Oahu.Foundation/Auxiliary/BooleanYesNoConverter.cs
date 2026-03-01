@@ -12,16 +12,16 @@ namespace Oahu.Aux
     const string TRUE = "Yes";
     const string FALSE = "No";
 
-    private ResourceManager _resourceManager;
-    Dictionary<string, bool> _reverseLookup;
+    private ResourceManager resourceManager;
+    Dictionary<string, bool> reverseLookup;
 
     protected ResourceManager ResourceManager
     {
-      get => _resourceManager;
+      get => resourceManager;
       set
       {
-        _resourceManager = value;
-        initReverseLookup();
+        resourceManager = value;
+        InitReverseLookup();
       }
     }
 
@@ -47,7 +47,7 @@ namespace Oahu.Aux
         default:
           return base.ConvertTo(context, culture, value, destinationType);
         case bool val:
-          return toDisplayString(val);
+          return ToDisplayString(val);
       }
     }
 
@@ -56,11 +56,11 @@ namespace Oahu.Aux
 #if TRACE && EXTRA
       Log.WriteLine ($"{nameof (ConvertFrom)}: \"{value}\", from: {value.GetType ().Name}");
 #endif
-      if (!(_reverseLookup is null))
+      if (!(reverseLookup is null))
       {
         if (value is string s)
         {
-          bool succ = _reverseLookup.TryGetValue(s, out bool b);
+          bool succ = reverseLookup.TryGetValue(s, out bool b);
           if (succ)
           {
             return b;
@@ -71,19 +71,19 @@ namespace Oahu.Aux
       return base.ConvertFrom(context, culture, value);
     }
 
-    private string toDisplayString(bool value)
+    private string ToDisplayString(bool value)
     {
       string s = value ? TRUE : FALSE;
       return ResourceManager.GetStringEx(s);
     }
 
-    private void initReverseLookup()
+    private void InitReverseLookup()
     {
-      _reverseLookup = new Dictionary<string, bool>();
-      initReverseLookup(false);
-      initReverseLookup(true);
+      reverseLookup = new Dictionary<string, bool>();
+      InitReverseLookup(false);
+      InitReverseLookup(true);
     }
 
-    private void initReverseLookup(bool value) => _reverseLookup.Add(toDisplayString(value), value);
+    private void InitReverseLookup(bool value) => reverseLookup.Add(ToDisplayString(value), value);
   }
 }

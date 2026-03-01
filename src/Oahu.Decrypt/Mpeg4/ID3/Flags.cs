@@ -5,49 +5,49 @@ namespace Oahu.Decrypt.Mpeg4.ID3;
 
 public class Flags
 {
-  private byte[] _flags;
+  private byte[] flags;
 
   public Flags(params byte[] flags)
   {
-    _flags = flags;
+    this.flags = flags;
   }
 
   public Flags(ushort flags)
   {
-    _flags = [(byte)(flags >> 8), (byte)(flags & 0xff)];
+    this.flags = [(byte)(flags >> 8), (byte)(flags & 0xff)];
   }
 
-  public int Size => _flags.Length;
+  public int Size => this.flags.Length;
 
   public bool this[int index]
   {
     get
     {
-      if (index < 0 || index >= _flags.Length * 8)
+      if (index < 0 || index >= flags.Length * 8)
       {
         throw new ArgumentOutOfRangeException(nameof(index), "Index must be within the range of the flags.");
       }
 
-      return (_flags[index / 8] & (1 << (7 - (index % 8)))) != 0;
+      return (flags[index / 8] & (1 << (7 - (index % 8)))) != 0;
     }
 
     set
     {
-      if (index < 0 || index >= _flags.Length * 8)
+      if (index < 0 || index >= flags.Length * 8)
       {
         throw new ArgumentOutOfRangeException(nameof(index), "Index must be within the range of the flags.");
       }
 
       if (value)
       {
-        _flags[index / 8] |= (byte)(1 << (7 - (index % 8)));
+        flags[index / 8] |= (byte)(1 << (7 - (index % 8)));
       }
       else
       {
-        _flags[index / 8] &= (byte)~(1 << (7 - (index % 8)));
+        flags[index / 8] &= (byte)~(1 << (7 - (index % 8)));
       }
     }
   }
 
-  public byte[] ToBytes() => _flags.ToArray();
+  public byte[] ToBytes() => flags.ToArray();
 }

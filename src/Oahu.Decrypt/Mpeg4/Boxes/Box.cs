@@ -9,7 +9,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes
 {
   public abstract class Box : IBox
   {
-    private int m_Disposed = 0;
+    private int disposed = 0;
 
     public Box(BoxHeader header, IBox? parent)
     {
@@ -30,7 +30,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes
 
     public virtual long RenderSize => 8 + Children.Sum(b => b.RenderSize);
 
-    protected bool Disposed => m_Disposed != 0;
+    protected bool Disposed => disposed != 0;
 
     public T? GetChild<T>() where T : IBox
     {
@@ -111,7 +111,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes
 
     protected virtual void Dispose(bool disposing)
     {
-      if (disposing && Interlocked.CompareExchange(ref m_Disposed, 1, 0) == 0)
+      if (disposing && Interlocked.CompareExchange(ref disposed, 1, 0) == 0)
       {
         foreach (IBox child in Children)
         {

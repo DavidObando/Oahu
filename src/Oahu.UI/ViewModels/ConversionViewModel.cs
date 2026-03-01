@@ -12,22 +12,22 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
   public partial class ConversionViewModel : ObservableObject
   {
     [ObservableProperty]
-    private ObservableCollection<ConversionItemViewModel> _conversions = new();
+    private ObservableCollection<ConversionItemViewModel> conversions = new();
 
     [ObservableProperty]
-    private bool _isIdle = true;
+    private bool isIdle = true;
 
     [ObservableProperty]
-    private bool _isRunning;
+    private bool isRunning;
 
     [ObservableProperty]
-    private int _queuedCount;
+    private int queuedCount;
 
     [ObservableProperty]
-    private double _overallProgress;
+    private double overallProgress;
 
     [ObservableProperty]
-    private string _overallStatusText;
+    private string overallStatusText;
 
     /// <summary>
     /// Raised when the user clicks Run. The MainWindow handles the actual pipeline.
@@ -128,49 +128,49 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 
   public partial class ConversionItemViewModel : ObservableObject
   {
-    private readonly Book _book;
+    private readonly Book book;
 
     [ObservableProperty]
-    private bool _isSelected;
+    private bool isSelected;
 
     [ObservableProperty]
-    private EConversionState _state;
+    private EConversionState state;
 
     [ObservableProperty]
-    private double _progress;
+    private double progress;
 
     [ObservableProperty]
-    private string _statusText = "Queued";
+    private string statusText = "Queued";
 
     public ConversionItemViewModel(Book book)
     {
-      _book = book;
+      this.book = book;
     }
 
-    public Book Book => _book;
+    public Book Book => book;
 
-    public string Title => _book.Title;
+    public string Title => book.Title;
 
-    public string Author => _book.Author;
+    public string Author => book.Author;
 
-    public string Asin => _book.Asin;
+    public string Asin => book.Asin;
 
-    public Conversion Conversion => _book.Conversion;
+    public Conversion Conversion => book.Conversion;
 
     public void UpdateState(EConversionState state)
     {
       State = state;
       StatusText = state switch
       {
-        EConversionState.unknown => "Queued",
-        EConversionState.license_granted => "Licensed",
-        EConversionState.license_denied => "License denied",
-        EConversionState.local_locked => "Downloaded",
-        EConversionState.download_error => "Download error",
-        EConversionState.local_unlocked => "Decrypted",
-        EConversionState.unlocking_failed => "Decrypt error",
-        EConversionState.exported => "Exported",
-        EConversionState.conversion_error => "Export error",
+        EConversionState.Unknown => "Queued",
+        EConversionState.LicenseGranted => "Licensed",
+        EConversionState.LicenseDenied => "License denied",
+        EConversionState.LocalLocked => "Downloaded",
+        EConversionState.DownloadError => "Download error",
+        EConversionState.LocalUnlocked => "Decrypted",
+        EConversionState.UnlockingFailed => "Decrypt error",
+        EConversionState.Exported => "Exported",
+        EConversionState.ConversionError => "Export error",
         _ => state.ToString()
       };
     }

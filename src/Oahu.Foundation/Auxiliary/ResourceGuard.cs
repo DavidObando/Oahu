@@ -50,32 +50,32 @@ namespace Oahu.Aux
   /// </summary>
   public class ResourceGuard : IDisposable
   {
-    readonly Action _onDispose;
-    readonly Action<bool> _onNewAndDispose;
-    readonly IResource _resource;
+    readonly Action onDispose;
+    readonly Action<bool> onNewAndDispose;
+    readonly IResource resource;
 
     public ResourceGuard(IResource resource)
     {
-      _resource = resource;
-      _resource.Acquire();
+      this.resource = resource;
+      this.resource.Acquire();
     }
 
     public ResourceGuard(Action onDispose)
     {
-      _onDispose = onDispose;
+      this.onDispose = onDispose;
     }
 
     public ResourceGuard(Action<bool> onNewAndDispose)
     {
-      _onNewAndDispose = onNewAndDispose;
-      _onNewAndDispose?.Invoke(true);
+      this.onNewAndDispose = onNewAndDispose;
+      this.onNewAndDispose?.Invoke(true);
     }
 
     public void Dispose()
     {
-      _onDispose?.Invoke();
-      _onNewAndDispose?.Invoke(false);
-      _resource?.Release();
+      onDispose?.Invoke();
+      onNewAndDispose?.Invoke(false);
+      resource?.Release();
     }
   }
 }

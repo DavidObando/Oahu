@@ -2,15 +2,15 @@ namespace Oahu.Common.Util
 {
   public enum EOnlineUpdate
   {
-    no,
-    promptForDownload,
-    promptForInstall
+    No,
+    PromptForDownload,
+    PromptForInstall
   }
 
   public enum EUpdateInteract
   {
-    newVersAvail,
-    installNow,
-    installLater,
+    NewVersAvail,
+    InstallNow,
+    InstallLater,
   }
 }

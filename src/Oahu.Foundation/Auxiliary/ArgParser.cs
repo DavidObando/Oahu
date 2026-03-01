@@ -7,23 +7,23 @@ namespace Oahu.Aux
 {
   public class ArgParser
   {
-    readonly string[] _args;
-    readonly bool _ignoreCase;
+    readonly string[] args;
+    readonly bool ignoreCase;
 
     public ArgParser(string[] args)
     {
-      _args = args;
+      this.args = args;
     }
 
     public ArgParser(string[] args, bool ignoreCase)
     {
-      _args = args;
-      this._ignoreCase = ignoreCase;
+      this.args = args;
+      this.ignoreCase = ignoreCase;
     }
 
     public void Log()
     {
-      foreach (string arg in _args)
+      foreach (string arg in args)
       {
         Logging.Log(1, arg);
       }
@@ -31,15 +31,15 @@ namespace Oahu.Aux
 
     public virtual bool Exists(string tag)
     {
-      if (_args == null)
+      if (args == null)
       {
         return false;
       }
 
       string key = "-" + tag;
-      foreach (string arg in _args)
+      foreach (string arg in args)
       {
-        if (arg.StartsWith(key, _ignoreCase, CultureInfo.InvariantCulture))
+        if (arg.StartsWith(key, ignoreCase, CultureInfo.InvariantCulture))
         {
           return true;
         }
@@ -51,15 +51,15 @@ namespace Oahu.Aux
     public virtual string FindArg(string tag)
     {
       string erg = null;
-      if (_args == null)
+      if (args == null)
       {
         return erg;
       }
 
       string key = "-" + tag + "=";
-      foreach (string arg in _args)
+      foreach (string arg in args)
       {
-        if (arg.StartsWith(key, _ignoreCase, CultureInfo.InvariantCulture))
+        if (arg.StartsWith(key, ignoreCase, CultureInfo.InvariantCulture))
         {
           if (arg.Length > key.Length)
           {
@@ -74,13 +74,13 @@ namespace Oahu.Aux
 
     public virtual bool HasArg(string tag)
     {
-      if (_args == null)
+      if (args == null)
       {
         return false;
       }
 
       string key = "-" + tag;
-      return _args.Where(x => x.StartsWith(key, StringComparison.InvariantCultureIgnoreCase)).Any();
+      return args.Where(x => x.StartsWith(key, StringComparison.InvariantCultureIgnoreCase)).Any();
     }
 
     public string FindArg(string tag, string defaultArgVal)
@@ -208,7 +208,7 @@ namespace Oahu.Aux
       }
     }
 
-    public E? FindEnumArg<E>(string tag) where E : struct, Enum
+    public TEnum? FindEnumArg<TEnum>(string tag) where TEnum : struct, Enum
     {
       string arg = FindArg(tag);
       if (arg == null || arg.Length == 0)
@@ -216,7 +216,7 @@ namespace Oahu.Aux
         return null;
       }
 
-      if (!Enum.TryParse<E>(arg, out E result))
+      if (!Enum.TryParse<TEnum>(arg, out TEnum result))
       {
         return null;
       }
@@ -224,9 +224,9 @@ namespace Oahu.Aux
       return result;
     }
 
-    public E FindEnumArg<E>(string tag, E defaultArgVal) where E : struct, Enum
+    public TEnum FindEnumArg<TEnum>(string tag, TEnum defaultArgVal) where TEnum : struct, Enum
     {
-      E? arg = FindEnumArg<E>(tag);
+      TEnum? arg = FindEnumArg<TEnum>(tag);
       if (arg == null)
       {
         return defaultArgVal;

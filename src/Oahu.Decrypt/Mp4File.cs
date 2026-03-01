@@ -117,24 +117,24 @@ namespace Oahu.Decrypt
 
         c1.ChapterRead += (_, e) => chapterQueue.Add(e);
 
-        void continuation(Task t)
+        void Continuation(Task t)
         {
           filter1.Dispose();
           c1.Dispose();
           outputStream.Close();
         }
 
-        return ProcessAudio(start, end, continuation, (Moov.AudioTrack, filter1), (Moov.TextTrack, c1));
+        return ProcessAudio(start, end, Continuation, (Moov.AudioTrack, filter1), (Moov.TextTrack, c1));
       }
       else
       {
-        void continuation(Task t)
+        void Continuation(Task t)
         {
           filter1.Dispose();
           outputStream.Close();
         }
 
-        return ProcessAudio(start, end, continuation, (Moov.AudioTrack, filter1));
+        return ProcessAudio(start, end, Continuation, (Moov.AudioTrack, filter1));
       }
     }
 
@@ -149,9 +149,9 @@ namespace Oahu.Decrypt
 
       f1.LinkTo(f2);
 
-      void continuation(Task t) => f1.Dispose();
+      void Continuation(Task t) => f1.Dispose();
 
-      return ProcessAudio(userChapters.StartOffset, userChapters.EndOffset, continuation, (Moov.AudioTrack, f1));
+      return ProcessAudio(userChapters.StartOffset, userChapters.EndOffset, Continuation, (Moov.AudioTrack, f1));
     }
 
     public Mp4Operation<ChapterInfo?> GetChapterInfoAsync()
@@ -166,7 +166,7 @@ namespace Oahu.Decrypt
       ChapterQueue chapterQueue = new(SampleRate, SampleRate);
       chapterFilter.ChapterRead += (s, e) => chapterQueue.Add(e);
 
-      ChapterInfo? continuation(Task t)
+      ChapterInfo? Continuation(Task t)
       {
         ChapterInfo chapters = new();
 
@@ -181,10 +181,10 @@ namespace Oahu.Decrypt
         return chapters;
       }
 
-      return ProcessAudio(TimeSpan.Zero, TimeSpan.MaxValue, continuation, (Moov.TextTrack, chapterFilter));
+      return ProcessAudio(TimeSpan.Zero, TimeSpan.MaxValue, Continuation, (Moov.TextTrack, chapterFilter));
     }
 
-    public virtual Mp4Operation ProcessAudio(TimeSpan startTime, TimeSpan endTime, Action<Task> continuation, params (TrakBox track, FrameFilterBase<FrameEntry> filter)[] filters)
+    public virtual Mp4Operation ProcessAudio(TimeSpan startTime, TimeSpan endTime, Action<Task> continuation, params (TrakBox Track, FrameFilterBase<FrameEntry> Filter)[] filters)
     {
       IChunkReader reader = CreateChunkReader(InputStream, startTime, Min(Duration, endTime));
 
@@ -196,7 +196,7 @@ namespace Oahu.Decrypt
       return operation;
     }
 
-    public Mp4Operation<TResult> ProcessAudio<TResult>(TimeSpan startTime, TimeSpan endTime, Func<Task, TResult> continuation, params (TrakBox track, FrameFilterBase<FrameEntry> filter)[] filters)
+    public Mp4Operation<TResult> ProcessAudio<TResult>(TimeSpan startTime, TimeSpan endTime, Func<Task, TResult> continuation, params (TrakBox Track, FrameFilterBase<FrameEntry> Filter)[] filters)
     {
       IChunkReader reader = CreateChunkReader(InputStream, startTime, Min(Duration, endTime));
 
