@@ -20,7 +20,7 @@ public interface IStszBox : IBox
   /// <param name="firstFrameIndex">The first frame to retrieve the size of</param>
   /// <param name="numFrames">The number of frames to retrieve sizes of</param>
   /// <returns>A tuple containing the size of each frame in an int[] and the total size of all the frames. </returns>
-  (int[] frameSizes, int framesSizeTotal) GetFrameSizes(uint firstFrameIndex, uint numFrames)
+  (int[] FrameSizes, int FramesSizeTotal) GetFrameSizes(uint firstFrameIndex, uint numFrames)
   {
     int[] frameSizes = new int[numFrames];
     int framesSizeTotal = 0;

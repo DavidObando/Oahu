@@ -6,27 +6,27 @@ namespace Oahu.Decrypt.Mpeg4;
 
 public class MetadataItems
 {
-  public const string TAG_NAME_TITLE = "©nam";
-  public const string TAG_NAME_PRODUCER = "©prd";
-  public const string TAG_NAME_ARTIST = "©ART";
-  public const string TAG_NAME_ALBUMARTIST = "aART";
-  public const string TAG_NAME_ALBUM = "©alb";
-  public const string TAG_NAME_GENRES = "©gen";
-  public const string TAG_NAME_PRODUCTID = "prID";
-  public const string TAG_NAME_COMMENT = "©cmt";
-  public const string TAG_NAME_LONGDESCRIPTION = "©des";
-  public const string TAG_NAME_COPYRIGHT = "cprt";
-  public const string TAG_NAME_PUBLISHER = "©pub";
-  public const string TAG_NAME_YEAR = "©day";
-  public const string TAG_NAME_NARRATOR = "©nrt";
-  public const string TAG_NAME_ASIN = "CDEK";
-  public const string TAG_NAME_RELEASEDATE = "rldt";
-  public const string TAG_NAME_ACR = "AACR";
-  public const string TAG_NAME_VERSION = "VERS";
-  public const string TAG_NAME_ENCODER = "©too";
-  public const string TAG_NAME_COVER = "covr";
-  public const string TAG_NAME_TRACK_NUMBER = "trkn";
-  public const string TAG_NAME_DISK_NUMBER = "disk";
+  public const string TagNameTitle = "©nam";
+  public const string TagNameProducer = "©prd";
+  public const string TagNameArtist = "©ART";
+  public const string TagNameAlbumArtist = "aART";
+  public const string TagNameAlbum = "©alb";
+  public const string TagNameGenres = "©gen";
+  public const string TagNameProductId = "prID";
+  public const string TagNameComment = "©cmt";
+  public const string TagNameLongDescription = "©des";
+  public const string TagNameCopyright = "cprt";
+  public const string TagNamePublisher = "©pub";
+  public const string TagNameYear = "©day";
+  public const string TagNameNarrator = "©nrt";
+  public const string TagNameAsin = "CDEK";
+  public const string TagNameReleaseDate = "rldt";
+  public const string TagNameAcr = "AACR";
+  public const string TagNameVersion = "VERS";
+  public const string TagNameEncoder = "©too";
+  public const string TagNameCover = "covr";
+  public const string TagNameTrackNumber = "trkn";
+  public const string TagNameDiskNumber = "disk";
 
   public MetadataItems(AppleListBox appleListBox)
   {
@@ -43,49 +43,49 @@ public class MetadataItems
 
   public string? RecordingCopyright => GetCopyrights() is { } copyrights && copyrights.Length > 1 ? copyrights[1] : default;
 
-  public string? Title { get => AppleListBox.GetTagString(TAG_NAME_TITLE); set => AppleListBox.EditOrAddTag(TAG_NAME_TITLE, value); }
+  public string? Title { get => AppleListBox.GetTagString(TagNameTitle); set => AppleListBox.EditOrAddTag(TagNameTitle, value); }
 
-  public string? Producer { get => AppleListBox.GetTagString(TAG_NAME_PRODUCER); set => AppleListBox.EditOrAddTag(TAG_NAME_PRODUCER, value); }
+  public string? Producer { get => AppleListBox.GetTagString(TagNameProducer); set => AppleListBox.EditOrAddTag(TagNameProducer, value); }
 
-  public string? Artist { get => AppleListBox.GetTagString(TAG_NAME_ARTIST); set => AppleListBox.EditOrAddTag(TAG_NAME_ARTIST, value); }
+  public string? Artist { get => AppleListBox.GetTagString(TagNameArtist); set => AppleListBox.EditOrAddTag(TagNameArtist, value); }
 
-  public string? AlbumArtists { get => AppleListBox.GetTagString(TAG_NAME_ALBUMARTIST); set => AppleListBox.EditOrAddTag(TAG_NAME_ALBUMARTIST, value); }
+  public string? AlbumArtists { get => AppleListBox.GetTagString(TagNameAlbumArtist); set => AppleListBox.EditOrAddTag(TagNameAlbumArtist, value); }
 
-  public string? Album { get => AppleListBox.GetTagString(TAG_NAME_ALBUM); set => AppleListBox.EditOrAddTag(TAG_NAME_ALBUM, value); }
+  public string? Album { get => AppleListBox.GetTagString(TagNameAlbum); set => AppleListBox.EditOrAddTag(TagNameAlbum, value); }
 
-  public string? Genres { get => AppleListBox.GetTagString(TAG_NAME_GENRES); set => AppleListBox.EditOrAddTag(TAG_NAME_GENRES, value); }
+  public string? Genres { get => AppleListBox.GetTagString(TagNameGenres); set => AppleListBox.EditOrAddTag(TagNameGenres, value); }
 
-  public string? ProductID { get => AppleListBox.GetTagString(TAG_NAME_PRODUCTID); set => AppleListBox.EditOrAddTag(TAG_NAME_PRODUCTID, value); }
+  public string? ProductID { get => AppleListBox.GetTagString(TagNameProductId); set => AppleListBox.EditOrAddTag(TagNameProductId, value); }
 
-  public string? Comment { get => AppleListBox.GetTagString(TAG_NAME_COMMENT); set => AppleListBox.EditOrAddTag(TAG_NAME_COMMENT, value); }
+  public string? Comment { get => AppleListBox.GetTagString(TagNameComment); set => AppleListBox.EditOrAddTag(TagNameComment, value); }
 
-  public string? LongDescription { get => AppleListBox.GetTagString(TAG_NAME_LONGDESCRIPTION); set => AppleListBox.EditOrAddTag(TAG_NAME_LONGDESCRIPTION, value); }
+  public string? LongDescription { get => AppleListBox.GetTagString(TagNameLongDescription); set => AppleListBox.EditOrAddTag(TagNameLongDescription, value); }
 
-  public string? Copyright { get => AppleListBox.GetTagString(TAG_NAME_COPYRIGHT); set => AppleListBox.EditOrAddTag(TAG_NAME_COPYRIGHT, value); }
+  public string? Copyright { get => AppleListBox.GetTagString(TagNameCopyright); set => AppleListBox.EditOrAddTag(TagNameCopyright, value); }
 
-  public string? Publisher { get => AppleListBox.GetTagString(TAG_NAME_PUBLISHER); set => AppleListBox.EditOrAddTag(TAG_NAME_PUBLISHER, value); }
+  public string? Publisher { get => AppleListBox.GetTagString(TagNamePublisher); set => AppleListBox.EditOrAddTag(TagNamePublisher, value); }
 
-  public string? Year { get => AppleListBox.GetTagString(TAG_NAME_YEAR); set => AppleListBox.EditOrAddTag(TAG_NAME_YEAR, value); }
+  public string? Year { get => AppleListBox.GetTagString(TagNameYear); set => AppleListBox.EditOrAddTag(TagNameYear, value); }
 
-  public string? Narrator { get => AppleListBox.GetTagString(TAG_NAME_NARRATOR); set => AppleListBox.EditOrAddTag(TAG_NAME_NARRATOR, value); }
+  public string? Narrator { get => AppleListBox.GetTagString(TagNameNarrator); set => AppleListBox.EditOrAddTag(TagNameNarrator, value); }
 
-  public string? Asin { get => AppleListBox.GetTagString(TAG_NAME_ASIN); set => AppleListBox.EditOrAddTag(TAG_NAME_ASIN, value); }
+  public string? Asin { get => AppleListBox.GetTagString(TagNameAsin); set => AppleListBox.EditOrAddTag(TagNameAsin, value); }
 
-  public string? ReleaseDate { get => AppleListBox.GetTagString(TAG_NAME_RELEASEDATE); set => AppleListBox.EditOrAddTag(TAG_NAME_RELEASEDATE, value); }
+  public string? ReleaseDate { get => AppleListBox.GetTagString(TagNameReleaseDate); set => AppleListBox.EditOrAddTag(TagNameReleaseDate, value); }
 
-  public string? Acr { get => AppleListBox.GetTagString(TAG_NAME_ACR); set => AppleListBox.EditOrAddTag(TAG_NAME_ACR, value); }
+  public string? Acr { get => AppleListBox.GetTagString(TagNameAcr); set => AppleListBox.EditOrAddTag(TagNameAcr, value); }
 
-  public string? Version { get => AppleListBox.GetTagString(TAG_NAME_VERSION); set => AppleListBox.EditOrAddTag(TAG_NAME_VERSION, value); }
+  public string? Version { get => AppleListBox.GetTagString(TagNameVersion); set => AppleListBox.EditOrAddTag(TagNameVersion, value); }
 
-  public string? Encoder { get => AppleListBox.GetTagString(TAG_NAME_ENCODER); set => AppleListBox.EditOrAddTag(TAG_NAME_ENCODER, value); }
+  public string? Encoder { get => AppleListBox.GetTagString(TagNameEncoder); set => AppleListBox.EditOrAddTag(TagNameEncoder, value); }
 
-  public byte[]? Cover { get => AppleListBox.GetTagBox(TAG_NAME_COVER)?.Data.Data; set => SetCoverArt(value); }
+  public byte[]? Cover { get => AppleListBox.GetTagBox(TagNameCover)?.Data.Data; set => SetCoverArt(value); }
 
-  public AppleDataType? CoverFormat => AppleListBox.GetTagBox(TAG_NAME_COVER)?.Data.DataType;
+  public AppleDataType? CoverFormat => AppleListBox.GetTagBox(TagNameCover)?.Data.DataType;
 
-  public TrackNumber? TrackNumber { get => AppleListBox.GetTagData<TrackNumber>(TAG_NAME_TRACK_NUMBER); set => AppleListBox.EditOrAddTag(TAG_NAME_TRACK_NUMBER, value); }
+  public TrackNumber? TrackNumber { get => AppleListBox.GetTagData<TrackNumber>(TagNameTrackNumber); set => AppleListBox.EditOrAddTag(TagNameTrackNumber, value); }
 
-  public DiskNumber? DiskNumber { get => AppleListBox.GetTagData<DiskNumber>(TAG_NAME_DISK_NUMBER); set => AppleListBox.EditOrAddTag(TAG_NAME_DISK_NUMBER, value); }
+  public DiskNumber? DiskNumber { get => AppleListBox.GetTagData<DiskNumber>(TagNameDiskNumber); set => AppleListBox.EditOrAddTag(TagNameDiskNumber, value); }
 
   public static MetadataItems? FromFile(string mp4File)
   {
@@ -121,35 +121,35 @@ public class MetadataItems
   {
     if (coverArtBytes is null)
     {
-      AppleListBox.RemoveTag(TAG_NAME_COVER);
+      AppleListBox.RemoveTag(TagNameCover);
     }
     else if (coverArtBytes.Length >= 2 && BinaryPrimitives.ReadInt16LittleEndian(coverArtBytes) == 0x4D42)
     {
-      editOrAdd(AppleDataType.BMP);
+      EditOrAdd(AppleDataType.BMP);
     }
     else if (coverArtBytes.Length >= 3 && (BinaryPrimitives.ReadInt32LittleEndian(coverArtBytes) & 0xFFFFFF) == 0xFFD8FF)
     {
-      editOrAdd(AppleDataType.JPEG);
+      EditOrAdd(AppleDataType.JPEG);
     }
     else if (coverArtBytes.Length >= 8 && BinaryPrimitives.ReadInt64LittleEndian(coverArtBytes) == 0xA1A0A0D474e5089)
     {
-      editOrAdd(AppleDataType.PNG);
+      EditOrAdd(AppleDataType.PNG);
     }
     else
     {
       throw new InvalidDataException("Image data is not a jpeg, PNG, or windows bitmap.");
     }
 
-    void editOrAdd(AppleDataType dataType)
+    void EditOrAdd(AppleDataType dataType)
     {
-      if (AppleListBox.GetTagBox(TAG_NAME_COVER) is { } tagBox && tagBox.Data.DataType != dataType)
+      if (AppleListBox.GetTagBox(TagNameCover) is { } tagBox && tagBox.Data.DataType != dataType)
       {
         // Allow changing data type by removing and re-adding
         AppleListBox.RemoveTag(tagBox);
         tagBox.Dispose();
       }
 
-      AppleListBox.EditOrAddTag(TAG_NAME_COVER, coverArtBytes, dataType);
+      AppleListBox.EditOrAddTag(TagNameCover, coverArtBytes, dataType);
     }
   }
 }

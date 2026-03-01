@@ -6,9 +6,9 @@ namespace Oahu.Aux
   {
     private static readonly DateTime EPOCH = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
 
-    public static int DateTimeToUnix32(DateTime dt) => (int)dateTimeToDouble(dt);
+    public static int DateTimeToUnix32(DateTime dt) => (int)DateTimeToDouble(dt);
 
-    public static long DateTimeToUnix64(DateTime dt) => (long)dateTimeToDouble(dt);
+    public static long DateTimeToUnix64(DateTime dt) => (long)DateTimeToDouble(dt);
 
     public static long DateTimeToUnix64Msec(DateTime dt)
     {
@@ -43,7 +43,7 @@ namespace Oahu.Aux
       return dt;
     }
 
-    private static double dateTimeToDouble(DateTime dt)
+    private static double DateTimeToDouble(DateTime dt)
     {
       if (dt == default)
       {

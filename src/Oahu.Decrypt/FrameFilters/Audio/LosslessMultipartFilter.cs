@@ -10,7 +10,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     private readonly FtypBox ftyp;
     private readonly MoovBox moov;
     private readonly Action<NewSplitCallback> newFileCallback;
-    private Mp4aWriter? Mp4writer;
+    private Mp4aWriter? mp4writer;
 
     public LosslessMultipartFilter(ChapterInfo splitChapters, FtypBox ftyp, MoovBox moov, Action<NewSplitCallback> newFileCallback)
         : base(splitChapters, (SampleRate)moov.AudioTrack.Mdia.Mdhd.Timescale, moov.AudioTrack.Mdia.Minf.Stbl.Stsd.AudioSampleEntry?.ChannelCount == 2)
@@ -31,14 +31,14 @@ namespace Oahu.Decrypt.FrameFilters.Audio
         return;
       }
 
-      Mp4writer?.Close();
-      Mp4writer?.OutputFile.Close();
+      mp4writer?.Close();
+      mp4writer?.OutputFile.Close();
       CurrentWriterOpen = false;
     }
 
     protected override void WriteFrameToFile(FrameEntry audioFrame, bool newChunk)
     {
-      Mp4writer?.AddFrame(audioFrame.FrameData.Span, newChunk, audioFrame.SamplesInFrame);
+      mp4writer?.AddFrame(audioFrame.FrameData.Span, newChunk, audioFrame.SamplesInFrame);
     }
 
     protected override void CreateNewWriter(NewSplitCallback callback)
@@ -51,12 +51,12 @@ namespace Oahu.Decrypt.FrameFilters.Audio
 
       CurrentWriterOpen = true;
 
-      Mp4writer = new Mp4aWriter(outfile, ftyp, moov);
-      Mp4writer.RemoveTextTrack();
+      mp4writer = new Mp4aWriter(outfile, ftyp, moov);
+      mp4writer.RemoveTextTrack();
 
-      if (Mp4writer.Moov.ILst is not null)
+      if (mp4writer.Moov.ILst is not null)
       {
-        var tags = new MetadataItems(Mp4writer.Moov.ILst);
+        var tags = new MetadataItems(mp4writer.Moov.ILst);
         if (callback.TrackNumber.HasValue && callback.TrackCount.HasValue)
         {
           tags.TrackNumber = (callback.TrackNumber.Value, callback.TrackCount.Value);

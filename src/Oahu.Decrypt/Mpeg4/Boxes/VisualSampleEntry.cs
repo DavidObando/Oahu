@@ -6,17 +6,17 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 
 public class VisualSampleEntry : SampleEntry
 {
-  private readonly byte[] pre_defined1;
+  private readonly byte[] preDefined1;
   private readonly byte[] reserved;
-  private readonly byte[] pre_defined2;
+  private readonly byte[] preDefined2;
   private readonly byte[] reserved2;
-  private readonly byte[] pre_defined3;
+  private readonly byte[] preDefined3;
 
   public VisualSampleEntry(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
-    pre_defined1 = file.ReadBlock(2);
+    preDefined1 = file.ReadBlock(2);
     reserved = file.ReadBlock(2);
-    pre_defined2 = file.ReadBlock(sizeof(uint) * 3);
+    preDefined2 = file.ReadBlock(sizeof(uint) * 3);
     Width = file.ReadUInt16BE();
     Height = file.ReadUInt16BE();
     HorizontalResolution = file.ReadUInt32BE();
@@ -33,17 +33,17 @@ public class VisualSampleEntry : SampleEntry
     CompressorName = System.Text.Encoding.UTF8.GetString(compressorNameBytes, 1, displaySize);
 
     Depth = file.ReadUInt16BE();
-    pre_defined3 = file.ReadBlock(2);
+    preDefined3 = file.ReadBlock(2);
   }
 
   public override long RenderSize => base.RenderSize +
-      pre_defined1.Length +
+      preDefined1.Length +
       reserved.Length +
-      pre_defined2.Length +
+      preDefined2.Length +
       sizeof(ushort) * 4 +
       sizeof(uint) * 2 +
       reserved2.Length +
-      pre_defined3.Length +
+      preDefined3.Length +
       32;
 
   public ushort Width { get; }
@@ -63,9 +63,9 @@ public class VisualSampleEntry : SampleEntry
   protected override void Render(Stream file)
   {
     base.Render(file);
-    file.Write(pre_defined1);
+    file.Write(preDefined1);
     file.Write(reserved);
-    file.Write(pre_defined2);
+    file.Write(preDefined2);
     file.WriteUInt16BE(Width);
     file.WriteUInt16BE(Height);
     file.WriteUInt32BE(HorizontalResolution);
@@ -82,6 +82,6 @@ public class VisualSampleEntry : SampleEntry
     System.Text.Encoding.UTF8.GetBytes(CompressorName, 0, CompressorName.Length, compressorNameBytes, 1);
     file.Write(compressorNameBytes);
     file.WriteUInt16BE(Depth);
-    file.Write(pre_defined3);
+    file.Write(preDefined3);
   }
 }

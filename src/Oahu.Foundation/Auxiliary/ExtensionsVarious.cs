@@ -38,7 +38,7 @@ namespace Oahu.Aux.Extensions
     public const string SEPARATOR = "; ";
     public const char ELLIPSIS = '…';
 
-    const int MAXLEN_SHORTSTRING = 40;
+    const int MaxlenShortstring = 40;
 
     static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
     static readonly char[] DoubtfulFileNameChars =
@@ -50,19 +50,19 @@ namespace Oahu.Aux.Extensions
     };
 
     public static string FirstEtAl(this IEnumerable<string> values, char separator) =>
-      values.firstEtAl($"{separator} ");
+      values.FirstEtAlImpl($"{separator} ");
 
     public static string FirstEtAl(this IEnumerable<string> values, string separator = SEPARATOR) =>
-      values.firstEtAl(separator);
+      values.FirstEtAlImpl(separator);
 
     public static string Combine(this IEnumerable<string> values, char separator) =>
-      values.combine(false, $"{separator} ");
+      values.CombineImpl(false, $"{separator} ");
 
     public static string Combine(this IEnumerable<string> values, string separator = SEPARATOR) =>
-      values.combine(false, separator);
+      values.CombineImpl(false, separator);
 
     public static string Combine(this IEnumerable<string> values, bool newLine) =>
-      values.combine(newLine, SEPARATOR);
+      values.CombineImpl(newLine, SEPARATOR);
 
     public static string[] SplitTrim(this string value, char separator) => value.SplitTrim(new[] { separator });
 
@@ -189,7 +189,7 @@ namespace Oahu.Aux.Extensions
       return new string(array);
     }
 
-    private static string firstEtAl(this IEnumerable<string> values, string separator)
+    private static string FirstEtAlImpl(this IEnumerable<string> values, string separator)
     {
       if (values.IsNullOrEmpty())
       {
@@ -206,7 +206,7 @@ namespace Oahu.Aux.Extensions
       }
     }
 
-    private static string combine(this IEnumerable<string> values, bool newLine, string separator)
+    private static string CombineImpl(this IEnumerable<string> values, bool newLine, string separator)
     {
       if (values is null)
       {
@@ -301,14 +301,14 @@ namespace Oahu.Aux.Extensions
   public static class ExUnc
   {
     private const string UNC = @"UNC\";
-    private const string UNC_PFX = @"\\?\";
-    private const string UNC_NET = UNC_PFX + UNC;
+    private const string UncPfx = @"\\?\";
+    private const string UncNet = UncPfx + UNC;
 
     public static bool IsUnc(this string path)
     {
       string root = Path.GetPathRoot(path);
 
-      if (root.StartsWith(UNC_PFX))
+      if (root.StartsWith(UncPfx))
       {
         return true;
       }
@@ -345,11 +345,11 @@ namespace Oahu.Aux.Extensions
         if (root.StartsWith(@"\\"))
         {
           string s = path.Substring(2);
-          return UNC_NET + s;
+          return UncNet + s;
         }
         else
         {
-          return UNC_PFX + path;
+          return UncPfx + path;
         }
       }
     }
@@ -370,7 +370,7 @@ namespace Oahu.Aux.Extensions
 
   public static class ExFile
   {
-    private static readonly TimeSpan ONE_MS = TimeSpan.FromMilliseconds(1);
+    private static readonly TimeSpan OneMs = TimeSpan.FromMilliseconds(1);
 
     public static string GetUniqueTimeBasedFilename(this string path, bool alwaysUseSpaceSep = false)
     {
@@ -398,7 +398,7 @@ namespace Oahu.Aux.Extensions
           break;
         }
 
-        timestamp += ONE_MS;
+        timestamp += OneMs;
         fmt = fmt2;
       }
 
@@ -443,12 +443,12 @@ namespace Oahu.Aux.Extensions
 
   public static class ExImage
   {
-    private static readonly byte[] __jpegHeader = { 0xFF, 0xD8, 0xFF };
-    private static readonly byte[] __pngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-    private static readonly byte[] __gifHeader = { 0x47, 0x49, 0x46 };
-    private static readonly byte[] __bmpHeader = { 0x42, 0x4D };
-    private static readonly byte[] __tiffLe = { 0x49, 0x49, 0x2A, 0x00 };
-    private static readonly byte[] __tiffBe = { 0x4D, 0x4D, 0x00, 0x2A };
+    private static readonly byte[] JpegHeader = { 0xFF, 0xD8, 0xFF };
+    private static readonly byte[] PngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+    private static readonly byte[] GifHeader = { 0x47, 0x49, 0x46 };
+    private static readonly byte[] BmpHeader = { 0x42, 0x4D };
+    private static readonly byte[] TiffLe = { 0x49, 0x49, 0x2A, 0x00 };
+    private static readonly byte[] TiffBe = { 0x4D, 0x4D, 0x00, 0x2A };
 
     public static string FindImageFormat(this byte[] bytes)
     {
@@ -459,27 +459,27 @@ namespace Oahu.Aux.Extensions
 
       try
       {
-        if (startsWith(bytes, __jpegHeader))
+        if (StartsWith(bytes, JpegHeader))
         {
           return ".jpg";
         }
 
-        if (startsWith(bytes, __pngHeader))
+        if (StartsWith(bytes, PngHeader))
         {
           return ".png";
         }
 
-        if (startsWith(bytes, __gifHeader))
+        if (StartsWith(bytes, GifHeader))
         {
           return ".gif";
         }
 
-        if (startsWith(bytes, __bmpHeader))
+        if (StartsWith(bytes, BmpHeader))
         {
           return ".bmp";
         }
 
-        if (startsWith(bytes, __tiffLe) || startsWith(bytes, __tiffBe))
+        if (StartsWith(bytes, TiffLe) || StartsWith(bytes, TiffBe))
         {
           return ".tif";
         }
@@ -492,7 +492,7 @@ namespace Oahu.Aux.Extensions
       }
     }
 
-    private static bool startsWith(byte[] data, byte[] signature)
+    private static bool StartsWith(byte[] data, byte[] signature)
     {
       if (data.Length < signature.Length)
       {
@@ -524,7 +524,7 @@ namespace Oahu.Aux.Extensions
       int nargs = type.GetGenericArguments().Length;
       if (nargs == 0 || (level.HasValue && nargs > level.Value))
       {
-        return typeName();
+      return TypeName();
       }
 
       var genericArguments = type.GetGenericArguments();
@@ -532,13 +532,13 @@ namespace Oahu.Aux.Extensions
       int idx = typeDefinition.IndexOf("`");
       if (idx < 0)
       {
-        return typeName();
+        return TypeName();
       }
 
       var unmangledName = typeDefinition.Substring(0, idx);
-      return unmangledName + $"<{string.Join(",", genericArguments.Select(t => t.PrettyName(1)))}>";
+      return unmangledName + $"<{string.Join(",", genericArguments.Select(t => t.PrettyName(1)))}>";  
 
-      string typeName() => fullName ? type.FullName : type.Name;
+      string TypeName() => fullName ? type.FullName : type.Name;
     }
   }
 }

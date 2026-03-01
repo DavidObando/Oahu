@@ -8,12 +8,12 @@ public class TrunBox : FullBox
   public TrunBox(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
     uint sampleCount = file.ReadUInt32BE();
-    if (data_offset_present)
+    if (DataOffsetPresent)
     {
       DataOffset = file.ReadInt32BE();
     }
 
-    if (first_sample_flags_present)
+    if (FirstSampleFlagsPresent)
     {
       FirstSampleFlags = file.ReadUInt32BE();
     }
@@ -22,16 +22,16 @@ public class TrunBox : FullBox
 
     for (int i = 0; i < sampleCount; i++)
     {
-      uint? sampleDuration = sample_duration_present ? file.ReadUInt32BE() : null;
-      int? sampleSize = sample_size_present ? file.ReadInt32BE() : null;
-      uint? sampleFlags = sample_flags_present ? file.ReadUInt32BE() : null;
-      int? sampleCompositionTimeOffset = sample_composition_time_offsets_present ? file.ReadInt32BE() : null;
+      uint? sampleDuration = SampleDurationPresent ? file.ReadUInt32BE() : null;
+      int? sampleSize = SampleSizePresent ? file.ReadInt32BE() : null;
+      uint? sampleFlags = SampleFlagsPresent ? file.ReadUInt32BE() : null;
+      int? sampleCompositionTimeOffset = SampleCompositionTimeOffsetsPresent ? file.ReadInt32BE() : null;
 
       Samples[i] = new SampleInfo(sampleDuration, sampleSize, sampleFlags, sampleCompositionTimeOffset);
     }
   }
 
-  public override long RenderSize => base.RenderSize + 4 + (data_offset_present ? 4 : 0) + (first_sample_flags_present ? 4 : 0) + SampleInfoSize * Samples.Length;
+  public override long RenderSize => base.RenderSize + 4 + (DataOffsetPresent ? 4 : 0) + (FirstSampleFlagsPresent ? 4 : 0) + SampleInfoSize * Samples.Length;
 
   public int DataOffset { get; }
 
@@ -39,56 +39,56 @@ public class TrunBox : FullBox
 
   public SampleInfo[] Samples { get; }
 
-  public bool sample_duration_present => (Flags & 0x100) == 0x100;
+  public bool SampleDurationPresent => (Flags & 0x100) == 0x100;
 
-  public bool sample_size_present => (Flags & 0x200) == 0x200;
+  public bool SampleSizePresent => (Flags & 0x200) == 0x200;
 
-  private bool data_offset_present => (Flags & 1) == 1;
+  private bool DataOffsetPresent => (Flags & 1) == 1;
 
-  private bool first_sample_flags_present => (Flags & 4) == 4;
+  private bool FirstSampleFlagsPresent => (Flags & 4) == 4;
 
-  private bool sample_flags_present => (Flags & 0x400) == 0x400;
+  private bool SampleFlagsPresent => (Flags & 0x400) == 0x400;
 
-  private bool sample_composition_time_offsets_present => (Flags & 0x800) == 0x800;
+  private bool SampleCompositionTimeOffsetsPresent => (Flags & 0x800) == 0x800;
 
   private int SampleInfoSize =>
-      (sample_duration_present ? 4 : 0) +
-      (sample_size_present ? 4 : 0) +
-      (sample_flags_present ? 4 : 0) +
-      (sample_composition_time_offsets_present ? 4 : 0);
+      (SampleDurationPresent ? 4 : 0) +
+      (SampleSizePresent ? 4 : 0) +
+      (SampleFlagsPresent ? 4 : 0) +
+      (SampleCompositionTimeOffsetsPresent ? 4 : 0);
 
   protected override void Render(Stream file)
   {
     base.Render(file);
     file.WriteInt32BE(Samples.Length);
-    if (data_offset_present)
+    if (DataOffsetPresent)
     {
       file.WriteInt32BE(DataOffset);
     }
 
-    if (first_sample_flags_present)
+    if (FirstSampleFlagsPresent)
     {
       file.WriteUInt32BE(FirstSampleFlags);
     }
 
     for (int i = 0; i < Samples.Length; i++)
     {
-      if (sample_duration_present)
+      if (SampleDurationPresent)
       {
         file.WriteUInt32BE(Samples[i].SampleDuration ?? 0);
       }
 
-      if (sample_size_present)
+      if (SampleSizePresent)
       {
         file.WriteInt32BE(Samples[i].SampleSize ?? 0);
       }
 
-      if (sample_flags_present)
+      if (SampleFlagsPresent)
       {
         file.WriteUInt32BE(Samples[i].SampleFlags ?? 0);
       }
 
-      if (sample_composition_time_offsets_present)
+      if (SampleCompositionTimeOffsetsPresent)
       {
         file.WriteInt32BE(Samples[i].SampleCompositionTimeOffset ?? 0);
       }

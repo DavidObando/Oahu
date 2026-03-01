@@ -9,8 +9,8 @@ namespace Oahu.Core.UI.Avalonia.Views
 {
   public partial class BookLibraryView : UserControl
   {
-    private bool _sortingSubscribed;
-    private bool _restoringSortState;
+    private bool sortingSubscribed;
+    private bool restoringSortState;
 
     public BookLibraryView()
     {
@@ -26,17 +26,17 @@ namespace Oahu.Core.UI.Avalonia.Views
         return;
       }
 
-      if (!_sortingSubscribed)
+      if (!sortingSubscribed)
       {
         booksGrid.Sorting += OnBooksGridSorting;
-        _sortingSubscribed = true;
+        sortingSubscribed = true;
       }
 
       // Restore previously saved sort state
-      restoreSortState();
+      RestoreSortState();
 
       // Restore previously selected book
-      restoreSelectedBook();
+      RestoreSelectedBook();
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
@@ -47,10 +47,10 @@ namespace Oahu.Core.UI.Avalonia.Views
         vm.SelectedBook = selected;
       }
 
-      if (booksGrid is not null && _sortingSubscribed)
+      if (booksGrid is not null && sortingSubscribed)
       {
         booksGrid.Sorting -= OnBooksGridSorting;
-        _sortingSubscribed = false;
+        sortingSubscribed = false;
       }
 
       base.OnUnloaded(e);
@@ -58,7 +58,7 @@ namespace Oahu.Core.UI.Avalonia.Views
 
     private void OnBooksGridSorting(object sender, DataGridColumnEventArgs args)
     {
-      if (_restoringSortState)
+      if (restoringSortState)
       {
         return;
       }
@@ -83,7 +83,7 @@ namespace Oahu.Core.UI.Avalonia.Views
       vm.SortDirection = next;
     }
 
-    private void restoreSortState()
+    private void RestoreSortState()
     {
       if (DataContext is not BookLibraryViewModel vm)
       {
@@ -109,18 +109,18 @@ namespace Oahu.Core.UI.Avalonia.Views
         c.ClearSort();
       }
 
-      _restoringSortState = true;
+      restoringSortState = true;
       try
       {
         col.Sort(vm.SortDirection.Value);
       }
       finally
       {
-        _restoringSortState = false;
+        restoringSortState = false;
       }
     }
 
-    private void restoreSelectedBook()
+    private void RestoreSelectedBook()
     {
       if (DataContext is not BookLibraryViewModel vm)
       {
@@ -138,10 +138,10 @@ namespace Oahu.Core.UI.Avalonia.Views
 
       vm.SelectedBook = selected;
       booksGrid.SelectedItem = selected;
-      ensureSelectedBookInView(selected);
+      EnsureSelectedBookInView(selected);
     }
 
-    private void ensureSelectedBookInView(BookItemViewModel selected)
+    private void EnsureSelectedBookInView(BookItemViewModel selected)
     {
       booksGrid.Focus();
       booksGrid.ScrollIntoView(selected, null);

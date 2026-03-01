@@ -7,32 +7,32 @@ namespace Oahu.Decrypt.Mpeg4.Descriptors
   // https://stackoverflow.com/a/61158659/3335599
   public class ES_Descriptor : BaseDescriptor
   {
-    private readonly byte EsFlags;
+    private readonly byte esFlags;
 
-    private readonly ushort DependsOn_ES_ID;
-    private readonly byte URLlength;
-    private readonly byte[]? URLstring;
-    private readonly ushort OCR_ES_Id;
+    private readonly ushort dependsOnEsId;
+    private readonly byte urlLength;
+    private readonly byte[]? urlString;
+    private readonly ushort ocrEsId;
 
     public ES_Descriptor(Stream file, DescriptorHeader header) : base(file, header)
     {
-      ES_ID = file.ReadUInt16BE();
-      EsFlags = (byte)file.ReadByte();
+      EsId = file.ReadUInt16BE();
+      esFlags = (byte)file.ReadByte();
 
       if (StreamDependenceFlag == 1)
       {
-        DependsOn_ES_ID = file.ReadUInt16BE();
+        dependsOnEsId = file.ReadUInt16BE();
       }
 
-      if (URL_Flag == 1)
+      if (UrlFlag == 1)
       {
-        URLlength = (byte)file.ReadByte();
-        URLstring = file.ReadBlock(URLlength);
+        urlLength = (byte)file.ReadByte();
+        urlString = file.ReadBlock(urlLength);
       }
 
-      if (OCRstreamFlag == 1)
+      if (OcrStreamFlag == 1)
       {
-        OCR_ES_Id = file.ReadUInt16BE();
+        ocrEsId = file.ReadUInt16BE();
       }
 
       // Currently only supported child is DecoderConfigDescriptor.
@@ -42,23 +42,23 @@ namespace Oahu.Decrypt.Mpeg4.Descriptors
 
     private ES_Descriptor() : base(0x3)
     {
-      ES_ID = 0;
-      EsFlags = 0;
+      EsId = 0;
+      esFlags = 0;
     }
 
-    public ushort ES_ID { get; }
+    public ushort EsId { get; }
 
-    public int StreamPriority => EsFlags & 31;
+    public int StreamPriority => esFlags & 31;
 
     public DecoderConfigDescriptor DecoderConfig => GetChildOrThrow<DecoderConfigDescriptor>();
 
     public override int InternalSize => base.InternalSize + GetLength();
 
-    private int StreamDependenceFlag => EsFlags >> 7;
+    private int StreamDependenceFlag => esFlags >> 7;
 
-    private int URL_Flag => (EsFlags >> 6) & 1;
+    private int UrlFlag => (esFlags >> 6) & 1;
 
-    private int OCRstreamFlag => (EsFlags >> 5) & 1;
+    private int OcrStreamFlag => (esFlags >> 5) & 1;
 
     public static ES_Descriptor CreateAudio()
     {
@@ -72,22 +72,22 @@ namespace Oahu.Decrypt.Mpeg4.Descriptors
 
     public override void Render(Stream file)
     {
-      file.WriteUInt16BE(ES_ID);
-      file.WriteByte(EsFlags);
+      file.WriteUInt16BE(EsId);
+      file.WriteByte(esFlags);
       if (StreamDependenceFlag == 1)
       {
-        file.WriteUInt16BE(DependsOn_ES_ID);
+        file.WriteUInt16BE(dependsOnEsId);
       }
 
-      if (URL_Flag == 1)
+      if (UrlFlag == 1)
       {
-        file.WriteByte(URLlength);
-        file.Write(URLstring);
+        file.WriteByte(urlLength);
+        file.Write(urlString);
       }
 
-      if (OCRstreamFlag == 1)
+      if (OcrStreamFlag == 1)
       {
-        file.WriteUInt16BE(OCR_ES_Id);
+        file.WriteUInt16BE(ocrEsId);
       }
     }
 
@@ -99,12 +99,12 @@ namespace Oahu.Decrypt.Mpeg4.Descriptors
         length += 2;
       }
 
-      if (URL_Flag == 1)
+      if (UrlFlag == 1)
       {
-        length += 1 + URLlength;
+        length += 1 + urlLength;
       }
 
-      if (OCRstreamFlag == 1)
+      if (OcrStreamFlag == 1)
       {
         length += 2;
       }

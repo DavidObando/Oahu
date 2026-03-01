@@ -6,13 +6,13 @@ namespace Oahu.Decrypt.FrameFilters.Audio
   internal class LosslessFilter : FrameFinalBase<FrameEntry>
   {
     public readonly Mp4aWriter Mp4aWriter;
-    private readonly ChapterQueue ChapterQueue;
+    private readonly ChapterQueue chapterQueue;
     private long lastChunkIndex = -1;
 
     public LosslessFilter(Stream outputStream, Mp4File mp4Audio, ChapterQueue chapterQueue)
     {
       Mp4aWriter = new Mp4aWriter(outputStream, mp4Audio.Ftyp, mp4Audio.Moov);
-      ChapterQueue = chapterQueue;
+      this.chapterQueue = chapterQueue;
     }
 
     public bool Closed { get; private set; }
@@ -22,7 +22,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
     protected override Task FlushAsync()
     {
       // Write any remaining chapters
-      while (ChapterQueue.TryGetNextChapter(out var chapterEntry))
+      while (chapterQueue.TryGetNextChapter(out var chapterEntry))
       {
         Mp4aWriter.WriteChapter(chapterEntry);
       }
@@ -37,7 +37,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
       bool newChunk = chunkIndex > lastChunkIndex;
 
       // Write chapters as soon as they're available.
-      while (ChapterQueue.TryGetNextChapter(out var chapterEntry))
+      while (chapterQueue.TryGetNextChapter(out var chapterEntry))
       {
         Mp4aWriter.WriteChapter(chapterEntry);
         newChunk = true;

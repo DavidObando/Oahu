@@ -58,7 +58,7 @@ namespace Oahu.Aux.Diagnostics
   /// <para>Note: <see cref="AbstractPrimitiveTypes"/> can be used as a base class to implement <see cref="IPrimitiveTypes"/>.</para>
   /// <para>Properties can be annotated with attributes. Recognized attributes are:</para>
   /// <list type="bullet">
-  /// <item><see cref="DescriptionAttribute"/>to describe a property, must be activated with <see cref="EDumpFlags.inclDesc"/></item>
+  /// <item><see cref="DescriptionAttribute"/>to describe a property, must be activated with <see cref="EDumpFlags.InclDesc"/></item>
   /// <item><see cref="BrowsableAttribute"/>to hide a property, if set to <c>false</c>.</item>
   /// <item><see cref="DisplayNameAttribute"/>to override the property name.</item>
   /// <item><see cref="DisplayItemNameAttribute"/>to override the item name in a collection.</item>
@@ -70,9 +70,9 @@ namespace Oahu.Aux.Diagnostics
   internal class TreeDecomposition<T>
     where T : IPrimitiveTypes, new()
   {
-    static IPrimitiveTypes __primitveTypes = new T();
+    static IPrimitiveTypes PrimitveTypes = new T();
 
-    static TreeDecomposition<T> __default;
+    static TreeDecomposition<T> Default_;
 
     private TreeDecomposition()
     {
@@ -82,12 +82,12 @@ namespace Oahu.Aux.Diagnostics
     {
       get
       {
-        if (__default is null)
+        if (Default_ is null)
         {
-          __default = new TreeDecomposition<T>();
+          Default_ = new TreeDecomposition<T>();
         }
 
-        return __default;
+        return Default_;
       }
     }
 
@@ -100,9 +100,9 @@ namespace Oahu.Aux.Diagnostics
     /// <param name="falgs">The output modifier flags.</param>
     /// <param name="caption">The optional caption for this indentation level.</param>
     public void Dump(object o, TextWriter tw, Indent ind, EDumpFlags flags = default, string caption = null) =>
-      dump(o, new Stack<Type>(), tw, ind, flags, caption, null, null, null, false);
+      DumpInternal(o, new Stack<Type>(), tw, ind, flags, caption, null, null, null, false);
 
-    private static CustomFormat getCustomFormat(IEnumerable<object> attrs)
+    private static CustomFormat GetCustomFormat(IEnumerable<object> attrs)
     {
       CustomFormat customFormat = null;
       var toStringAttr = attrs.FirstOfType<ToStringAttribute>();
@@ -123,7 +123,7 @@ namespace Oahu.Aux.Diagnostics
       return customFormat;
     }
 
-    private static bool isPrimitiveType(Type type)
+    private static bool IsPrimitiveType(Type type)
     {
       // determine what defines a primitive type
       if (type is null)
@@ -156,27 +156,27 @@ namespace Oahu.Aux.Diagnostics
       // type == typeof (DateTimeOffset) ||
       // type == typeof (TimeSpan);
       // ||  Nullable.GetUnderlyingType (type) != null;
-      bool isAddedPrimitive = __primitveTypes.IsPrimitiveType(type);
+      bool isAddedPrimitive = PrimitveTypes.IsPrimitiveType(type);
 
       bool isPrimitive = isBuiltInPrimitive || isSystemType || isAddedPrimitive;
       return isPrimitive;
     }
 
-    private static void write(TextWriter tw, Indent ind, string value, EDumpFlags flags, string desc = null)
+    private static void Write(TextWriter tw, Indent ind, string value, EDumpFlags flags, string desc = null)
     {
       if (value.IsNullOrWhiteSpace())
       {
         return;
       }
 
-      var (m1, m2) = mkr();
-      string c = flags.HasFlag(EDumpFlags.byInterface) ? string.Empty : ":";
+      var (m1, m2) = Mkr();
+      string c = flags.HasFlag(EDumpFlags.ByInterface) ? string.Empty : ":";
 
       if (desc.IsNullOrWhiteSpace())
       {
         tw.WriteLine($"{ind}{value}{c}");
       }
-      else if (flags.HasFlag(EDumpFlags.descOnTop))
+      else if (flags.HasFlag(EDumpFlags.DescOnTop))
       {
         tw.WriteLine();
         tw.WriteLine(ind + m1 + desc);
@@ -188,9 +188,9 @@ namespace Oahu.Aux.Diagnostics
       }
     }
 
-    private static void write(TextWriter tw, Indent ind, string name, object value, CustomFormat format, string desc = null, bool descOnTop = false)
+    private static void Write(TextWriter tw, Indent ind, string name, object value, CustomFormat format, string desc = null, bool descOnTop = false)
     {
-      var (m1, m2) = mkr();
+      var (m1, m2) = Mkr();
 
       string sValue;
       if (!format.IsNull())
@@ -217,10 +217,10 @@ namespace Oahu.Aux.Diagnostics
       }
       else
       {
-        sValue = __primitveTypes.ToString(value);
+        sValue = PrimitveTypes.ToString(value);
         if (sValue is null && value.GetType().IsEnum)
         {
-          sValue = __primitveTypes.ToString<Enum>(value);
+          sValue = PrimitveTypes.ToString<Enum>(value);
         }
 
         if (sValue is null)
@@ -235,21 +235,21 @@ namespace Oahu.Aux.Diagnostics
       }
       else if (desc.IsNullOrWhiteSpace())
       {
-        tw.WriteLine(snamval(ind, name, sValue));
+        tw.WriteLine(Snamval(ind, name, sValue));
       }
       else if (descOnTop)
       {
         tw.WriteLine();
         tw.WriteLine(ind + m1 + desc);
-        tw.WriteLine(snamval(ind, name, sValue));
+        tw.WriteLine(Snamval(ind, name, sValue));
       }
       else
       {
-        tw.WriteLine(snamval(ind, name, sValue) + m2 + desc);
+        tw.WriteLine(Snamval(ind, name, sValue) + m2 + desc);
       }
     }
 
-    private static (string m1, string m2) mkr()
+    private static (string M1, string M2) Mkr()
     {
       string m = TreeDecomposition.DescriptionMarker ?? "!";
       string m1 = m + " ";
@@ -257,12 +257,12 @@ namespace Oahu.Aux.Diagnostics
       return (m1, m2);
     }
 
-    private static string snamval(Indent ind, string name, string sValue) => $"{ind}{name} = {sValue}";
+    private static string Snamval(Indent ind, string name, string sValue) => $"{ind}{name} = {sValue}";
 
     [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Type metadata is preserved via TrimMode=partial.")]
     [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "Type metadata is preserved via TrimMode=partial.")]
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Type metadata is preserved via TrimMode=partial.")]
-    private void dump(
+    private void DumpInternal(
       object o, Stack<Type> stack, TextWriter tw, Indent ind, EDumpFlags flags,
       string caption, string itemCaption, CustomFormat itemFormat, string oDesc, bool inEnum)
     {
@@ -281,7 +281,7 @@ namespace Oahu.Aux.Diagnostics
       }
 
       // caption
-      write(tw, ind, caption, flags, oDesc);
+      Write(tw, ind, caption, flags, oDesc);
 
       // next level
       using (new ResourceGuard(ind))
@@ -291,33 +291,33 @@ namespace Oahu.Aux.Diagnostics
 
         if (isEnumerable)
         {
-          dumpCollection(o, stack, objectType, tw, ind, flags, itemCaption, itemFormat);
+          DumpCollection(o, stack, objectType, tw, ind, flags, itemCaption, itemFormat);
         }
         else
         {
           // all public properties, including inherited ones
           IEnumerable<PropertyInfo> propInfos = objectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-          if (flags.HasFlag(EDumpFlags.byInterface) && (stack.Count < 2 || flags.HasFlag(EDumpFlags.byInterfaceNestedTypes)))
+          if (flags.HasFlag(EDumpFlags.ByInterface) && (stack.Count < 2 || flags.HasFlag(EDumpFlags.ByInterfaceNestedTypes)))
           {
             var interfaceHierarchy = objectType.GetInterfaceHierarchy();
             if (interfaceHierarchy.Count() > 0)
             {
               foreach (var path in interfaceHierarchy)
               {
-                dump(ref propInfos, o, path, stack, tw, ind, flags, inEnum);
+                DumpByPath(ref propInfos, o, path, stack, tw, ind, flags, inEnum);
               }
 
-              dump(o, propInfos, stack, tw, ind, flags, inEnum);
+              DumpProperties(o, propInfos, stack, tw, ind, flags, inEnum);
             }
             else
             {
-              dump(o, propInfos, stack, tw, ind, flags, inEnum);
+              DumpProperties(o, propInfos, stack, tw, ind, flags, inEnum);
             }
           }
           else
           {
-            dump(o, propInfos, stack, tw, ind, flags, inEnum);
+            DumpProperties(o, propInfos, stack, tw, ind, flags, inEnum);
           }
         }
       }
@@ -326,7 +326,7 @@ namespace Oahu.Aux.Diagnostics
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Interface types are preserved via TrimMode=partial.")]
-    private void dump(
+    private void DumpByPath(
       ref IEnumerable<PropertyInfo> propInfos, object o, IEnumerable<Type> path,
       Stack<Type> stack, TextWriter tw, Indent ind, EDumpFlags flags, bool inEnum)
     {
@@ -355,11 +355,11 @@ namespace Oahu.Aux.Diagnostics
       tw.WriteLine($"{ind}:{sPath}");
       using (new ResourceGuard(ind))
       {
-        dump(o, filteredPropInfos, stack, tw, ind, flags, inEnum);
+        DumpProperties(o, filteredPropInfos, stack, tw, ind, flags, inEnum);
       }
     }
 
-    private void dump(object o, IEnumerable<PropertyInfo> propInfos, Stack<Type> stack, TextWriter tw, Indent ind, EDumpFlags flags, bool inEnum)
+    private void DumpProperties(object o, IEnumerable<PropertyInfo> propInfos, Stack<Type> stack, TextWriter tw, Indent ind, EDumpFlags flags, bool inEnum)
     {
       foreach (var propInfo in propInfos)
       {
@@ -374,7 +374,7 @@ namespace Oahu.Aux.Diagnostics
         object propValue = propInfo.GetValue(o);
 
         // skip null
-        if (!flags.HasFlag(EDumpFlags.inclNullVals))
+        if (!flags.HasFlag(EDumpFlags.InclNullVals))
         {
           if (propValue is null)
           {
@@ -397,7 +397,7 @@ namespace Oahu.Aux.Diagnostics
 
         // check for modification attributes
         IEnumerable<object> attrs = null;
-        if (flags.HasFlag(EDumpFlags.inherInterfaceAttribs))
+        if (flags.HasFlag(EDumpFlags.InherInterfaceAttribs))
         {
           attrs = propInfo.GetCustomAttributesIncludingBaseInterfaces();
         }
@@ -427,31 +427,31 @@ namespace Oahu.Aux.Diagnostics
         string itemName = attrs.FirstOfType<DisplayItemNameAttribute>()?.Name;
 
         // optional custom formats
-        CustomFormat customFormat = getCustomFormat(attrs);
+        CustomFormat customFormat = GetCustomFormat(attrs);
 
         // optional description
-        string desc = getDesc(propInfo, attrs, flags, inEnum);
+        string desc = GetDesc(propInfo, attrs, flags, inEnum);
 
         // actual type
         Type propType = propValue?.GetType();
 
         // how to dump
-        if (isPrimitiveType(propType) || isRecursive)
+        if (IsPrimitiveType(propType) || isRecursive)
         {
           // this level, as primitive
-          write(tw, ind, propName, propValue, customFormat, desc, flags.HasFlag(EDumpFlags.descOnTop));
+          Write(tw, ind, propName, propValue, customFormat, desc, flags.HasFlag(EDumpFlags.DescOnTop));
         }
         else
         {
           // deeper level, recursive call
-          dump(propValue, stack, tw, ind, flags, propName, itemName, customFormat, desc, inEnum);
+          DumpInternal(propValue, stack, tw, ind, flags, propName, itemName, customFormat, desc, inEnum);
         }
       }
     }
 
-    private string getDesc(PropertyInfo propInfo, IEnumerable<object> attrs, EDumpFlags flags, bool inEnum)
+    private string GetDesc(PropertyInfo propInfo, IEnumerable<object> attrs, EDumpFlags flags, bool inEnum)
     {
-      if (!flags.HasFlag(EDumpFlags.inclDesc) || (inEnum && !flags.HasFlag(EDumpFlags.inclDescInEnum)))
+      if (!flags.HasFlag(EDumpFlags.InclDesc) || (inEnum && !flags.HasFlag(EDumpFlags.InclDescInEnum)))
       {
         return null;
       }
@@ -459,15 +459,15 @@ namespace Oahu.Aux.Diagnostics
       string desc = attrs.FirstOfType<DescriptionAttribute>()?.Description;
       if (desc.IsNull())
       {
-        desc = getTypeDesc(propInfo.PropertyType, flags, inEnum);
+        desc = GetTypeDesc(propInfo.PropertyType, flags, inEnum);
       }
 
       return desc;
     }
 
-    private string getTypeDesc(Type type, EDumpFlags flags, bool inEnum)
+    private string GetTypeDesc(Type type, EDumpFlags flags, bool inEnum)
     {
-      if (!flags.HasFlag(EDumpFlags.inclDesc) || !flags.HasFlag(EDumpFlags.inclTypeDesc) || (inEnum && !flags.HasFlag(EDumpFlags.inclDescInEnum)))
+      if (!flags.HasFlag(EDumpFlags.InclDesc) || !flags.HasFlag(EDumpFlags.InclTypeDesc) || (inEnum && !flags.HasFlag(EDumpFlags.InclDescInEnum)))
       {
         return null;
       }
@@ -476,7 +476,7 @@ namespace Oahu.Aux.Diagnostics
       return attrs.FirstOfType<DescriptionAttribute>()?.Description;
     }
 
-    private void dumpCollection(object o, Stack<Type> stack, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type objectType, TextWriter tw, Indent ind,
+    private void DumpCollection(object o, Stack<Type> stack, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type objectType, TextWriter tw, Indent ind,
       EDumpFlags flags, string itemCaption, CustomFormat itemFormat)
     {
       // item type
@@ -484,13 +484,13 @@ namespace Oahu.Aux.Diagnostics
         .Where(t => t.IsGenericType && t.GetGenericTypeDefinition().Equals(typeof(IEnumerable<>)))
           .Select(t => t.GetGenericArguments()[0])
             .FirstOrDefault() ?? typeof(object);
-      string desc = getTypeDesc(itemType, flags, true);
+      string desc = GetTypeDesc(itemType, flags, true);
 
       // if (!desc.IsNull())
       //  ; // for debug
-      bool isPrimitive = isPrimitiveType(itemType);
+      bool isPrimitive = IsPrimitiveType(itemType);
 
-      if (flags.HasFlag(EDumpFlags.withItmCnt))
+      if (flags.HasFlag(EDumpFlags.WithItmCnt))
       {
         if (itemCaption.IsNullOrWhiteSpace())
         {
@@ -520,7 +520,7 @@ namespace Oahu.Aux.Diagnostics
       {
         i++;
         string caption;
-        if (flags.HasFlag(EDumpFlags.withItmCnt))
+        if (flags.HasFlag(EDumpFlags.WithItmCnt))
         {
           caption = $"{itemCaption}{i}";
         }
@@ -532,12 +532,12 @@ namespace Oahu.Aux.Diagnostics
         if (isPrimitive)
         {
           // this level, as primitive
-          write(tw, ind, caption, item, itemFormat, desc, flags.HasFlag(EDumpFlags.descOnTop));
+          Write(tw, ind, caption, item, itemFormat, desc, flags.HasFlag(EDumpFlags.DescOnTop));
         }
         else
         {
           // deeper level, recursive call
-          dump(item, stack, tw, ind, flags, caption, itemCaption, itemFormat, desc, true);
+          DumpInternal(item, stack, tw, ind, flags, caption, itemCaption, itemFormat, desc, true);
         }
       }
     }

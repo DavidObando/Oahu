@@ -6,28 +6,28 @@ namespace Oahu.Aux
 {
   public class ProcessList : IDisposable, IProcessList
   {
-    private readonly object _lockable = new object();
-    private bool _disposed = false;
+    private readonly object lockable = new object();
+    private bool disposed = false;
 
-    HashSet<Process> _processes = new HashSet<Process>();
+    HashSet<Process> processes = new HashSet<Process>();
 
     public IProcessList Notify { private get; set; }
 
     public bool Add(Process process)
     {
       Notify?.Add(process);
-      lock (_lockable)
+      lock (lockable)
       {
-        return _processes.Add(process);
+        return processes.Add(process);
       }
     }
 
     public bool Remove(Process process)
     {
       Notify?.Remove(process);
-      lock (_lockable)
+      lock (lockable)
       {
-        return _processes.Remove(process);
+        return processes.Remove(process);
       }
     }
 
@@ -42,7 +42,7 @@ namespace Oahu.Aux
     #endregion
     private void Dispose(bool disposing)
     {
-      if (_disposed)
+      if (disposed)
       {
         return;
       }
@@ -51,15 +51,15 @@ namespace Oahu.Aux
       {
       }
 
-      lock (_lockable)
+      lock (lockable)
       {
-        foreach (Process p in _processes)
+        foreach (Process p in processes)
         {
           p.Kill();
         }
       }
 
-      _disposed = true;
+      disposed = true;
     }
   }
 }

@@ -95,8 +95,8 @@ namespace Oahu.Decrypt.Mpeg4.Util
 
   public class ProgressTracker
   {
-    private readonly DateTime StartTime = DateTime.UtcNow;
-    private DateTime NextUpdate = default;
+    private readonly DateTime startTime = DateTime.UtcNow;
+    private DateTime nextUpdate = default;
     private long movedBytes;
 
     public event EventHandler? ProgressUpdated;
@@ -116,12 +116,12 @@ namespace Oahu.Decrypt.Mpeg4.Util
 
     public void ReportProgress(bool forceReport = false)
     {
-      if (DateTime.UtcNow > NextUpdate || forceReport)
+      if (DateTime.UtcNow > nextUpdate || forceReport)
       {
         Position = TimeSpan.FromSeconds(TotalDuration.TotalSeconds / TotalSize * MovedBytes);
-        Speed = Position / (DateTime.UtcNow - StartTime);
+        Speed = Position / (DateTime.UtcNow - startTime);
         ProgressUpdated?.Invoke(this, EventArgs.Empty);
-        NextUpdate = DateTime.UtcNow.AddMilliseconds(200);
+        nextUpdate = DateTime.UtcNow.AddMilliseconds(200);
       }
     }
   }

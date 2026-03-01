@@ -7,11 +7,11 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public abstract class SampleEntry : Box
 {
-  private readonly byte[] Reserved;
+  private readonly byte[] reserved;
 
   public SampleEntry(Stream file, BoxHeader header, IBox? parent) : base(header, parent)
   {
-    Reserved = file.ReadBlock(6);
+    reserved = file.ReadBlock(6);
     DataReferenceIndex = file.ReadUInt16BE();
   }
 
@@ -36,7 +36,7 @@ public abstract class SampleEntry : Box
 
   protected override void Render(Stream file)
   {
-    file.Write(Reserved);
+    file.Write(reserved);
     file.WriteUInt16BE(DataReferenceIndex);
   }
 }

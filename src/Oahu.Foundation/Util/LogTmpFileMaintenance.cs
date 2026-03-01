@@ -11,13 +11,13 @@ namespace Oahu.Common.Util
   public class LogTmpFileMaintenance
   {
     // record DirectoryFilesAndStatistics (List<FileInfo> Files, DirectoryStatistics Statistics);
-    const int MAX_NUM_FILES_PER_DIR = 500;
-    const long MAX_SIZE_PER_DIR = 100_000_000; // 100 MB
-    const int MAX_AGE_DAYS_PER_DIR = 365;
+    const int MaxNumFilesPerDir = 500;
+    const long MaxSizePerDir = 100_000_000; // 100 MB
+    const int MaxAgeDaysPerDir = 365;
 
-    private static LogTmpFileMaintenance __instance;
+    private static LogTmpFileMaintenance instance;
 
-    private bool _inProgress;
+    private bool inProgress;
 
     private LogTmpFileMaintenance()
     {
@@ -27,12 +27,12 @@ namespace Oahu.Common.Util
     {
       get
       {
-        if (__instance is null)
+        if (instance is null)
         {
-          __instance = new LogTmpFileMaintenance();
+          instance = new LogTmpFileMaintenance();
         }
 
-        return __instance;
+        return instance;
       }
     }
 
@@ -44,29 +44,29 @@ namespace Oahu.Common.Util
 
     public void Cleanup()
     {
-      if (_inProgress)
+      if (inProgress)
       {
         return;
       }
 
-      using var rg = new ResourceGuard(x => _inProgress = x);
+      using var rg = new ResourceGuard(x => inProgress = x);
 
-      TimeSpan days = TimeSpan.FromDays(MAX_AGE_DAYS_PER_DIR);
+      TimeSpan days = TimeSpan.FromDays(MaxAgeDaysPerDir);
       DateTime now = DateTime.Now;
       Timestamp = now - days;
       Today = now.Date;
 
-      var tmp = gather(ApplEnv.TempDirectory);
-      var log = gather(ApplEnv.LogDirectory);
+      var tmp = Gather(ApplEnv.TempDirectory);
+      var log = Gather(ApplEnv.LogDirectory);
 
-      var tmp2 = cleanup(tmp.files, tmp.stats);
-      var log2 = cleanup(log.files, log.stats);
+      var tmp2 = Cleanup(tmp.Files, tmp.Stats);
+      var log2 = Cleanup(log.Files, log.Stats);
 
-      var tmp3 = cleanup(tmp.files, log2?.Timestamp ?? default);
-      var log3 = cleanup(log.files, tmp2?.Timestamp ?? default);
+      var tmp3 = Cleanup(tmp.Files, log2?.Timestamp ?? default);
+      var log3 = Cleanup(log.Files, tmp2?.Timestamp ?? default);
 
-      int numFiles = (tmp.stats?.NumFiles ?? 0) + (log.stats?.NumFiles ?? 0);
-      long totalSize = (tmp.stats?.TotalSize ?? 0) + (log.stats?.TotalSize ?? 0);
+      int numFiles = (tmp.Stats?.NumFiles ?? 0) + (log.Stats?.NumFiles ?? 0);
+      long totalSize = (tmp.Stats?.TotalSize ?? 0) + (log.Stats?.TotalSize ?? 0);
 
       int removedFiles = tmp2?.NumFiles ?? 0 + log2?.NumFiles ?? 0 + tmp3?.NumFiles ?? 0 + log3?.NumFiles ?? 0;
       long removedSize = (tmp2?.TotalSize ?? 0 + log2?.TotalSize ?? 0 + tmp3?.TotalSize ?? 0 + log3?.TotalSize ?? 0);
@@ -75,18 +75,18 @@ namespace Oahu.Common.Util
         $"size={totalSize / 1024}/{(totalSize - removedSize) / 1024}/{removedSize / 1024} kB");
     }
 
-    private DirectoryStatistics cleanup(List<FileInfo> fileInfos, DirectoryStatistics stats) => cleanup(fileInfos, stats, null);
+    private DirectoryStatistics Cleanup(List<FileInfo> fileInfos, DirectoryStatistics stats) => Cleanup(fileInfos, stats, null);
 
-    private DirectoryStatistics cleanup(List<FileInfo> fileInfos, DateTime enforceByDate) => cleanup(fileInfos, null, enforceByDate);
+    private DirectoryStatistics Cleanup(List<FileInfo> fileInfos, DateTime enforceByDate) => Cleanup(fileInfos, null, enforceByDate);
 
-    private DirectoryStatistics cleanup(List<FileInfo> fileInfos, DirectoryStatistics stats, DateTime? enforceByDate)
+    private DirectoryStatistics Cleanup(List<FileInfo> fileInfos, DirectoryStatistics stats, DateTime? enforceByDate)
     {
       if (fileInfos is null)
       {
         return null;
       }
 
-      bool exceeds = enforceByDate.HasValue || exceedsThresholds(stats);
+      bool exceeds = enforceByDate.HasValue || ExceedsThresholds(stats);
 
       if (!exceeds)
       {
@@ -135,7 +135,7 @@ namespace Oahu.Common.Util
           }
           else
           {
-            done = !exceedsThresholds(new DirectoryStatistics(stats.NumFiles - numFiles, stats.TotalSize - totalSize, oldest));
+            done = !ExceedsThresholds(new DirectoryStatistics(stats.NumFiles - numFiles, stats.TotalSize - totalSize, oldest));
           }
 
           if (done)
@@ -152,7 +152,7 @@ namespace Oahu.Common.Util
       return new DirectoryStatistics(numFiles, totalSize, oldest);
     }
 
-    private (List<FileInfo> files, DirectoryStatistics stats) gather(string dir)
+    private (List<FileInfo> Files, DirectoryStatistics Stats) Gather(string dir)
     {
       if (!Directory.Exists(dir))
       {
@@ -177,15 +177,15 @@ namespace Oahu.Common.Util
       return (fis, new DirectoryStatistics(fis.Count, totalSize, oldest));
     }
 
-    bool exceedsThresholds(DirectoryStatistics stats)
+    bool ExceedsThresholds(DirectoryStatistics stats)
     {
       if (stats is null)
       {
         return false;
       }
 
-      bool exceed = stats.NumFiles > MAX_NUM_FILES_PER_DIR ||
-        stats.TotalSize > MAX_SIZE_PER_DIR ||
+      bool exceed = stats.NumFiles > MaxNumFilesPerDir ||
+        stats.TotalSize > MaxSizePerDir ||
         stats.Timestamp < Timestamp;
 
       return exceed;

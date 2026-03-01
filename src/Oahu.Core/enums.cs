@@ -1,39 +1,45 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace Oahu.Core
 {
   public enum EInitialSorting
   {
-    state_date,
-    date,
-    author_title,
-    author_date,
-    title_author
+    [JsonStringEnumMemberName("state_date")]
+    StateDate,
+    [JsonStringEnumMemberName("date")]
+    Date,
+    [JsonStringEnumMemberName("author_title")]
+    AuthorTitle,
+    [JsonStringEnumMemberName("author_date")]
+    AuthorDate,
+    [JsonStringEnumMemberName("title_author")]
+    TitleAuthor
   }
 
   public enum EBookLibInteract
   {
-    none,
-    checkFile
+    None,
+    CheckFile
   }
 
   public enum EAuthorizeResult
   {
-    none,
-    invalidUrl,
-    authorizationFailed,
-    registrationFailed,
-    removeFailed,
-    succ,
-    deregistrationFailed,
-    removeProfileFailed,
+    None,
+    InvalidUrl,
+    AuthorizationFailed,
+    RegistrationFailed,
+    RemoveFailed,
+    Succ,
+    DeregistrationFailed,
+    RemoveProfileFailed,
   }
 
   [Flags]
   enum ECheckFile
   {
-    none = 0,
-    deleteIfMissing = 1,
-    relocatable = 2
+    None = 0,
+    DeleteIfMissing = 1,
+    Relocatable = 2
   }
 }

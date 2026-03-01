@@ -89,17 +89,17 @@ public class ChunkOffsetList : ICollection<long>
 
       longsSpan.Sort();
 
-      int _32BitCount = FindLast32bit(longsSpan) + 1;
+      int count32Bit = FindLast32bit(longsSpan) + 1;
 
-      ChunkOffsetList list = new(_32BitCount);
-      CollectionsMarshal.SetCount(list.chunkOffsets32, _32BitCount);
+      ChunkOffsetList list = new(count32Bit);
+      CollectionsMarshal.SetCount(list.chunkOffsets32, count32Bit);
       Span<uint> span = CollectionsMarshal.AsSpan(list.chunkOffsets32);
-      for (int i = 0; i < _32BitCount; i++)
+      for (int i = 0; i < count32Bit; i++)
       {
         span[i] = (uint)longsSpan[i];
       }
 
-      Span<long> remainder = longsSpan[_32BitCount..];
+      Span<long> remainder = longsSpan[count32Bit..];
       list.chunkOffsets64 = new List<long>(remainder.Length);
       CollectionsMarshal.SetCount(list.chunkOffsets64, remainder.Length);
       Span<long> span64 = CollectionsMarshal.AsSpan(list.chunkOffsets64);

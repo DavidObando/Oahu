@@ -27,7 +27,7 @@ namespace Oahu.Decrypt.FrameFilters.Audio
 
       InputSampleRate = inputSampleRate;
       InputStereo = inputStereo;
-      startSample = currentSample = timeToSample(splitChapters.StartOffset);
+      startSample = currentSample = TimeToSample(splitChapters.StartOffset);
       this.splitChapters = splitChapters.GetEnumerator();
     }
 
@@ -94,13 +94,13 @@ namespace Oahu.Decrypt.FrameFilters.Audio
         return false;
       }
 
-      startSample = timeToSample(splitChapters.Current.StartOffset);
+      startSample = TimeToSample(splitChapters.Current.StartOffset);
 
       // Depending on time precision, the final EndFrame may be less than the last audio frame in the source file
-      endSample = timeToSample(splitChapters.Current.EndOffset);
+      endSample = TimeToSample(splitChapters.Current.EndOffset);
       return true;
     }
 
-    private long timeToSample(TimeSpan time) => (long)Math.Round(time.TotalSeconds * (int)InputSampleRate);
+    private long TimeToSample(TimeSpan time) => (long)Math.Round(time.TotalSeconds * (int)InputSampleRate);
   }
 }

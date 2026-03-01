@@ -1,88 +1,116 @@
+using System.Text.Json.Serialization;
+
 namespace Oahu.Audible.Json
 {
   public class RegistrationResponse : Serialization<RegistrationResponse>
   {
-    public Response response { get; set; }
+    [JsonPropertyName("response")]
+    public Response Response { get; set; }
 
-    public string request_id { get; set; }
+    [JsonPropertyName("request_id")]
+    public string RequestId { get; set; }
   }
 
   public class Response
   {
-    public Success success { get; set; }
+    [JsonPropertyName("success")]
+    public Success Success { get; set; }
   }
 
   public class Success
   {
-    public Extensions extensions { get; set; }
+    [JsonPropertyName("extensions")]
+    public Extensions Extensions { get; set; }
 
-    public Tokens tokens { get; set; }
+    [JsonPropertyName("tokens")]
+    public Tokens Tokens { get; set; }
 
-    public string customer_id { get; set; }
+    [JsonPropertyName("customer_id")]
+    public string CustomerId { get; set; }
   }
 
   public class Extensions
   {
-    public Device_Info device_info { get; set; }
+    [JsonPropertyName("device_info")]
+    public DeviceInfoJson DeviceInfoJson { get; set; }
 
-    public Customer_Info customer_info { get; set; }
+    [JsonPropertyName("customer_info")]
+    public CustomerInfoJson CustomerInfoJson { get; set; }
   }
 
-  public class Device_Info
+  public class DeviceInfoJson
   {
-    public string device_name { get; set; }
+    [JsonPropertyName("device_name")]
+    public string DeviceName { get; set; }
 
-    public string device_serial_number { get; set; }
+    [JsonPropertyName("device_serial_number")]
+    public string DeviceSerialNumber { get; set; }
 
-    public string device_type { get; set; }
+    [JsonPropertyName("device_type")]
+    public string DeviceType { get; set; }
   }
 
-  public class Customer_Info
+  public class CustomerInfoJson
   {
-    public string account_pool { get; set; }
+    [JsonPropertyName("account_pool")]
+    public string AccountPool { get; set; }
 
-    public string user_id { get; set; }
+    [JsonPropertyName("user_id")]
+    public string UserId { get; set; }
 
-    public string home_region { get; set; }
+    [JsonPropertyName("home_region")]
+    public string HomeRegion { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-    public string given_name { get; set; }
+    [JsonPropertyName("given_name")]
+    public string GivenName { get; set; }
   }
 
   public class Tokens
   {
-    public Website_Cookies[] website_cookies { get; set; }
+    [JsonPropertyName("website_cookies")]
+    public WebsiteCookies[] WebsiteCookies { get; set; }
 
-    public Store_Authentication_Cookie store_authentication_cookie { get; set; }
+    [JsonPropertyName("store_authentication_cookie")]
+    public StoreAuthenticationCookie StoreAuthenticationCookie { get; set; }
 
-    public Mac_Dms mac_dms { get; set; }
+    [JsonPropertyName("mac_dms")]
+    public MacDms MacDms { get; set; }
 
-    public Bearer bearer { get; set; }
+    [JsonPropertyName("bearer")]
+    public Bearer Bearer { get; set; }
   }
 
-  public class Store_Authentication_Cookie
+  public class StoreAuthenticationCookie
   {
-    public string cookie { get; set; }
+    [JsonPropertyName("cookie")]
+    public string Cookie { get; set; }
   }
 
-  public class Mac_Dms
+  public class MacDms
   {
-    public string device_private_key { get; set; }
+    [JsonPropertyName("device_private_key")]
+    public string DevicePrivateKey { get; set; }
 
-    public string adp_token { get; set; }
+    [JsonPropertyName("adp_token")]
+    public string AdpToken { get; set; }
   }
 
   public class Bearer
   {
-    public string access_token { get; set; }
+    [JsonPropertyName("access_token")]
+    public string AccessToken { get; set; }
 
-    public string refresh_token { get; set; }
+    [JsonPropertyName("refresh_token")]
+    public string RefreshToken { get; set; }
 
-    public string expires_in { get; set; }
+    [JsonPropertyName("expires_in")]
+    public string ExpiresIn { get; set; }
   }
 
-  public class Website_Cookies
+  public class WebsiteCookies
   {
     public string Path { get; set; }
 

@@ -11,22 +11,22 @@ namespace Oahu.Decrypt.Mpeg4.Chunks;
 /// </summary>
 public class ChunkEntryList : IReadOnlyCollection<ChunkEntry>
 {
-  private readonly ChunkOffsetList ChunkOffsets;
-  private readonly IStszBox Stsz;
-  private readonly SttsBox Stts;
-  private readonly ChunkFrames[] ChunkFrameTable;
-  private readonly uint TrackId;
+  private readonly ChunkOffsetList chunkOffsets;
+  private readonly IStszBox stsz;
+  private readonly SttsBox stts;
+  private readonly ChunkFrames[] chunkFrameTable;
+  private readonly uint trackId;
 
   public ChunkEntryList(TrakBox track)
   {
-    TrackId = track.Tkhd.TrackID;
-    Stsz = track.Mdia.Minf.Stbl.Stsz ?? throw new ArgumentNullException(nameof(track));
+    trackId = track.Tkhd.TrackID;
+    stsz = track.Mdia.Minf.Stbl.Stsz ?? throw new ArgumentNullException(nameof(track));
     var coBox = track.Mdia.Minf.Stbl.COBox;
     ArgumentOutOfRangeException.ThrowIfGreaterThan(coBox.EntryCount, (uint)int.MaxValue, "COBox.EntryCount");
-    ChunkOffsets = coBox.ChunkOffsets;
+    chunkOffsets = coBox.ChunkOffsets;
     Count = (int)coBox.EntryCount;
-    Stts = track.Mdia.Minf.Stbl.Stts;
-    ChunkFrameTable = track.Mdia.Minf.Stbl.Stsc.CalculateChunkFrameTable(coBox.EntryCount);
+    stts = track.Mdia.Minf.Stbl.Stts;
+    chunkFrameTable = track.Mdia.Minf.Stbl.Stsc.CalculateChunkFrameTable(coBox.EntryCount);
   }
 
   public int Count { get; }
@@ -41,16 +41,16 @@ public class ChunkEntryList : IReadOnlyCollection<ChunkEntry>
     long startSample = 0;
     for (int chunkIndex = 0; chunkIndex < Count; chunkIndex++)
     {
-      long chunkOffset = ChunkOffsets.GetOffsetAtIndex(chunkIndex);
-      var chunkFrames = ChunkFrameTable[chunkIndex];
+      long chunkOffset = chunkOffsets.GetOffsetAtIndex(chunkIndex);
+      var chunkFrames = chunkFrameTable[chunkIndex];
 
-      (int[] frameSizes, int totalChunkSize) = Stsz.GetFrameSizes(chunkFrames.FirstFrameIndex, chunkFrames.NumberOfFrames);
+      (int[] frameSizes, int totalChunkSize) = stsz.GetFrameSizes(chunkFrames.FirstFrameIndex, chunkFrames.NumberOfFrames);
 
-      var frameDurations = Stts.EnumerateFrameDeltas(chunkFrames.FirstFrameIndex).Take(frameSizes.Length).ToArray();
+      var frameDurations = stts.EnumerateFrameDeltas(chunkFrames.FirstFrameIndex).Take(frameSizes.Length).ToArray();
 
       var entry = new ChunkEntry
       {
-        TrackId = TrackId,
+        TrackId = trackId,
         FrameSizes = frameSizes,
         ChunkIndex = (uint)chunkIndex,
         ChunkSize = totalChunkSize,

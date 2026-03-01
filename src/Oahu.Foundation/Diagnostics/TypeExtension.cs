@@ -11,8 +11,8 @@ namespace Oahu.Aux.Diagnostics
     public static IEnumerable<IEnumerable<Type>> GetInterfaceHierarchy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type root)
     {
       var leavesDict = new Dictionary<Type, List<Type>>();
-      findLeaves(root, new List<Type>(), leavesDict);
-      List<List<Type>> list = sort(leavesDict);
+      FindLeaves(root, new List<Type>(), leavesDict);
+      List<List<Type>> list = Sort(leavesDict);
       return list;
     }
 
@@ -33,7 +33,7 @@ namespace Oahu.Aux.Diagnostics
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Interface types returned by GetInterfaces preserve their own interface metadata.")]
-    private static void findLeaves([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type, IList<Type> path, IDictionary<Type, List<Type>> leaves)
+    private static void FindLeaves([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type, IList<Type> path, IDictionary<Type, List<Type>> leaves)
     {
       if (type.IsInterface)
       {
@@ -48,11 +48,11 @@ namespace Oahu.Aux.Diagnostics
       var ifcTypes = type.GetInterfaces();
       foreach (var ifcType in ifcTypes)
       {
-        findLeaves(ifcType, path.ToList(), leaves);
+        FindLeaves(ifcType, path.ToList(), leaves);
       }
     }
 
-    private static List<List<Type>> sort(Dictionary<Type, List<Type>> leavesDict)
+    private static List<List<Type>> Sort(Dictionary<Type, List<Type>> leavesDict)
     {
       var rawlist = leavesDict.Select(kvp => kvp.Value).OrderBy(k => k.Count).ToList();
       var list = new List<List<Type>>();

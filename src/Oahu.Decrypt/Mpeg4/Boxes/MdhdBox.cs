@@ -6,7 +6,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 
 public class MdhdBox : HeaderBox
 {
-  private string _language;
+  private string language;
 
   public MdhdBox(Stream file, BoxHeader header, IBox? parent) : base(file, header, parent)
   {
@@ -17,7 +17,7 @@ public class MdhdBox : HeaderBox
     char c1 = (char)(reader.Read(5) + 0x60);
     char c2 = (char)(reader.Read(5) + 0x60);
     char c3 = (char)(reader.Read(5) + 0x60);
-    _language = new string([c1, c2, c3]);
+    language = new string([c1, c2, c3]);
   }
 
   public override long RenderSize => base.RenderSize + 8;
@@ -26,7 +26,7 @@ public class MdhdBox : HeaderBox
 
   public string Language
   {
-    get => _language;
+    get => language;
     set
     {
       if (value.Length != 3
@@ -37,7 +37,7 @@ public class MdhdBox : HeaderBox
         throw new ArgumentException("value must be three, lowercase ASCII characters", nameof(Language));
       }
 
-      _language = value;
+      language = value;
     }
   }
 

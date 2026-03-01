@@ -9,15 +9,15 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 {
   public partial class SettingsViewModel : ObservableObject
   {
-    private readonly DownloadSettings _downloadSettings;
-    private readonly ExportSettings _exportSettings;
-    private readonly ConfigSettings _configSettings;
+    private readonly DownloadSettings downloadSettings;
+    private readonly ExportSettings exportSettings;
+    private readonly ConfigSettings configSettings;
 
     public SettingsViewModel(DownloadSettings downloadSettings, ExportSettings exportSettings, ConfigSettings configSettings)
     {
-      _downloadSettings = downloadSettings;
-      _exportSettings = exportSettings;
-      _configSettings = configSettings;
+      this.downloadSettings = downloadSettings;
+      this.exportSettings = exportSettings;
+      this.configSettings = configSettings;
     }
 
     /// <summary>
@@ -29,80 +29,80 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     // Download settings
     public bool AutoUpdateLibrary
     {
-      get => _downloadSettings.AutoUpdateLibrary;
+      get => downloadSettings.AutoUpdateLibrary;
       set
       {
-        _downloadSettings.AutoUpdateLibrary = value;
+        downloadSettings.AutoUpdateLibrary = value;
         OnPropertyChanged();
-        _downloadSettings.OnChange();
+        downloadSettings.OnChange();
       }
     }
 
     public bool MultiPartDownload
     {
-      get => _downloadSettings.MultiPartDownload;
+      get => downloadSettings.MultiPartDownload;
       set
       {
-        _downloadSettings.MultiPartDownload = value;
+        downloadSettings.MultiPartDownload = value;
         OnPropertyChanged();
-        _downloadSettings.OnChange();
+        downloadSettings.OnChange();
       }
     }
 
     public bool KeepEncryptedFiles
     {
-      get => _downloadSettings.KeepEncryptedFiles;
+      get => downloadSettings.KeepEncryptedFiles;
       set
       {
-        _downloadSettings.KeepEncryptedFiles = value;
+        downloadSettings.KeepEncryptedFiles = value;
         OnPropertyChanged();
-        _downloadSettings.OnChange();
+        downloadSettings.OnChange();
       }
     }
 
     public string DownloadDirectory
     {
-      get => _downloadSettings.DownloadDirectory;
+      get => downloadSettings.DownloadDirectory;
       set
       {
-        _downloadSettings.DownloadDirectory = value;
+        downloadSettings.DownloadDirectory = value;
         OnPropertyChanged();
-        _downloadSettings.OnChange();
+        downloadSettings.OnChange();
       }
     }
 
     // Export settings
     public bool? ExportToAax
     {
-      get => _exportSettings.ExportToAax;
+      get => exportSettings.ExportToAax;
       set
       {
-        _exportSettings.ExportToAax = value;
+        exportSettings.ExportToAax = value;
         OnPropertyChanged();
-        _exportSettings.OnChange();
+        exportSettings.OnChange();
       }
     }
 
     public string ExportDirectory
     {
-      get => _exportSettings.ExportDirectory;
+      get => exportSettings.ExportDirectory;
       set
       {
-        _exportSettings.ExportDirectory = value;
+        exportSettings.ExportDirectory = value;
         OnPropertyChanged();
-        _exportSettings.OnChange();
+        exportSettings.OnChange();
       }
     }
 
     // Config settings
     public bool EncryptConfiguration
     {
-      get => _configSettings.EncryptConfiguration;
+      get => configSettings.EncryptConfiguration;
       set
       {
-        _configSettings.EncryptConfiguration = value;
+        configSettings.EncryptConfiguration = value;
         OnPropertyChanged();
-        _configSettings.OnChange();
+        configSettings.OnChange();
       }
     }
 

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Oahu.Aux;
 using static Oahu.Aux.Logging;
 
-namespace Oahu.Core.ex
+namespace Oahu.Core.Ex
 {
   public static class LoggingExtensions
   {

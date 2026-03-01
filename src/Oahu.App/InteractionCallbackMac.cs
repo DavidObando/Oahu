@@ -11,11 +11,11 @@ namespace Oahu.App.Avalonia
   /// </summary>
   public class InteractionCallbackMac<T> : IInteractionCallback<T, bool?> where T : InteractionMessage
   {
-    private readonly Window _owner;
+    private readonly Window owner;
 
     public InteractionCallbackMac(Window owner)
     {
-      _owner = owner;
+      this.owner = owner;
     }
 
     private enum MessageBoxButtons
@@ -33,32 +33,32 @@ namespace Oahu.App.Avalonia
       // Marshal to UI thread if needed
       if (Dispatcher.UIThread.CheckAccess())
       {
-        result = showDialog(value);
+        result = ShowDialog(value);
       }
       else
       {
         Dispatcher.UIThread.InvokeAsync(() =>
         {
-          result = showDialog(value);
+          result = ShowDialog(value);
         }).Wait();
       }
 
       return result;
     }
 
-    private bool? showDialog(InteractionMessage message)
+    private bool? ShowDialog(InteractionMessage message)
     {
       // Map callback types to appropriate dialog styles
       var (title, buttons) = message.Type switch
       {
-        ECallbackType.info => ("Information", MessageBoxButtons.Ok),
-        ECallbackType.infoCancel => ("Information", MessageBoxButtons.OkCancel),
-        ECallbackType.warning => ("Warning", MessageBoxButtons.Ok),
-        ECallbackType.error => ("Error", MessageBoxButtons.Ok),
-        ECallbackType.errorQuestion => ("Error", MessageBoxButtons.YesNo),
-        ECallbackType.errorQuestion3 => ("Error", MessageBoxButtons.YesNoCancel),
-        ECallbackType.question => ("Question", MessageBoxButtons.YesNo),
-        ECallbackType.question3 => ("Question", MessageBoxButtons.YesNoCancel),
+        ECallbackType.Info => ("Information", MessageBoxButtons.Ok),
+        ECallbackType.InfoCancel => ("Information", MessageBoxButtons.OkCancel),
+        ECallbackType.Warning => ("Warning", MessageBoxButtons.Ok),
+        ECallbackType.Error => ("Error", MessageBoxButtons.Ok),
+        ECallbackType.ErrorQuestion => ("Error", MessageBoxButtons.YesNo),
+        ECallbackType.ErrorQuestion3 => ("Error", MessageBoxButtons.YesNoCancel),
+        ECallbackType.Question => ("Question", MessageBoxButtons.YesNo),
+        ECallbackType.Question3 => ("Question", MessageBoxButtons.YesNoCancel),
         _ => ("Message", MessageBoxButtons.Ok)
       };
 
@@ -69,8 +69,8 @@ namespace Oahu.App.Avalonia
       // Default behavior: info/warning/error → true, questions → true (yes)
       return message.Type switch
       {
-        ECallbackType.question or ECallbackType.question3 or
-        ECallbackType.errorQuestion or ECallbackType.errorQuestion3 => true,
+        ECallbackType.Question or ECallbackType.Question3 or
+        ECallbackType.ErrorQuestion or ECallbackType.ErrorQuestion3 => true,
         _ => true
       };
     }

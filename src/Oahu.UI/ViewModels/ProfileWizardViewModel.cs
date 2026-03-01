@@ -16,81 +16,81 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 {
   public partial class ProfileWizardViewModel : ObservableObject
   {
-    private AudibleClient _client;
-    private DownloadSettings _downloadSettings;
-    private ExportSettings _exportSettings;
+    private AudibleClient client;
+    private DownloadSettings downloadSettings;
+    private ExportSettings exportSettings;
 
     [ObservableProperty]
-    private int _currentStep;
+    private int currentStep;
 
     [ObservableProperty]
-    private int _totalSteps = 6;
+    private int totalSteps = 6;
 
     [ObservableProperty]
-    private string _stepTitle;
+    private string stepTitle;
 
     [ObservableProperty]
-    private bool _canGoNext;
+    private bool canGoNext;
 
     [ObservableProperty]
-    private bool _canGoBack;
+    private bool canGoBack;
 
     [ObservableProperty]
-    private bool _isComplete;
+    private bool isComplete;
 
     // Step 0: Marketplace selection
     [ObservableProperty]
-    private ERegion _selectedRegion = ERegion.us;
+    private ERegion selectedRegion = ERegion.Us;
 
     [ObservableProperty]
-    private bool _usePreAmazonAccount;
+    private bool usePreAmazonAccount;
 
     [ObservableProperty]
-    private bool _preAmazonAllowed;
+    private bool preAmazonAllowed;
 
     // Step 1: Login
     [ObservableProperty]
-    private string _loginUrl;
+    private string loginUrl;
 
     [ObservableProperty]
-    private bool _isLoggingIn;
+    private bool isLoggingIn;
 
     [ObservableProperty]
-    private bool _loginUrlCopied;
+    private bool loginUrlCopied;
 
     [ObservableProperty]
-    private string _pastedResponseUrl;
+    private string pastedResponseUrl;
 
     [ObservableProperty]
-    private bool _isProcessingResponse;
+    private bool isProcessingResponse;
 
     [ObservableProperty]
-    private string _loginErrorMessage;
+    private string loginErrorMessage;
 
     // Step 2: Account alias
     [ObservableProperty]
-    private string _accountAlias;
+    private string accountAlias;
 
     [ObservableProperty]
-    private string _customerName;
+    private string customerName;
 
     // Step 3: Download directory
     [ObservableProperty]
-    private string _downloadDirectory;
+    private string downloadDirectory;
 
     // Step 4: Export to AAX
     [ObservableProperty]
-    private bool _exportToAax;
+    private bool exportToAax;
 
     [ObservableProperty]
-    private string _exportDirectory;
+    private string exportDirectory;
 
     // Step 5: Completion
     [ObservableProperty]
-    private string _completionMessage;
+    private string completionMessage;
 
     [ObservableProperty]
-    private bool _registrationSucceeded;
+    private bool registrationSucceeded;
 
     public ProfileWizardViewModel()
     {
@@ -130,13 +130,13 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 
     public void SetClient(AudibleClient client)
     {
-      _client = client;
+      this.client = client;
     }
 
     public void SetSettings(DownloadSettings downloadSettings, ExportSettings exportSettings)
     {
-      _downloadSettings = downloadSettings;
-      _exportSettings = exportSettings;
+      this.downloadSettings = downloadSettings;
+      this.exportSettings = exportSettings;
 
       string musicDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Music", "Oahu");
@@ -150,7 +150,7 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 
     partial void OnSelectedRegionChanged(ERegion value)
     {
-      PreAmazonAllowed = value == ERegion.de || value == ERegion.uk || value == ERegion.us;
+      PreAmazonAllowed = value == ERegion.De || value == ERegion.Uk || value == ERegion.Us;
       if (!PreAmazonAllowed)
         UsePreAmazonAccount = false;
     }
@@ -161,17 +161,17 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       if (CurrentStep < TotalSteps - 1)
       {
         // Apply settings before advancing
-        applyCurrentStepSettings();
+        ApplyCurrentStepSettings();
         CurrentStep++;
         UpdateStepState();
         if (CurrentStep == 1)
         {
-          buildLoginUrl();
+          BuildLoginUrl();
         }
 
         if (CurrentStep == 5)
         {
-          applyAllSettings();
+          ApplyAllSettings();
         }
       }
     }
@@ -189,7 +189,7 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     [RelayCommand]
     private void Skip()
     {
-      applyAllSettings();
+      ApplyAllSettings();
       IsComplete = true;
       WizardCompleted?.Invoke(this, EventArgs.Empty);
     }
@@ -197,7 +197,7 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     [RelayCommand]
     private void Finish()
     {
-      applyAllSettings();
+      ApplyAllSettings();
       IsComplete = true;
       WizardCompleted?.Invoke(this, EventArgs.Empty);
     }
@@ -269,19 +269,19 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       {
         var callbacks = new Callbacks
         {
-          DeregisterDeviceConfirmCallback = deregisterDeviceConfirmation,
-          GetAccountAliasFunc = getAccountAliasFromWizard
+          DeregisterDeviceConfirmCallback = DeregisterDeviceConfirmation,
+          GetAccountAliasFunc = GetAccountAliasFromWizard
         };
 
-        var result = await _client.ConfigParseExternalLoginResponseAsync(uri, callbacks);
+        var result = await client.ConfigParseExternalLoginResponseAsync(uri, callbacks);
 
         Log(3, this, () => $"result={result.Result}");
 
         var key = result.NewProfileKey;
         switch (result.Result)
         {
-          case EAuthorizeResult.succ:
-          case EAuthorizeResult.deregistrationFailed:
+          case EAuthorizeResult.Succ:
+          case EAuthorizeResult.DeregistrationFailed:
             ProfileKey = key;
             CustomerName = key?.AccountName;
             AccountAlias = key?.AccountName;
@@ -290,18 +290,18 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
             // Advance to account alias step
             CurrentStep = 2;
             UpdateStepState();
-            if (result.Result == EAuthorizeResult.deregistrationFailed)
+            if (result.Result == EAuthorizeResult.DeregistrationFailed)
             {
               LoginErrorMessage = $"Note: A previous device \"{result.PrevDeviceName}\" could not be deregistered.";
             }
 
             break;
 
-          case EAuthorizeResult.authorizationFailed:
+          case EAuthorizeResult.AuthorizationFailed:
             LoginErrorMessage = "Authorization failed. The sign-in URL may have expired. Please go back and try again.";
             break;
 
-          case EAuthorizeResult.registrationFailed:
+          case EAuthorizeResult.RegistrationFailed:
             LoginErrorMessage = "Device registration failed. Please try again.";
             break;
 
@@ -321,16 +321,16 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       }
     }
 
-    private void buildLoginUrl()
+    private void BuildLoginUrl()
     {
-      if (_client is null)
+      if (client is null)
       {
         return;
       }
 
       try
       {
-        Uri uri = _client.ConfigBuildNewLoginUri(SelectedRegion, UsePreAmazonAccount);
+        Uri uri = client.ConfigBuildNewLoginUri(SelectedRegion, UsePreAmazonAccount);
         LoginUrl = uri.ToString();
         LoginUrlCopied = false;
         IsLoggingIn = false;
@@ -343,31 +343,31 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       }
     }
 
-    private void applyCurrentStepSettings()
+    private void ApplyCurrentStepSettings()
     {
       switch (CurrentStep)
       {
         case 2: // Account alias
-          if (_client is not null && ProfileKey is not null && !AccountAlias.IsNullOrWhiteSpace())
+          if (client is not null && ProfileKey is not null && !AccountAlias.IsNullOrWhiteSpace())
           {
-            _client.SetAccountAlias(ProfileKey, AccountAlias);
+            client.SetAccountAlias(ProfileKey, AccountAlias);
           }
 
           break;
         case 3: // Download directory
-          if (_downloadSettings is not null && !DownloadDirectory.IsNullOrWhiteSpace())
+          if (downloadSettings is not null && !DownloadDirectory.IsNullOrWhiteSpace())
           {
-            _downloadSettings.DownloadDirectory = DownloadDirectory;
+            downloadSettings.DownloadDirectory = DownloadDirectory;
           }
 
           break;
         case 4: // Export settings
-          if (_exportSettings is not null)
+          if (exportSettings is not null)
           {
-            _exportSettings.ExportToAax = ExportToAax;
+            exportSettings.ExportToAax = ExportToAax;
             if (ExportToAax && !ExportDirectory.IsNullOrWhiteSpace())
             {
-              _exportSettings.ExportDirectory = ExportDirectory;
+              exportSettings.ExportDirectory = ExportDirectory;
             }
           }
 
@@ -375,27 +375,27 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       }
     }
 
-    private void applyAllSettings()
+    private void ApplyAllSettings()
     {
       // Apply account alias
-      if (_client is not null && ProfileKey is not null && !AccountAlias.IsNullOrWhiteSpace())
+      if (client is not null && ProfileKey is not null && !AccountAlias.IsNullOrWhiteSpace())
       {
-        _client.SetAccountAlias(ProfileKey, AccountAlias);
+        client.SetAccountAlias(ProfileKey, AccountAlias);
       }
 
       // Apply download directory
-      if (_downloadSettings is not null && !DownloadDirectory.IsNullOrWhiteSpace())
+      if (downloadSettings is not null && !DownloadDirectory.IsNullOrWhiteSpace())
       {
-        _downloadSettings.DownloadDirectory = DownloadDirectory;
+        downloadSettings.DownloadDirectory = DownloadDirectory;
       }
 
       // Apply export settings
-      if (_exportSettings is not null)
+      if (exportSettings is not null)
       {
-        _exportSettings.ExportToAax = ExportToAax;
+        exportSettings.ExportToAax = ExportToAax;
         if (ExportToAax && !ExportDirectory.IsNullOrWhiteSpace())
         {
-          _exportSettings.ExportDirectory = ExportDirectory;
+          exportSettings.ExportDirectory = ExportDirectory;
         }
       }
 
@@ -441,9 +441,9 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       };
     }
 
-    private bool deregisterDeviceConfirmation(IProfileKeyEx key) => false;
+    private bool DeregisterDeviceConfirmation(IProfileKeyEx key) => false;
 
-    private bool getAccountAliasFromWizard(AccountAliasContext ctxt)
+    private bool GetAccountAliasFromWizard(AccountAliasContext ctxt)
     {
       // Pre-populate from context; the user will edit on step 2
       if (ctxt.Alias.IsNullOrWhiteSpace())

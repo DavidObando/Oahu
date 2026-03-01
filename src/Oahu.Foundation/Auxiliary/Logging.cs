@@ -15,267 +15,267 @@ namespace Oahu.Aux
 
     const string EXT = ".log";
 
-    private readonly object _lockable = new object();
-    private bool _instantFlush;
-    private bool _fullClassNames;
-    private uint _prettyTypeNameLevel = 2;
-    private int _level = -1;
-    private string _currentfilename;
-    private uint _filecount;
-    private DateTime _filedate;
-    private string _filestub;
-    private bool _ignoreExisting;
-    private StreamWriter _logStreamWriter;
-    private System.Threading.Timer _flushTimer;
-    private uint _linecount;
-    private bool _logfileLocationOutputDone;
+    private readonly object lockable = new object();
+    private bool instantFlush;
+    private bool fullClassNames;
+    private uint prettyTypeNameLevel = 2;
+    private int level = -1;
+    private string currentfilename;
+    private uint filecount;
+    private DateTime filedate;
+    private string filestub;
+    private bool ignoreExisting;
+    private StreamWriter logStreamWriter;
+    private System.Threading.Timer flushTimer;
+    private uint linecount;
+    private bool logfileLocationOutputDone;
 
     // cannot instatiate from outside class
-    private Logging() => setFileNameStub();
+    private Logging() => SetFileNameStub();
 
     public static int Level
     {
-      get => Instance._level;
-      set => Instance.setLevel(value);
+      get => Instance.level;
+      set => Instance.SetLevel(value);
     }
 
     public static bool InstantFlush
     {
-      get => Instance._instantFlush;
-      set => Instance._instantFlush = value;
+      get => Instance.instantFlush;
+      set => Instance.instantFlush = value;
     }
 
     public static bool FullClassNames
     {
-      get => Instance._fullClassNames;
-      set => Instance._fullClassNames = value;
+      get => Instance.fullClassNames;
+      set => Instance.fullClassNames = value;
     }
 
     public static uint PrettyTypeNameLevel
     {
-      get => Instance._prettyTypeNameLevel;
-      set => Instance._prettyTypeNameLevel = value;
+      get => Instance.prettyTypeNameLevel;
+      set => Instance.prettyTypeNameLevel = value;
     }
 
     private static Logging Instance { get; } = new Logging();
 
     private static long FileSize => DefaultFileSize;
 
-    private TextWriter Writer => _logStreamWriter;
+    private TextWriter Writer => logStreamWriter;
 
-    public static void Log(uint level, object caller, [CallerMemberName] string method = null) => Instance.log0(level, caller, method);
+    public static void Log(uint level, object caller, [CallerMemberName] string method = null) => Instance.Log0(level, caller, method);
 
-    public static void Log(uint level, Type caller, [CallerMemberName] string method = null) => Instance.log0(level, caller, method);
+    public static void Log(uint level, Type caller, [CallerMemberName] string method = null) => Instance.Log0(level, caller, method);
 
-    public static void Log(uint level, object caller, string what, [CallerMemberName] string method = null) => Instance.log(level, caller, what, method);
+    public static void Log(uint level, object caller, string what, [CallerMemberName] string method = null) => Instance.LogInternal(level, caller, what, method);
 
-    public static void Log(uint level, Type caller, string what, [CallerMemberName] string method = null) => Instance.log(level, caller, what, method);
+    public static void Log(uint level, Type caller, string what, [CallerMemberName] string method = null) => Instance.LogInternal(level, caller, what, method);
 
-    public static void Log(uint level, object caller, Func<string> getWhat, [CallerMemberName] string method = null) => Instance.log(level, caller, getWhat, method);
+    public static void Log(uint level, object caller, Func<string> getWhat, [CallerMemberName] string method = null) => Instance.LogInternal(level, caller, getWhat, method);
 
-    public static void Log(uint level, Type caller, Func<string> getWhat, [CallerMemberName] string method = null) => Instance.log(level, caller, getWhat, method);
+    public static void Log(uint level, Type caller, Func<string> getWhat, [CallerMemberName] string method = null) => Instance.LogInternal(level, caller, getWhat, method);
 
     // public static void Log (uint level, string msg) => Log (level, null, msg);
     // public static void Log (uint level, string context, string msg) => Instance.log (level, context, msg);
-    private static string context(object caller, string method) => context(caller.GetType(), method);
+    private static string Context(object caller, string method) => Context(caller.GetType(), method);
 
     // private static string context (string method) => $"???.{method}";
-    private static string context(Type caller, string method)
+    private static string Context(Type caller, string method)
     {
       string typename = caller.PrettyName((int)PrettyTypeNameLevel, FullClassNames);
       return $"{typename}.{method}";
     }
 
-    private static string format(LogMessage msg)
+    private static string Format(LogMessage msg)
     {
       string ctx = string.IsNullOrWhiteSpace(msg.Context) ? string.Empty : $"[{msg.Context}] ";
       string s = $"{msg.DateTime:HH:mm:ss.fff} {msg.ThreadId:0000} {ctx}{msg.Message}";
       return s;
     }
 
-    private void setLevel(int value)
+    private void SetLevel(int value)
     {
       {
         if (value >= 0)
         {
-          _level = value;
-          log($"{nameof(Level)}={_level}");
+          level = value;
+          LogInternal($"{nameof(Level)}={level}");
         }
       }
     }
 
-    private void log0(uint level, object caller, [CallerMemberName] string method = null)
+    private void Log0(uint level, object caller, [CallerMemberName] string method = null)
     {
-      if (level <= _level)
+      if (level <= this.level)
       {
-        log(level, context(caller, method), null);
+        LogInternal(level, Context(caller, method), null);
       }
     }
 
-    private void log0(uint level, Type caller, [CallerMemberName] string method = null)
+    private void Log0(uint level, Type caller, [CallerMemberName] string method = null)
     {
-      if (level <= _level)
+      if (level <= this.level)
       {
-        log(level, context(caller, method), null);
+        LogInternal(level, Context(caller, method), null);
       }
     }
 
-    private void log(uint level, object caller, string what, [CallerMemberName] string method = null)
+    private void LogInternal(uint level, object caller, string what, [CallerMemberName] string method = null)
     {
-      if (level <= _level)
+      if (level <= this.level)
       {
-        log(level, context(caller, method), what);
+        LogInternal(level, Context(caller, method), what);
       }
     }
 
-    private void log(uint level, Type caller, string what, [CallerMemberName] string method = null)
+    private void LogInternal(uint level, Type caller, string what, [CallerMemberName] string method = null)
     {
-      if (level <= _level)
+      if (level <= this.level)
       {
-        log(level, context(caller, method), what);
+        LogInternal(level, Context(caller, method), what);
       }
     }
 
-    private void log(uint level, object caller, Func<string> getWhat, [CallerMemberName] string method = null)
+    private void LogInternal(uint level, object caller, Func<string> getWhat, [CallerMemberName] string method = null)
     {
-      if (level <= _level && !(getWhat is null))
+      if (level <= this.level && !(getWhat is null))
       {
-        log(level, context(caller, method), getWhat());
+        LogInternal(level, Context(caller, method), getWhat());
       }
     }
 
-    private void log(uint level, Type caller, Func<string> getWhat, [CallerMemberName] string method = null)
+    private void LogInternal(uint level, Type caller, Func<string> getWhat, [CallerMemberName] string method = null)
     {
-      if (level <= _level && !(getWhat is null))
+      if (level <= this.level && !(getWhat is null))
       {
-        log(level, context(caller, method), getWhat());
+        LogInternal(level, Context(caller, method), getWhat());
       }
     }
 
-    private void log(uint level, string context, string msg)
+    private void LogInternal(uint level, string context, string msg)
     {
-      if (level <= _level)
+      if (level <= this.level)
       {
-        log(context, msg);
+        LogInternal(context, msg);
       }
     }
 
-    private void log(string msg) => log(null, msg);
+    private void LogInternal(string msg) => LogInternal(null, msg);
 
-    private void log(string context, string msg) => handleWrite(new LogMessage(context, msg));
+    private void LogInternal(string context, string msg) => HandleWrite(new LogMessage(context, msg));
 
-    private void handleWrite(LogMessage logMessage)
+    private void HandleWrite(LogMessage logMessage)
     {
-      ensureWriter();
-      write(logMessage);
+      EnsureWriter();
+      Write(logMessage);
     }
 
-    private void ensureWriter()
+    private void EnsureWriter()
     {
       // Do we have a stream writer?
-      lock (_lockable)
+      lock (lockable)
       {
-        if (_logStreamWriter is null)
+        if (logStreamWriter is null)
         {
-          openWriter(true);
+          OpenWriter(true);
         }
         else
         {
-          if (DateTime.Now.Date != _filedate.Date)
+          if (DateTime.Now.Date != filedate.Date)
           {
-            nextWriter(true);
+            NextWriter(true);
           }
-          else if (_logStreamWriter.BaseStream.Position >= FileSize)
+          else if (logStreamWriter.BaseStream.Position >= FileSize)
           {
-            nextWriter(false);
+            NextWriter(false);
           }
         }
       }
     }
 
-    private void nextWriter(bool newDay)
+    private void NextWriter(bool newDay)
     {
-      close();
-      openWriter(newDay);
+      Close();
+      OpenWriter(newDay);
     }
 
-    private void close()
+    private void Close()
     {
-      closeFlushTimer();
-      closeWriter();
+      CloseFlushTimer();
+      CloseWriter();
     }
 
-    private void closeFlushTimer()
+    private void CloseFlushTimer()
     {
-      if (_flushTimer != null)
+      if (flushTimer != null)
       {
-        _flushTimer.Dispose();
+        flushTimer.Dispose();
       }
 
-      _flushTimer = null;
+      flushTimer = null;
     }
 
-    private void closeWriter()
+    private void CloseWriter()
     {
-      if (!(_logStreamWriter is null))
+      if (!(logStreamWriter is null))
       {
-        _logStreamWriter.Dispose();
+        logStreamWriter.Dispose();
       }
 
-      _logStreamWriter = null;
+      logStreamWriter = null;
     }
 
-    private void openWriter(bool newDay)
+    private void OpenWriter(bool newDay)
     {
       if (newDay)
       {
-        _filedate = DateTime.Today.Date;
-        _filecount = 0;
-        _ignoreExisting = false;
+        filedate = DateTime.Today.Date;
+        filecount = 0;
+        ignoreExisting = false;
       }
 
-      string stub = $"{_filestub}_{_filedate:yyyy-MM-dd}_";
+      string stub = $"{filestub}_{filedate:yyyy-MM-dd}_";
       string ext = EXT;
 
-      var filenames = getExisting(stub);
+      var filenames = GetExisting(stub);
 
       string filename = null;
       while (true)
       {
         // next file, theoretically
-        _filecount++;
+        filecount++;
 
         // build a filename
-        filename = $"{stub}{_filecount:000}{ext}";
+        filename = $"{stub}{filecount:000}{ext}";
 
         bool exists = filenames?.Where(n => filename.ToLower().IndexOf(n) >= 0).Any() ?? false;
 
-        if (exists && !_ignoreExisting)
+        if (exists && !ignoreExisting)
         {
-          if (_filecount < 1000)
+          if (filecount < 1000)
           {
             continue;
           }
 
-          _ignoreExisting = true;
-          _filecount = 1;
+          ignoreExisting = true;
+          filecount = 1;
         }
 
-        bool succ = openWriter(filename);
+        bool succ = OpenWriter(filename);
         if (succ)
         {
           break;
         }
       }
 
-      if (!_logfileLocationOutputDone)
+      if (!logfileLocationOutputDone)
       {
-        _logfileLocationOutputDone = true;
+        logfileLocationOutputDone = true;
         Console.WriteLine($"{typeof(Logging).Name} written to \"{filename}\".");
       }
     }
 
-    private IEnumerable<string> getExisting(string stub)
+    private IEnumerable<string> GetExisting(string stub)
     {
       string folder = Path.GetDirectoryName(stub);
 
@@ -292,9 +292,9 @@ namespace Oahu.Aux
       return names;
     }
 
-    private bool openWriter(string filename)
+    private bool OpenWriter(string filename)
     {
-      FileMode createOption = _ignoreExisting ? FileMode.Create : FileMode.CreateNew;
+      FileMode createOption = ignoreExisting ? FileMode.Create : FileMode.CreateNew;
 
       string folder = Path.GetDirectoryName(filename);
       filename = Path.GetFileName(filename);
@@ -308,26 +308,26 @@ namespace Oahu.Aux
       Directory.CreateDirectory(folder);
 
       Stream stream = new FileStream(filename, createOption, FileAccess.ReadWrite);
-      _logStreamWriter = new StreamWriter(stream);
-      _currentfilename = filename;
+      logStreamWriter = new StreamWriter(stream);
+      currentfilename = filename;
 
       if (!InstantFlush)
       {
-        openFlushTimer();
+        OpenFlushTimer();
       }
 
       return true;
     }
 
-    private void openFlushTimer()
+    private void OpenFlushTimer()
     {
-      _flushTimer = new System.Threading.Timer(flushTimerCallback, null, 5000, 5000);
+      flushTimer = new System.Threading.Timer(FlushTimerCallback, null, 5000, 5000);
     }
 
-    private void write(LogMessage msg)
+    private void Write(LogMessage msg)
     {
-      string s = format(msg);
-      lock (_lockable)
+      string s = Format(msg);
+      lock (lockable)
       {
         Writer.WriteLine(s);
         if (InstantFlush)
@@ -336,29 +336,29 @@ namespace Oahu.Aux
         }
         else
         {
-          _linecount++;
+          linecount++;
         }
       }
     }
 
-    private void flushTimerCallback(object state)
+    private void FlushTimerCallback(object state)
     {
-      lock (_lockable)
+      lock (lockable)
       {
-        if (_linecount > 0)
+        if (linecount > 0)
         {
           Writer.Flush();
         }
 
-        _linecount = 0;
+        linecount = 0;
       }
     }
 
-    private void setFileNameStub()
+    private void SetFileNameStub()
     {
-      _filecount = 0;
-      _filedate = DateTime.Today;
-      _filestub = Path.Combine(LogDirectory, ApplName);
+      filecount = 0;
+      filedate = DateTime.Today;
+      filestub = Path.Combine(LogDirectory, ApplName);
     }
 
     class LogMessage

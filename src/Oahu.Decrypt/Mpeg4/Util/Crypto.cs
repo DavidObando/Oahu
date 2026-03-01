@@ -15,16 +15,16 @@ namespace Oahu.Decrypt.Mpeg4.Util
       cbcDecryptor.TransformBlock(encryptedBlocks, 0, encryptedBlocks.Length & 0x7ffffff0, encryptedBlocks, 0);
     }
 
-    public static byte[] Sha1(params (byte[] bytes, int start, int length)[] blocks)
+    public static byte[] Sha1(params (byte[] Bytes, int Start, int Length)[] blocks)
     {
       using SHA1 sha = SHA1.Create();
       int i = 0;
       for (; i < blocks.Length - 1; i++)
       {
-        sha.TransformBlock(blocks[i].bytes, blocks[i].start, blocks[i].length, null, 0);
+        sha.TransformBlock(blocks[i].Bytes, blocks[i].Start, blocks[i].Length, null, 0);
       }
 
-      sha.TransformFinalBlock(blocks[i].bytes, blocks[i].start, blocks[i].length);
+      sha.TransformFinalBlock(blocks[i].Bytes, blocks[i].Start, blocks[i].Length);
       return sha.Hash!;
     }
   }

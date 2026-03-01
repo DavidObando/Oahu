@@ -4,55 +4,55 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 
 public static class Ac4Extensions
 {
-  static readonly byte[] num_channels_per_group = [2, 1, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2];
+  static readonly byte[] NumChannelsPerGroup = [2, 1, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2];
 
-  public static int? SampleRate(this ac4_dsi_v1? ac4_Dsi_V1) =>
-      ac4_Dsi_V1 is null ? null
-      : ac4_Dsi_V1.fs_index == 0 ? 44100
+  public static int? SampleRate(this ac4_dsi_v1? ac4DsiV1) =>
+      ac4DsiV1 is null ? null
+      : ac4DsiV1.FsIndex == 0 ? 44100
       : 48000;
 
-  public static uint? AverageBitrate(this ac4_dsi_v1? ac4_Dsi_V1)
+  public static uint? AverageBitrate(this ac4_dsi_v1? ac4DsiV1)
   {
-    if (ac4_Dsi_V1 is null)
+    if (ac4DsiV1 is null)
     {
       return null;
     }
 
-    if (ac4_Dsi_V1.ac4_Bitrate_Dsi.bit_rate != 0)
+    if (ac4DsiV1.Ac4BitrateDsi.BitRate != 0)
     {
-      return ac4_Dsi_V1.ac4_Bitrate_Dsi.bit_rate;
+      return ac4DsiV1.Ac4BitrateDsi.BitRate;
     }
 
-    foreach (var presentation in ac4_Dsi_V1.presentations.OfType<ac4_presentation_v1_dsi>().Where(p => p.b_presentation_bitrate_info))
+    foreach (var presentation in ac4DsiV1.Presentations.OfType<ac4_presentation_v1_dsi>().Where(p => p.BPresentationBitrateInfo))
     {
-      if (presentation.ac4_Bitrate_Dsi is ac4_bitrate_dsi btrt && btrt.bit_rate != 0)
+      if (presentation.Ac4BitrateDsi is ac4_bitrate_dsi btrt && btrt.BitRate != 0)
       {
-        return btrt.bit_rate;
+        return btrt.BitRate;
       }
     }
 
     return null;
   }
 
-  public static ChannelGroups? Channels(this ac4_dsi_v1? ac4_Dsi_V1)
+  public static ChannelGroups? Channels(this ac4_dsi_v1? ac4DsiV1)
   {
-    if (ac4_Dsi_V1 is null)
+    if (ac4DsiV1 is null)
     {
       return null;
     }
 
-    foreach (var presentation in ac4_Dsi_V1
-            .presentations
+    foreach (var presentation in ac4DsiV1
+            .Presentations
             .OfType<ac4_presentation_v1_dsi>()
-            .OrderByDescending(p => p.presentation_version))
+            .OrderByDescending(p => p.PresentationVersion))
     {
-      if (presentation.b_presentation_channel_coded is true)
+      if (presentation.BPresentationChannelCoded is true)
       {
-        return presentation.presentation_channel_mask_v1;
+        return presentation.PresentationChannelMaskV1;
       }
-      else if (presentation.substream?.b_channel_coded is true)
+      else if (presentation.Substream?.BChannelCoded is true)
       {
-        return presentation.substream.substreams[0].dsi_substream_channel_mask;
+        return presentation.Substream.Substreams[0].DsiSubstreamChannelMask;
       }
     }
 
@@ -67,7 +67,7 @@ public static class Ac4Extensions
       var group = (ChannelGroups)(1 << g);
       if (channels.HasFlag(group))
       {
-        channelCount += num_channels_per_group[g];
+        channelCount += NumChannelsPerGroup[g];
       }
     }
 

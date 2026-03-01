@@ -5,14 +5,14 @@ using System.Security.Cryptography;
 using System.Text;
 using Oahu.Aux.Extensions;
 using Oahu.CommonTypes;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 using static Oahu.Aux.Logging;
 
 namespace Oahu.Core
 {
   class AudibleLogin
   {
-    public const string DEVICE_TYPE = "A2CZJZGLK2JJVM";
+    public const string DeviceType = "A2CZJZGLK2JJVM";
 
     public ERegion Region { get; private set; }
 
@@ -36,16 +36,16 @@ namespace Oahu.Core
       var locale = region.FromCountryCode();
       WithPreAmazonUsername = withPreAmazonUsername;
 
-      if (withPreAmazonUsername && !(new[] { ERegion.de, ERegion.uk, ERegion.us }.Contains(locale.CountryCode)))
+      if (withPreAmazonUsername && !(new[] { ERegion.De, ERegion.Uk, ERegion.Us }.Contains(locale.CountryCode)))
       {
         throw new ArgumentException("Login with username is only supported for DE, US and UK marketplaces!");
       }
 
-      Serial = buildDeviceSerial();
-      ClientId = buildClientId(Serial);
+      Serial = BuildDeviceSerial();
+      ClientId = BuildClientId(Serial);
 
-      CodeVerifierB64 = createCodeVerifier();
-      CodeChallengeB64 = createSHA256CodeChallenge(CodeVerifierB64);
+      CodeVerifierB64 = CreateCodeVerifier();
+      CodeChallengeB64 = CreateSHA256CodeChallenge(CodeVerifierB64);
 
       string base_url, return_to, assoc_handle, page_id;
       if (withPreAmazonUsername)
@@ -102,7 +102,7 @@ namespace Oahu.Core
     }
 
     // internal instead of private for testing only
-    internal static string buildDeviceSerial()
+    internal static string BuildDeviceSerial()
     {
       var guid = Guid.NewGuid().ToString("N").ToUpper();
       Log(3, typeof(AudibleLogin), () => guid);
@@ -110,9 +110,9 @@ namespace Oahu.Core
     }
 
     // internal instead of private for testing only
-    internal static string buildClientId(string serial)
+    internal static string BuildClientId(string serial)
     {
-      string serialEx = $"{serial}#{DEVICE_TYPE}";
+      string serialEx = $"{serial}#{DeviceType}";
       byte[] clientId = Encoding.ASCII.GetBytes(serialEx);
       string clientIdHex = clientId.BytesToHexString();
       Log(3, typeof(AudibleLogin), () => clientIdHex);
@@ -120,7 +120,7 @@ namespace Oahu.Core
     }
 
     // internal instead of private for testing only
-    internal static string createCodeVerifier()
+    internal static string CreateCodeVerifier()
     {
       var random = new Random();
       byte[] tokenBytes = new byte[32];
@@ -130,7 +130,7 @@ namespace Oahu.Core
     }
 
     // internal instead of private for testing only
-    internal static string createSHA256CodeChallenge(string codeVerifier)
+    internal static string CreateSHA256CodeChallenge(string codeVerifier)
     {
       var sha256 = SHA256.Create();
       var tokenBytes = codeVerifier.GetBytes();

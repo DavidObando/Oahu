@@ -11,12 +11,12 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 /// </summary>
 public class Dec3Box : Box
 {
-  private readonly byte[] Ec3Data;
+  private readonly byte[] ec3Data;
 
   public Dec3Box(Stream file, BoxHeader header, IBox? parent) : base(header, parent)
   {
-    Ec3Data = file.ReadBlock((int)(header.TotalBoxSize - header.HeaderSize));
-    var reader = new BitReader(Ec3Data);
+    ec3Data = file.ReadBlock((int)(header.TotalBoxSize - header.HeaderSize));
+    var reader = new BitReader(ec3Data);
 
     AverageBitrate = reader.Read(13) * 1024;
     var num_ind_sub = reader.Read(3);
@@ -29,7 +29,7 @@ public class Dec3Box : Box
     }
 
     var indSample = IndependentSubstream.First();
-    Debug.Assert(indSample.num_dep_sub == 0);
+    Debug.Assert(indSample.NumDepSub == 0);
 
     SampleRate = indSample.GetSampleRate();
     NumberOfChannels = indSample.ChannelCount();
@@ -41,15 +41,15 @@ public class Dec3Box : Box
 
     // Dolby Atmos content carried by a Dolby Digital Plus stream.
     reader.Position += 7;
-    flag_ec3_extension_type_a = reader.ReadBool();
+    FlagEc3ExtensionTypeA = reader.ReadBool();
 
-    if (flag_ec3_extension_type_a.Value)
+    if (FlagEc3ExtensionTypeA.Value)
     {
-      complexity_index_type_a = (byte)reader.Read(8);
+      ComplexityIndexTypeA = (byte)reader.Read(8);
     }
   }
 
-  public override long RenderSize => base.RenderSize + Ec3Data.Length;
+  public override long RenderSize => base.RenderSize + ec3Data.Length;
 
   /// <summary>
   /// ETSI TS 102 366 F.6.2.2 data_rate * 1024
@@ -62,23 +62,23 @@ public class Dec3Box : Box
 
   public Ec3IndependentSubstream[] IndependentSubstream { get; }
 
-  public bool IsAtmos => flag_ec3_extension_type_a.HasValue;
+  public bool IsAtmos => FlagEc3ExtensionTypeA.HasValue;
 
   /// <summary>
   /// Signaling Dolby Digital Plus bitstreams with Dolby Atmos content in an ISO base media format file
   /// Having a value indicates that audio is Dolby Atmos
-  /// whether complexity_index_type_a is available in the E-AC-3 descriptor.
+  /// whether ComplexityIndexTypeA is available in the E-AC-3 descriptor.
   /// </summary>
-  public bool? flag_ec3_extension_type_a { get; }
+  public bool? FlagEc3ExtensionTypeA { get; }
 
   /// <summary>
   ///  Dolby Digital Plus bitstream structure
   ///  takes a value of 1 to 16 that indicates the decoding complexity of the Dolby Atmos bitstream
   /// </summary>
-  public byte? complexity_index_type_a { get; }
+  public byte? ComplexityIndexTypeA { get; }
 
   protected override void Render(Stream file)
   {
-    file.Write(Ec3Data);
+    file.Write(ec3Data);
   }
 }

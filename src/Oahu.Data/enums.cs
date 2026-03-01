@@ -2,16 +2,16 @@
 {
   public enum ECodec
   {
-    format4,
-    mp4_22_32,
-    mp4_22_64,
-    mp4_44_64,
-    mp4_44_128,
-    aax,
-    aax_22_32,
-    aax_22_64,
-    aax_44_64,
-    aax_44_128,
+    Format4,
+    Mp42232,
+    Mp42264,
+    Mp44464,
+    Mp444128,
+    Aax,
+    Aax2232,
+    Aax2264,
+    Aax4464,
+    Aax44128,
   }
 
   public enum EDeliveryType
@@ -25,22 +25,22 @@
 
   public enum EConversionState
   {
-    unknown,          // strikethru globe
-    remote,           // globe
-    download,         // globe with down arrow
-    license_granted,  // key
-    license_denied,   // strikethru key
-    downloading,      // down arrow
-    download_error,   // strikethru down arrow
-    local_locked,     // lock closed
-    unlocking,        // key over lock
-    unlocking_failed, // strikethru key over lock
-    local_unlocked,   // lock open
-    exported,         // checkmark mauve
-    converting,       // right arrow
-    converted,        // checkmark green
-    converted_unknown, // checkmark gray
-    conversion_error // strikethru right arrow
+    Unknown,          // strikethru globe
+    Remote,           // globe
+    Download,         // globe with down arrow
+    LicenseGranted,   // key
+    LicenseDenied,    // strikethru key
+    Downloading,      // down arrow
+    DownloadError,    // strikethru down arrow
+    LocalLocked,      // lock closed
+    Unlocking,        // key over lock
+    UnlockingFailed,  // strikethru key over lock
+    LocalUnlocked,    // lock open
+    Exported,         // checkmark mauve
+    Converting,       // right arrow
+    Converted,        // checkmark green
+    ConvertedUnknown, // checkmark gray
+    ConversionError,  // strikethru right arrow
   }
 
   public enum ELicenseStatusCode
@@ -59,8 +59,8 @@
 
   internal enum EPseudoAsinId
   {
-    none,
-    author,
-    narrator
+    None,
+    Author,
+    Narrator,
   }
 }

@@ -14,22 +14,22 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
   public partial class BookLibraryViewModel : ObservableObject
   {
     [ObservableProperty]
-    private ObservableCollection<BookItemViewModel> _books = new();
+    private ObservableCollection<BookItemViewModel> books = new();
 
     [ObservableProperty]
-    private BookItemViewModel _selectedBook;
+    private BookItemViewModel selectedBook;
 
     [ObservableProperty]
-    private bool _hasSelectedBook;
+    private bool hasSelectedBook;
 
     [ObservableProperty]
-    private string _filterText;
+    private string filterText;
 
     [ObservableProperty]
-    private bool _downloadSelectEnabled;
+    private bool downloadSelectEnabled;
 
     [ObservableProperty]
-    private int _selectedCount;
+    private int selectedCount;
 
     public event EventHandler<IEnumerable<BookItemViewModel>> DownloadRequested;
 
@@ -115,35 +115,35 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
 
   public partial class BookItemViewModel : ObservableObject
   {
-    private readonly Book _book;
+    private readonly Book book;
 
     [ObservableProperty]
-    private bool _isSelected;
+    private bool isSelected;
 
     public BookItemViewModel(Book book)
     {
-      _book = book;
+      this.book = book;
     }
 
-    public Book Book => _book;
+    public Book Book => book;
 
-    public string Asin => _book.Asin;
+    public string Asin => book.Asin;
 
-    public string Title => _book.Title;
+    public string Title => book.Title;
 
-    public string Author => _book.Author;
+    public string Author => book.Author;
 
-    public string Narrator => _book.Narrator;
+    public string Narrator => book.Narrator;
 
-    public DateTime? PurchaseDate => _book.PurchaseDate;
+    public DateTime? PurchaseDate => book.PurchaseDate;
 
-    public DateTime? ReleaseDate => _book.ReleaseDate;
+    public DateTime? ReleaseDate => book.ReleaseDate;
 
-    public int? RunTimeLengthSeconds => _book.RunTimeLengthSeconds;
+    public int? RunTimeLengthSeconds => book.RunTimeLengthSeconds;
 
-    public string CoverImageFile => _book.CoverImageFile;
+    public string CoverImageFile => book.CoverImageFile;
 
-    public EConversionState ConversionState => _book.Conversion?.State ?? EConversionState.unknown;
+    public EConversionState ConversionState => book.Conversion?.State ?? EConversionState.Unknown;
 
     public string Duration
     {
@@ -162,30 +162,30 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     }
 
     // Detail properties
-    public string Publisher => _book.PublisherName;
+    public string Publisher => book.PublisherName;
 
-    public string Language => _book.Language;
+    public string Language => book.Language;
 
-    public string Unabridged => _book.Unabridged switch
+    public string Unabridged => book.Unabridged switch
     {
       true => "Yes",
       false => "No",
       _ => null
     };
 
-    public string Series => _book.Series?.Count > 0
-      ? string.Join(", ", _book.Series.Select(s => s.ToString()))
+    public string Series => book.Series?.Count > 0
+      ? string.Join(", ", book.Series.Select(s => s.ToString()))
       : null;
 
     public string ConversionStateText => ConversionState.ToString();
 
-    public int? Parts => _book.Components?.Count > 0 ? _book.Components.Count : (int?)null;
+    public int? Parts => book.Components?.Count > 0 ? book.Components.Count : (int?)null;
 
     public string Description
     {
       get
       {
-        var html = _book.PublisherSummary;
+        var html = book.PublisherSummary;
         if (string.IsNullOrWhiteSpace(html))
         {
           return null;
@@ -210,7 +210,7 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     {
       get
       {
-        var path = _book.CoverImageFile;
+        var path = book.CoverImageFile;
         if (!string.IsNullOrEmpty(path) && File.Exists(path))
         {
           return path;

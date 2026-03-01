@@ -14,7 +14,7 @@ using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.BooksDatabase;
 using Oahu.CommonTypes;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 using Oahu.Decrypt;
 using static Oahu.Aux.Logging;
 using R = Oahu.Core.Properties.Resources;
@@ -23,12 +23,12 @@ namespace Oahu.Core
 {
   class AudibleApi : IAudibleApi
   {
-    const string USER_AGENT = "Audible/671 CFNetwork/1240.0.4 Darwin/20.6.0";
+    const string UserAgent = "Audible/671 CFNetwork/1240.0.4 Darwin/20.6.0";
 
     // const string HTTP_AUTHORITY_AUDIBLE = @"https://api.audible.";
-    const string CONTENT_PATH = "/1.0/content";
-    private int _accountId;
-    private string _accountAlias;
+    const string ContentPath = "/1.0/content";
+    private int accountId;
+    private string accountAlias;
 
 #if TEST_INVAL_CHAR
     const char ORIG = '\'';
@@ -65,7 +65,7 @@ namespace Oahu.Core
       ERegion region)
     {
       BookLibrary = bookLibrary;
-      _accountId = accountId;
+      this.accountId = accountId;
       Profile = new Profile(region, null, null, false);
     }
 
@@ -73,8 +73,8 @@ namespace Oahu.Core
     {
       get
       {
-        ensureAccountId();
-        return _accountAlias;
+        EnsureAccountId();
+        return accountAlias;
       }
     }
 
@@ -99,8 +99,8 @@ namespace Oahu.Core
     {
       get
       {
-        ensureAccountId();
-        return _accountId;
+        EnsureAccountId();
+        return accountId;
       }
     }
 
@@ -115,19 +115,19 @@ namespace Oahu.Core
 
     public async Task<string> GetUserProfileAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       await RefreshTokenAsyncFunc();
 
       var url = $"/user/profile?access_token={Profile.Token.AccessToken}";
 
       var request = new HttpRequestMessage(HttpMethod.Get, url);
-      return await sendForStringAsync(request, HttpClient);
+      return await SendForStringAsync(request, HttpClient);
     }
 
     public async Task<string> GetAccountInfoAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       const string GROUPS = "response_groups=migration_details,subscription_details_rodizio,subscription_details_premium,customer_segment,subscription_details_channels";
 
@@ -135,22 +135,22 @@ namespace Oahu.Core
         + "?"
         + GROUPS;
 
-      return await callAudibleApiSignedForStringAsync(url);
+      return await CallAudibleApiSignedForStringAsync(url);
     }
 
     public async Task<bool> GetActivationBytesAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
       var url = "/license/token?action=register&player_manuf=Audible,iPhone&player_model=iPhone";
-      byte[] response = await callAudibleApiSignedForBytesAsync(url);
+      byte[] response = await CallAudibleApiSignedForBytesAsync(url);
 
       return false;
     }
 
     public async Task<Oahu.Audible.Json.LicenseResponse> GetDownloadLicenseAsync(string asin, EDownloadQuality quality)
     {
-      using var _ = new LogGuard(3, this, () => $"asin={asin}");
-      string response = await getDownloadLicenseAsync(asin, quality);
+      using var logGuard = new LogGuard(3, this, () => $"asin={asin}");
+      string response = await GetDownloadLicenseAsyncInternal(asin, quality);
 
       if (Logging.Level >= 3)
       {
@@ -160,14 +160,14 @@ namespace Oahu.Core
 
       Oahu.Audible.Json.LicenseResponse license = Oahu.Audible.Json.LicenseResponse.Deserialize(response);
 
-      decryptLicense(license?.content_license);
+      DecryptLicense(license?.ContentLicense);
 
       return license;
     }
 
     public async Task<bool> GetDownloadLicenseAndSaveAsync(Conversion conversion, EDownloadQuality quality)
     {
-      using var _ = new LogGuard(3, this, () => $"{conversion}");
+      using var logGuard = new LogGuard(3, this, () => $"{conversion}");
       Log(3, this, () => $"{conversion}; desired quality: {quality}");
       Oahu.Audible.Json.LicenseResponse licresp;
 
@@ -178,23 +178,23 @@ namespace Oahu.Core
       }
       catch (Exception exc)
       {
-        conversion.State = EConversionState.license_denied;
+        conversion.State = EConversionState.LicenseDenied;
         Log(3, this, () => $"{conversion}; {exc.Summary()}");
         return false;
       }
 
-      var lic = licresp?.content_license;
-      if (lic?.voucher is null)
+      var lic = licresp?.ContentLicense;
+      if (lic?.Voucher is null)
       {
-        conversion.State = EConversionState.license_denied;
+        conversion.State = EConversionState.LicenseDenied;
         Log(3, this, () => $"{conversion}; license decryption failed.");
         return false;
       }
 
-      bool succ = Enum.TryParse<ELicenseStatusCode>(lic.status_code, out var status);
+      bool succ = Enum.TryParse<ELicenseStatusCode>(lic.StatusCode, out var status);
       if (!succ || status != ELicenseStatusCode.Granted)
       {
-        conversion.State = EConversionState.license_denied;
+        conversion.State = EConversionState.LicenseDenied;
         Log(3, this, () => $"{conversion}; license not granted.");
         return false;
       }
@@ -209,8 +209,8 @@ namespace Oahu.Core
 
     public async Task<bool> DownloadAsync(Conversion conversion, Action<Conversion, long> progressAction, CancellationToken cancToken)
     {
-      conversion.State = EConversionState.downloading;
-      using var _ = new LogGuard(3, this, () => conversion.ToString());
+      conversion.State = EConversionState.Downloading;
+      using var logGuard = new LogGuard(3, this, () => conversion.ToString());
 
       try
       {
@@ -221,7 +221,7 @@ namespace Oahu.Core
 
         Uri requestUri = new Uri(conversion.DownloadUrl);
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        request.Headers.UserAgent.ParseAdd(USER_AGENT);
+        request.Headers.UserAgent.ParseAdd(UserAgent);
         var response = await HttpClientAudible.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
@@ -239,16 +239,16 @@ namespace Oahu.Core
         using var fileStream = File.OpenWrite(destfilename);
         using var wrtr = new BufferedStream(fileStream);
 
-        long accusize = await Task.Run(async () => await copyStreams(conversion, rdr, wrtr, progressAction, cancToken), cancToken);
+        long accusize = await Task.Run(async () => await CopyStreams(conversion, rdr, wrtr, progressAction, cancToken), cancToken);
 
         bool succ = accusize >= sourceFileSize;
         if (!succ)
         {
-          conversion.State = EConversionState.download_error;
+          conversion.State = EConversionState.DownloadError;
         }
         else
         {
-          BookLibrary.SavePersistentState(conversion, EConversionState.local_locked);
+          BookLibrary.SavePersistentState(conversion, EConversionState.LocalLocked);
         }
 
         Log(3, this, () => $"{conversion}; download finished, succ={succ}.");
@@ -256,7 +256,7 @@ namespace Oahu.Core
       }
       catch (Exception exc)
       {
-        conversion.State = EConversionState.download_error;
+        conversion.State = EConversionState.DownloadError;
         Log(1, this, () => $"{conversion}; {exc.Summary()}");
       }
 
@@ -268,8 +268,8 @@ namespace Oahu.Core
       Action<Conversion, TimeSpan> progressAction,
       CancellationToken cancToken)
     {
-      conversion.State = EConversionState.unlocking;
-      using var _ = new LogGuard(3, this, () => conversion.ToString());
+      conversion.State = EConversionState.Unlocking;
+      using var logGuard = new LogGuard(3, this, () => conversion.ToString());
 
       AaxFile aaxFile = null;
       var rg = new ResourceGuard(() => aaxFile?.Dispose());
@@ -298,7 +298,7 @@ namespace Oahu.Core
           using (var fileStream = File.OpenWrite(outputFile))
           {
             operation = aaxFile.ConvertToMp4aAsync(fileStream);
-            operation.ConversionProgressUpdate += aaxFile_ConversionProgressUpdate;
+            operation.ConversionProgressUpdate += AaxFileConversionProgressUpdate;
             await operation;
             succ = operation.IsCompletedSuccessfully;
             if (succ)
@@ -310,18 +310,18 @@ namespace Oahu.Core
 
         if (succ)
         {
-          BookLibrary.SavePersistentState(conversion, EConversionState.local_unlocked);
+          BookLibrary.SavePersistentState(conversion, EConversionState.LocalUnlocked);
         }
         else
         {
-          conversion.State = EConversionState.unlocking_failed;
+          conversion.State = EConversionState.UnlockingFailed;
         }
 
         Log(3, this, () => $"{conversion}; decryption finished, succ={succ}.");
       }
       catch (Exception exc)
       {
-        conversion.State = EConversionState.unlocking_failed;
+        conversion.State = EConversionState.UnlockingFailed;
         Log(1, this, () => $"{conversion}; {exc.Summary()}");
         return false;
       }
@@ -331,8 +331,8 @@ namespace Oahu.Core
         try
         {
           string suffix = numChannels == 1 ? "_Mono" : "_Stereo";
-          rename(inputFile, suffix);
-          rename(outputFile, suffix);
+          Rename(inputFile, suffix);
+          Rename(outputFile, suffix);
           BookLibrary.SaveFileNameSuffix(conversion, suffix);
         }
         catch (Exception exc)
@@ -343,7 +343,7 @@ namespace Oahu.Core
 
       return succ;
 
-      void rename(string file, string suffix)
+      void Rename(string file, string suffix)
       {
         string dir = Path.GetDirectoryName(file);
         string stub = Path.GetFileNameWithoutExtension(file);
@@ -352,7 +352,7 @@ namespace Oahu.Core
         File.Move(file, sfxfile, true);
       }
 
-      async void aaxFile_ConversionProgressUpdate(object sender, ConversionProgressEventArgs e)
+      async void AaxFileConversionProgressUpdate(object sender, ConversionProgressEventArgs e)
       {
         if (cancToken.IsCancellationRequested)
         {
@@ -365,13 +365,13 @@ namespace Oahu.Core
 
     public async Task DownloadCoverImagesAsync()
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
       await BookLibrary.AddCoverImagesAsync(url => HttpClientAmazon.DownloadImageAsync(url));
     }
 
     public async Task UpdateMetaInfo(IEnumerable<Component> components, Action<IEnumerable<Component>> onDone)
     {
-      using var _ = new LogGuard(3, this, () => $"#comp={components.Count()}");
+      using var logGuard = new LogGuard(3, this, () => $"#comp={components.Count()}");
       var pairs = new List<ProductComponentPair>();
       foreach (var comp in components)
       {
@@ -401,7 +401,7 @@ namespace Oahu.Core
         + "?"
         + GROUPS;
 
-      string result = await callAudibleApiSignedForStringAsync(url);
+      string result = await CallAudibleApiSignedForStringAsync(url);
 
       if (Logging.Level >= 3)
       {
@@ -411,10 +411,10 @@ namespace Oahu.Core
 
       Oahu.Audible.Json.ProductResponse productResponse = Oahu.Audible.Json.ProductResponse.Deserialize(result);
 
-      Oahu.Audible.Json.Product product = productResponse?.product;
+      Oahu.Audible.Json.Product product = productResponse?.Product;
 #if TEST_INVAL_CHAR
       if (product is not null) {
-        product.title = product.title.Replace (ORIG, SUBS);
+        product.Title = product.Title.Replace (ORIG, SUBS);
       }
 #endif
 
@@ -457,7 +457,7 @@ namespace Oahu.Core
 
     internal async Task<Oahu.Audible.Json.LibraryResponse> GetLibraryAsync(string json, bool resync)
     {
-      using var _ = new LogGuard(3, this, () => $"resync={resync}");
+      using var logGuard = new LogGuard(3, this, () => $"resync={resync}");
 
       const int PAGE_SIZE = 100;
       int page = 0;
@@ -482,7 +482,7 @@ namespace Oahu.Core
             + "&"
             + GROUPS;
 
-          string pageResult = await callAudibleApiSignedForStringAsync(url);
+          string pageResult = await CallAudibleApiSignedForStringAsync(url);
           if (pageResult is null)
           {
             return null;
@@ -500,12 +500,12 @@ namespace Oahu.Core
             return null;
           }
 
-          if (!(libraryResponse?.items.Any() ?? false))
+          if (!(libraryResponse?.Items.Any() ?? false))
           {
             break;
           }
 
-          var pageProducts = libraryResponse.items;
+          var pageProducts = libraryResponse.Items;
 #if TEST_UNAVAIL
           pageProducts = pageProducts.ToList().Take(pageProducts.Length - 1).ToArray();
 #endif
@@ -516,17 +516,17 @@ namespace Oahu.Core
       else
       {
         Oahu.Audible.Json.LibraryResponse libraryResponse = Oahu.Audible.Json.LibraryResponse.Deserialize(json);
-        libProducts.AddRange(libraryResponse.items);
+        libProducts.AddRange(libraryResponse.Items);
       }
 
-      libProducts = libProducts.DistinctBy(p => p.asin).ToList();
+      libProducts = libProducts.DistinctBy(p => p.Asin).ToList();
 
-      libProducts.Sort((x, y) => DateTime.Compare(x.purchase_date, y.purchase_date));
+      libProducts.Sort((x, y) => DateTime.Compare(x.PurchaseDate, y.PurchaseDate));
 
 #if TEST_INVAL_CHAR
       libProducts = libProducts
         .Select (p => {
-          p.title = p.title.Replace (ORIG, SUBS);
+          p.Title = p.Title.Replace (ORIG, SUBS);
           return p;
         })
         .ToList ();
@@ -535,11 +535,11 @@ namespace Oahu.Core
       await BookLibrary.AddRemBooksAsync(libProducts, new ProfileId(AccountId, Region), resync);
 
       var allPagesResponse = new Oahu.Audible.Json.LibraryResponse();
-      allPagesResponse.items = libProducts.ToArray();
+      allPagesResponse.Items = libProducts.ToArray();
       return allPagesResponse;
     }
 
-    private static string buildlicenseRequestBody(EDownloadQuality quality)
+    private static string BuildLicenseRequestBody(EDownloadQuality quality)
     {
       string json = $@"{{
         ""consumption_type"": ""Download"",
@@ -558,7 +558,7 @@ namespace Oahu.Core
       return json;
     }
 
-    private static async Task<long> copyStreams(
+    private static async Task<long> CopyStreams(
       Conversion conversion,
       BufferedStream rdr,
       BufferedStream wrtr,
@@ -590,29 +590,29 @@ namespace Oahu.Core
       return accusize;
     }
 
-    private void ensureAccountId()
+    private void EnsureAccountId()
     {
-      if (_accountId > 0)
+      if (accountId > 0)
       {
         return;
       }
 
       var ctxt = Profile.GetAccountAliasContext(BookLibrary, GetAccountAliasFunc, false);
 
-      _accountId = ctxt.LocalId;
-      _accountAlias = ctxt.Alias;
+      accountId = ctxt.LocalId;
+      accountAlias = ctxt.Alias;
     }
 
-    private async Task<string> getDownloadLicenseAsync(string asin, EDownloadQuality quality)
+    private async Task<string> GetDownloadLicenseAsyncInternal(string asin, EDownloadQuality quality)
     {
-      var url = $"{CONTENT_PATH}/{asin}/licenserequest";
+      var url = $"{ContentPath}/{asin}/licenserequest";
 
-      string jsonBody = buildlicenseRequestBody(quality);
+      string jsonBody = BuildLicenseRequestBody(quality);
 
-      return await callAudibleApiSignedForStringAsync(url, jsonBody);
+      return await CallAudibleApiSignedForStringAsync(url, jsonBody);
     }
 
-    private void decryptLicense(Oahu.Audible.Json.ContentLicense license)
+    private void DecryptLicense(Oahu.Audible.Json.ContentLicense license)
     {
       // See also
       // https://patchwork.ffmpeg.org/project/ffmpeg/patch/17559601585196510@sas2-2fa759678732.qloud-c.yandex.net/
@@ -622,7 +622,7 @@ namespace Oahu.Core
       }
 
       string hashable = Profile.DeviceInfo.Type + Profile.DeviceInfo.Serial + Profile.CustomerInfo.AccountId +
-        license.asin;
+        license.Asin;
 
       byte[] hashableBytes = Encoding.ASCII.GetBytes(hashable);
       byte[] key = new byte[16];
@@ -633,7 +633,7 @@ namespace Oahu.Core
       Array.Copy(hash, 0, key, 0, 16);
       Array.Copy(hash, 16, iv, 0, 16);
 
-      byte[] encryptedText = Convert.FromBase64String(license.license_response);
+      byte[] encryptedText = Convert.FromBase64String(license.LicenseResponseText);
 
       using var aes = Aes.Create();
       aes.Mode = CipherMode.CBC;
@@ -649,22 +649,22 @@ namespace Oahu.Core
 
       Oahu.Audible.Json.Voucher voucher = Oahu.Audible.Json.Voucher.Deserialize(plainText);
 
-      license.voucher = voucher;
+      license.Voucher = voucher;
     }
 
-    private async Task<string> callAudibleApiSignedForStringAsync(string relUrl, string jsonBody = null)
+    private async Task<string> CallAudibleApiSignedForStringAsync(string relUrl, string jsonBody = null)
     {
-      HttpRequestMessage request = makeSignedRequest(relUrl, jsonBody);
-      return await sendForStringAsync(request, HttpClientAudible);
+      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody);
+      return await SendForStringAsync(request, HttpClientAudible);
     }
 
-    private async Task<byte[]> callAudibleApiSignedForBytesAsync(string relUrl, string jsonBody = null)
+    private async Task<byte[]> CallAudibleApiSignedForBytesAsync(string relUrl, string jsonBody = null)
     {
-      HttpRequestMessage request = makeSignedRequest(relUrl, jsonBody);
-      return await sendForBytesAsync(request, HttpClientAudible);
+      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody);
+      return await SendForBytesAsync(request, HttpClientAudible);
     }
 
-    private HttpRequestMessage makeSignedRequest(string relUrl, string jsonBody)
+    private HttpRequestMessage MakeSignedRequest(string relUrl, string jsonBody)
     {
       Uri relUri = new Uri(relUrl, UriKind.Relative);
 
@@ -679,11 +679,11 @@ namespace Oahu.Core
         request.Content = content;
       }
 
-      signRequestAsync(request);
+      SignRequest(request);
       return request;
     }
 
-    private async Task<string> sendForStringAsync(HttpRequestMessage request, HttpClientEx httpClient)
+    private async Task<string> SendForStringAsync(HttpRequestMessage request, HttpClientEx httpClient)
     {
       string content = null;
       try
@@ -704,7 +704,7 @@ namespace Oahu.Core
       }
     }
 
-    private async Task<byte[]> sendForBytesAsync(HttpRequestMessage request, HttpClientEx httpClient)
+    private async Task<byte[]> SendForBytesAsync(HttpRequestMessage request, HttpClientEx httpClient)
     {
       HttpResponseMessage response = null;
       try
@@ -726,16 +726,16 @@ namespace Oahu.Core
       }
     }
 
-    private void signRequestAsync(HttpRequestMessage request)
+    private void SignRequest(HttpRequestMessage request)
     {
-      string signature = makeRequestSignatureAsync(request);
+      string signature = MakeRequestSignature(request);
 
       request.Headers.Add("x-adp-token", Profile.AdpToken);
       request.Headers.Add("x-adp-alg", "SHA256withRSA:1.0");
       request.Headers.Add("x-adp-signature", signature);
     }
 
-    private string makeRequestSignatureAsync(HttpRequestMessage request)
+    private string MakeRequestSignature(HttpRequestMessage request)
     {
       // HACK
       DateTime dt = DateTime.UtcNow.RoundDown(TimeSpan.FromMinutes(10));
@@ -748,7 +748,7 @@ namespace Oahu.Core
 
       string dataString = $"{method}\n{url}\n{time}\n{content}\n{adpToken}";
 
-      byte[] signBytes = sign(dataString);
+      byte[] signBytes = Sign(dataString);
 
       string encoded = Convert.ToBase64String(signBytes);
       var signature = $"{encoded}:{time}";
@@ -756,7 +756,7 @@ namespace Oahu.Core
       return signature;
     }
 
-    private byte[] sign(string dataString)
+    private byte[] Sign(string dataString)
     {
       byte[] dataBytes = Encoding.UTF8.GetBytes(dataString);
 

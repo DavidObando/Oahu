@@ -7,22 +7,22 @@ namespace Oahu.Aux
   /// </summary>
   public class Indent : IResource
   {
-    uint _inc = 2;
-    uint _offset = 0;
-    int _indent;
-    string _output = string.Empty;
+    uint inc = 2;
+    uint offset = 0;
+    int indent;
+    string output = string.Empty;
 
     public Indent()
     {
     }
 
-    public Indent(uint inc) => this._inc = inc;
+    public Indent(uint inc) => this.inc = inc;
 
     public Indent(uint? inc, uint offset)
     {
-      this._inc = inc ?? this._inc;
-      this._offset = offset;
-      buildString();
+      this.inc = inc ?? this.inc;
+      this.offset = offset;
+      BuildString();
     }
 
     public int Level { get; private set; }
@@ -30,15 +30,15 @@ namespace Oahu.Aux
     public void Acquire()
     {
       Level++;
-      _indent += (int)_inc;
-      buildString();
+      indent += (int)inc;
+      BuildString();
     }
 
     public void Release()
     {
       Level--;
-      _indent -= (int)_inc;
-      buildString();
+      indent -= (int)inc;
+      BuildString();
     }
 
     public bool InRange(int level)
@@ -53,10 +53,10 @@ namespace Oahu.Aux
       }
     }
 
-    public override string ToString() => _output;
+    public override string ToString() => output;
 
     public void Write(TextWriter osm) => osm.Write(this);
 
-    private void buildString() => _output = new string(' ', (int)_offset + _indent);
+    private void BuildString() => output = new string(' ', (int)offset + indent);
   }
 }

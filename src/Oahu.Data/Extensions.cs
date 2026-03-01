@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Oahu.BooksDatabase.ex
+namespace Oahu.BooksDatabase.Ex
 {
   public static class EntityExtensions
   {
@@ -22,7 +22,7 @@ namespace Oahu.BooksDatabase.ex
 
     public static EConversionState ApplicableState(this Conversion conv)
     {
-      if (conv.State == EConversionState.download && conv.PersistState.HasValue)
+      if (conv.State == EConversionState.Download && conv.PersistState.HasValue)
       {
         return conv.PersistState.Value;
       }

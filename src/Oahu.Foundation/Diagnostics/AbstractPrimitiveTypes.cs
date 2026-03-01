@@ -10,7 +10,7 @@ namespace Oahu.Aux.Diagnostics
   /// <seealso cref="Oahu.Aux.Diagnostics.IPrimitiveTypes" />
   public abstract class AbstractPrimitiveTypes : IPrimitiveTypes
   {
-    Dictionary<Type, Delegate> _dict = new Dictionary<Type, Delegate>();
+    Dictionary<Type, Delegate> dict = new Dictionary<Type, Delegate>();
 
     /// <summary>
     /// Determines whether the specified generic type is regarded as a custom primitive type.
@@ -26,7 +26,7 @@ namespace Oahu.Aux.Diagnostics
     /// Determines whether the specified type is regarded as a custom primitive type.
     /// </summary>
     /// <param name="type">The type to be checked.</param>
-    public bool IsPrimitiveType(Type type) => _dict.ContainsKey(type);
+    public bool IsPrimitiveType(Type type) => dict.ContainsKey(type);
 
     /// <summary>
     /// Returns a <see cref="System.String" /> that represents this instance,
@@ -37,7 +37,7 @@ namespace Oahu.Aux.Diagnostics
     /// <returns>
     /// A <see cref="System.String" /> that represents this instance or <c>null</c>.
     /// </returns>
-    public string ToString<T>(T val) => toStringFunc<T>()?.Invoke(val);
+    public string ToString<T>(T val) => ToStringFunc<T>()?.Invoke(val);
 
     /// <summary>
     /// Returns a <see cref="System.String" /> that represents this instance,
@@ -55,7 +55,7 @@ namespace Oahu.Aux.Diagnostics
       }
 
       Type type = val.GetType();
-      Delegate d = toStringFunc(type);
+      Delegate d = ToStringFunc(type);
       return d?.Method.Invoke(d.Target, new object[] { val }) as string;
     }
 
@@ -71,7 +71,7 @@ namespace Oahu.Aux.Diagnostics
     public string ToString<T>(object val)
     {
       Type type = typeof(T);
-      Delegate d = toStringFunc(type);
+      Delegate d = ToStringFunc(type);
       return d?.Method.Invoke(d.Target, new object[] { val }) as string;
     }
 
@@ -80,10 +80,10 @@ namespace Oahu.Aux.Diagnostics
     /// </summary>
     /// <typeparam name="T">generic type</typeparam>
     /// <param name="func">The function delegate.</param>
-    protected void add<T>(Func<T, string> func)
+    protected void Add<T>(Func<T, string> func)
     {
       Type type = typeof(T);
-      _dict[type] = func;
+      dict[type] = func;
     }
 
     /// <summary>
@@ -91,10 +91,10 @@ namespace Oahu.Aux.Diagnostics
     /// </summary>
     /// <typeparam name="T">generic type</typeparam>
     /// <returns>Function delegate for generic type {T} or <c>null</c>.</returns>
-    private Func<T, string> toStringFunc<T>()
+    private Func<T, string> ToStringFunc<T>()
     {
       Type type = typeof(T);
-      bool succ = _dict.TryGetValue(type, out var func);
+      bool succ = dict.TryGetValue(type, out var func);
       if (succ)
       {
         return func as Func<T, string>;
@@ -109,9 +109,9 @@ namespace Oahu.Aux.Diagnostics
     /// Function delegate for type  to obtain string representation. Non-type-safe variant.
     /// </summary>
     /// <returns>Generic delegate for type or <c>null</c>.</returns>
-    private Delegate toStringFunc(Type type)
+    private Delegate ToStringFunc(Type type)
     {
-      bool succ = _dict.TryGetValue(type, out var func);
+      bool succ = dict.TryGetValue(type, out var func);
       if (succ)
       {
         return func;

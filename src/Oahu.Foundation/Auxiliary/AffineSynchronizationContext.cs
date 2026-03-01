@@ -7,8 +7,8 @@ namespace Oahu.Aux
   public class AffineSynchronizationContext
   {
     #region Private Fields
-    private readonly SynchronizationContext _sync;
-    private readonly int _managedThreadId;
+    private readonly SynchronizationContext sync;
+    private readonly int managedThreadId;
 
     #endregion Private Fields
 
@@ -16,8 +16,8 @@ namespace Oahu.Aux
 
     public AffineSynchronizationContext()
     {
-      _sync = SynchronizationContext.Current;
-      _managedThreadId = Thread.CurrentThread.ManagedThreadId;
+      sync = SynchronizationContext.Current;
+      managedThreadId = Thread.CurrentThread.ManagedThreadId;
     }
 
     #endregion ctor
@@ -25,7 +25,7 @@ namespace Oahu.Aux
     #region Private Props
 
     private bool Affine =>
-      _managedThreadId == Thread.CurrentThread.ManagedThreadId;
+      managedThreadId == Thread.CurrentThread.ManagedThreadId;
     #endregion Private Props
 
     #region Public Methods
@@ -39,7 +39,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat);
+        sync.Post(delgat);
       }
     }
 
@@ -53,7 +53,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p);
+        sync.Post(delgat, p);
       }
     }
 
@@ -67,7 +67,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2);
+        sync.Post(delgat, p1, p2);
       }
     }
 
@@ -81,7 +81,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3);
+        sync.Post(delgat, p1, p2, p3);
       }
     }
 
@@ -95,7 +95,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3, p4);
+        sync.Post(delgat, p1, p2, p3, p4);
       }
     }
 
@@ -109,7 +109,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3, p4, p5);
+        sync.Post(delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -123,7 +123,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3, p4, p5, p6);
+        sync.Post(delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -137,7 +137,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3, p4, p5, p6, p7);
+        sync.Post(delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -151,7 +151,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Post(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        sync.Post(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Asynchronous Send Methods With Return Value
@@ -166,7 +166,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat);
+        sync.Send(delgat);
       }
     }
 
@@ -180,7 +180,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p);
+        sync.Send(delgat, p);
       }
     }
 
@@ -194,7 +194,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2);
+        sync.Send(delgat, p1, p2);
       }
     }
 
@@ -208,7 +208,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3);
+        sync.Send(delgat, p1, p2, p3);
       }
     }
 
@@ -222,7 +222,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3, p4);
+        sync.Send(delgat, p1, p2, p3, p4);
       }
     }
 
@@ -236,7 +236,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3, p4, p5);
+        sync.Send(delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -250,7 +250,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3, p4, p5, p6);
+        sync.Send(delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -264,7 +264,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7);
+        sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -278,7 +278,7 @@ namespace Oahu.Aux
       }
       else
       {
-        _sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Synchronous Send Methods With Return Value
@@ -293,7 +293,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat);
+        return sync.Send(delgat);
       }
     }
 
@@ -307,7 +307,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p);
+        return sync.Send(delgat, p);
       }
     }
 
@@ -321,7 +321,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2);
+        return sync.Send(delgat, p1, p2);
       }
     }
 
@@ -335,7 +335,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3);
+        return sync.Send(delgat, p1, p2, p3);
       }
     }
 
@@ -349,7 +349,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3, p4);
+        return sync.Send(delgat, p1, p2, p3, p4);
       }
     }
 
@@ -363,7 +363,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3, p4, p5);
+        return sync.Send(delgat, p1, p2, p3, p4, p5);
       }
     }
 
@@ -377,7 +377,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3, p4, p5, p6);
+        return sync.Send(delgat, p1, p2, p3, p4, p5, p6);
       }
     }
 
@@ -391,7 +391,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7);
+        return sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7);
       }
     }
 
@@ -405,7 +405,7 @@ namespace Oahu.Aux
       }
       else
       {
-        return _sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
+        return sync.Send(delgat, p1, p2, p3, p4, p5, p6, p7, p8);
       }
     }
     #endregion Synchronous Send Methods With Return Value

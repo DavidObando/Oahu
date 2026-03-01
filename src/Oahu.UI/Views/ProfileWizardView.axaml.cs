@@ -33,14 +33,14 @@ namespace Oahu.Core.UI.Avalonia.Views
         }
 
         // Wire folder picker for download directory
-        vm.BrowseDownloadDirectoryRequested += () => browseFolderAsync("Select Download Folder");
+        vm.BrowseDownloadDirectoryRequested += () => BrowseFolderAsync("Select Download Folder");
 
         // Wire folder picker for export directory
-        vm.BrowseExportDirectoryRequested += () => browseFolderAsync("Select Export Folder");
+        vm.BrowseExportDirectoryRequested += () => BrowseFolderAsync("Select Export Folder");
       }
     }
 
-    private async Task<string> browseFolderAsync(string title)
+    private async Task<string> BrowseFolderAsync(string title)
     {
       var topLevel = TopLevel.GetTopLevel(this);
       if (topLevel is null)

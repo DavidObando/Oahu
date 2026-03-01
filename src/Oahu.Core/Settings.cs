@@ -58,14 +58,14 @@ namespace Oahu.Core
 
   public class ConfigSettings : SettingsBase, IConfigSettings
   {
-    private bool _encryptConfiguration = true;
+    private bool encryptConfiguration = true;
 
     public bool EncryptConfiguration
     {
-      get => _encryptConfiguration;
+      get => encryptConfiguration;
       set
       {
-        _encryptConfiguration = value;
+        encryptConfiguration = value;
         OnChange();
       }
     }
@@ -73,7 +73,7 @@ namespace Oahu.Core
 
   public class DownloadSettings : SettingsBase, IDownloadSettings
   {
-    private EDownloadQualityReducedChoices _downloadQuality = EDownloadQualityReducedChoices.High;
+    private EDownloadQualityReducedChoices downloadQuality = EDownloadQualityReducedChoices.High;
 
     public bool AutoRefresh { get; set; }
 
@@ -91,8 +91,8 @@ namespace Oahu.Core
 
     public EDownloadQuality DownloadQuality
     {
-      get => _downloadQuality.ToFullChoices();
-      set => _downloadQuality = value.ToReducedChoices();
+      get => downloadQuality.ToFullChoices();
+      set => downloadQuality = value.ToReducedChoices();
     }
 
     public string DownloadDirectory { get; set; }
@@ -104,25 +104,25 @@ namespace Oahu.Core
 
   public class ExportSettings : SettingsBase, IExportSettings
   {
-    private bool? _exportToAax;
-    private string _exportDirectory;
+    private bool? exportToAax;
+    private string exportDirectory;
 
     public bool? ExportToAax
     {
-      get => _exportToAax;
+      get => exportToAax;
       set
       {
-        _exportToAax = value;
+        exportToAax = value;
         OnChange();
       }
     }
 
     public string ExportDirectory
     {
-      get => _exportDirectory;
+      get => exportDirectory;
       set
       {
-        _exportDirectory = value;
+        exportDirectory = value;
         OnChange();
       }
     }

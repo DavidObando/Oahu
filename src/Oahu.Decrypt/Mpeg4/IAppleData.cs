@@ -16,13 +16,13 @@ public record TrackNumber(ushort Track, ushort TotalTracks) : IAppleData<TrackNu
 {
   public static int SizeInBytes => 8;
 
-  public static implicit operator TrackNumber((int trackNum, int totalTracks) tn)
+  public static implicit operator TrackNumber((int TrackNum, int TotalTracks) tn)
   {
-    ArgumentOutOfRangeException.ThrowIfNegative(tn.trackNum, nameof(tn.trackNum));
-    ArgumentOutOfRangeException.ThrowIfNegative(tn.totalTracks, nameof(tn.totalTracks));
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.trackNum, ushort.MaxValue, nameof(tn.trackNum));
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.totalTracks, ushort.MaxValue, nameof(tn.totalTracks));
-    return new TrackNumber((ushort)tn.trackNum, (ushort)tn.totalTracks);
+    ArgumentOutOfRangeException.ThrowIfNegative(tn.TrackNum, nameof(tn.TrackNum));
+    ArgumentOutOfRangeException.ThrowIfNegative(tn.TotalTracks, nameof(tn.TotalTracks));
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.TrackNum, ushort.MaxValue, nameof(tn.TrackNum));
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.TotalTracks, ushort.MaxValue, nameof(tn.TotalTracks));
+    return new TrackNumber((ushort)tn.TrackNum, (ushort)tn.TotalTracks);
   }
 
   public static TrackNumber Create(ReadOnlySpan<byte> source)
@@ -43,13 +43,13 @@ public record DiskNumber(ushort Disk, ushort TotalDisks) : IAppleData<DiskNumber
 {
   public static int SizeInBytes => 6;
 
-  public static implicit operator DiskNumber((int diskNum, int totalDisks) tn)
+  public static implicit operator DiskNumber((int DiskNum, int TotalDisks) tn)
   {
-    ArgumentOutOfRangeException.ThrowIfNegative(tn.diskNum, nameof(tn.diskNum));
-    ArgumentOutOfRangeException.ThrowIfNegative(tn.totalDisks, nameof(tn.totalDisks));
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.diskNum, ushort.MaxValue, nameof(tn.diskNum));
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.totalDisks, ushort.MaxValue, nameof(tn.totalDisks));
-    return new DiskNumber((ushort)tn.diskNum, (ushort)tn.totalDisks);
+    ArgumentOutOfRangeException.ThrowIfNegative(tn.DiskNum, nameof(tn.DiskNum));
+    ArgumentOutOfRangeException.ThrowIfNegative(tn.TotalDisks, nameof(tn.TotalDisks));
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.DiskNum, ushort.MaxValue, nameof(tn.DiskNum));
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(tn.TotalDisks, ushort.MaxValue, nameof(tn.TotalDisks));
+    return new DiskNumber((ushort)tn.DiskNum, (ushort)tn.TotalDisks);
   }
 
   public static DiskNumber Create(ReadOnlySpan<byte> source)

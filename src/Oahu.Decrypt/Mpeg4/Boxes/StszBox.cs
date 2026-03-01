@@ -15,8 +15,8 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 public class StszBox : FullBox, IStszBox
 {
   private readonly int origSampleCount;
-  private readonly List<int>? sampleSizes_32;
-  private readonly List<ushort>? sampleSizes_16;
+  private readonly List<int>? sampleSizes32;
+  private readonly List<ushort>? sampleSizes16;
 
   public unsafe StszBox(Stream file, BoxHeader header, IBox? parent)
       : base(file, header, parent)
@@ -37,9 +37,9 @@ public class StszBox : FullBox, IStszBox
       return;
     }
 
-    sampleSizes_32 = new(origSampleCount);
-    CollectionsMarshal.SetCount(sampleSizes_32, origSampleCount);
-    Span<int> intListSpan = CollectionsMarshal.AsSpan(sampleSizes_32);
+    sampleSizes32 = new(origSampleCount);
+    CollectionsMarshal.SetCount(sampleSizes32, origSampleCount);
+    Span<int> intListSpan = CollectionsMarshal.AsSpan(sampleSizes32);
 
     file.ReadExactly(MemoryMarshal.AsBytes(intListSpan));
 
@@ -50,40 +50,40 @@ public class StszBox : FullBox, IStszBox
 
     if (intListSpan.AllLessThanOrEqual(ushort.MaxValue))
     {
-      sampleSizes_16 = new(origSampleCount);
-      CollectionsMarshal.SetCount(sampleSizes_16, origSampleCount);
-      Span<ushort> shortListSpan = CollectionsMarshal.AsSpan(sampleSizes_16);
+      sampleSizes16 = new(origSampleCount);
+      CollectionsMarshal.SetCount(sampleSizes16, origSampleCount);
+      Span<ushort> shortListSpan = CollectionsMarshal.AsSpan(sampleSizes16);
       for (int i = 0; i < origSampleCount; i++)
       {
         shortListSpan[i] = (ushort)intListSpan[i];
       }
 
-      CollectionsMarshal.SetCount(sampleSizes_32, 0);
-      sampleSizes_32 = null;
+      CollectionsMarshal.SetCount(sampleSizes32, 0);
+      sampleSizes32 = null;
     }
   }
 
   private StszBox(byte[] versionFlags, BoxHeader header, IBox parent, List<int> sampleSizes)
       : base(versionFlags, header, parent)
   {
-    sampleSizes_32 = sampleSizes;
+    sampleSizes32 = sampleSizes;
   }
 
   private StszBox(byte[] versionFlags, BoxHeader header, IBox parent, List<ushort> sampleSizes)
       : base(versionFlags, header, parent)
   {
-    sampleSizes_16 = sampleSizes;
+    sampleSizes16 = sampleSizes;
   }
 
   public override long RenderSize => base.RenderSize + 8 + SampleCount * sizeof(int);
 
   public int SampleSize { get; }
 
-  public int SampleCount => sampleSizes_32?.Count ?? sampleSizes_16?.Count ?? origSampleCount;
+  public int SampleCount => sampleSizes32?.Count ?? sampleSizes16?.Count ?? origSampleCount;
 
-  public int MaxSize => sampleSizes_32?.Max() ?? sampleSizes_16?.Max() ?? SampleSize;
+  public int MaxSize => sampleSizes32?.Max() ?? sampleSizes16?.Max() ?? SampleSize;
 
-  public long TotalSize => sampleSizes_32?.Sum(s => (long)s) ?? sampleSizes_16?.Sum(s => (long)s) ?? SampleSize * origSampleCount;
+  public long TotalSize => sampleSizes32?.Sum(s => (long)s) ?? sampleSizes16?.Sum(s => (long)s) ?? SampleSize * origSampleCount;
 
   public static StszBox CreateBlank(IBox parent, List<int> sampleSizes)
   {
@@ -107,9 +107,9 @@ public class StszBox : FullBox, IStszBox
     return stszBox;
   }
 
-  public int GetSizeAtIndex(int index) => sampleSizes_32?[index] ?? sampleSizes_16?[index] ?? SampleSize;
+  public int GetSizeAtIndex(int index) => sampleSizes32?[index] ?? sampleSizes16?[index] ?? SampleSize;
 
-  public long SumFirstNSizes(int firstN) => sampleSizes_32?.Take(firstN).Sum(s => (long)s) ?? sampleSizes_16?.Take(firstN).Sum(s => (long)s) ?? (long)SampleSize * firstN;
+  public long SumFirstNSizes(int firstN) => sampleSizes32?.Take(firstN).Sum(s => (long)s) ?? sampleSizes16?.Take(firstN).Sum(s => (long)s) ?? (long)SampleSize * firstN;
 
   protected unsafe override void Render(Stream file)
   {
@@ -117,9 +117,9 @@ public class StszBox : FullBox, IStszBox
     file.WriteInt32BE(SampleSize);
     file.WriteUInt32BE((uint)SampleCount);
 
-    if (sampleSizes_32 is not null)
+    if (sampleSizes32 is not null)
     {
-      Span<int> intSpan = CollectionsMarshal.AsSpan(sampleSizes_32);
+      Span<int> intSpan = CollectionsMarshal.AsSpan(sampleSizes32);
       if (BitConverter.IsLittleEndian)
       {
         BinaryPrimitives.ReverseEndianness(intSpan, intSpan);
@@ -127,9 +127,9 @@ public class StszBox : FullBox, IStszBox
 
       file.Write(MemoryMarshal.AsBytes(intSpan));
     }
-    else if (sampleSizes_16 is not null)
+    else if (sampleSizes16 is not null)
     {
-      foreach (var size in sampleSizes_16)
+      foreach (var size in sampleSizes16)
       {
         file.WriteInt32BE(size);
       }

@@ -5,9 +5,9 @@ using System.Linq;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.BooksDatabase;
-using Oahu.BooksDatabase.ex;
+using Oahu.BooksDatabase.Ex;
 using Oahu.Common.Util;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 using static Oahu.Aux.Logging;
 using R = Oahu.Core.Properties.Resources;
 
@@ -15,11 +15,11 @@ namespace Oahu.Core
 {
   public class AaxExporter
   {
-    const string JSON = ".json";
-    const string CONTENT_METADATA = "content_metadata_";
-    const string SERIES_TITLES = "series_titles_";
+    const string Json = ".json";
+    const string ContentMetadata = "content_metadata_";
+    const string SeriesTitles = "series_titles_";
 
-    private static readonly object __lockable = new object();
+    private static readonly object lockable = new object();
 
     public AaxExporter(IExportSettings exportSettings, IMultiPartSettings multipartSettings)
     {
@@ -38,19 +38,19 @@ namespace Oahu.Core
     public void Export(Book book, SimpleConversionContext context, Action<Conversion> onNewStateCallback)
     {
       AccuChapters.Clear();
-      using var _ = new LogGuard(3, this, () => book.ToString());
+      using var logGuard = new LogGuard(3, this, () => book.ToString());
       if (book.Components.Count == 0 || !MultipartSettings.MultiPartDownload)
       {
-        exportSinglePart(book, context, onNewStateCallback);
+        ExportSinglePart(book, context, onNewStateCallback);
       }
       else
       {
-        exportMultiPart(book, context, onNewStateCallback);
+        ExportMultiPart(book, context, onNewStateCallback);
       }
     }
 
     // internal instead of private for testing only
-    internal string exportChapters(IBookCommon book)
+    internal string ExportChapters(IBookCommon book)
     {
       if (book.ChapterInfo is null)
       {
@@ -68,27 +68,27 @@ namespace Oahu.Core
 
       var cr = new Oahu.Audible.Json.ContentReference
       {
-        asin = book.Asin,
-        content_size_in_bytes = book.FileSizeBytes ?? 0,
-        sku = book.Sku
+        Asin = book.Asin,
+        ContentSizeInBytes = book.FileSizeBytes ?? 0,
+        Sku = book.Sku
       };
 
       var ci = new Oahu.Audible.Json.ChapterInfo();
       var metadata = new Oahu.Audible.Json.ContentMetadata
       {
-        chapter_info = ci,
-        content_reference = cr
+        ChapterInfo = ci,
+        ContentReference = cr
       };
       var container = new Oahu.Audible.Json.MetadataContainer
       {
-        content_metadata = metadata
+        ContentMetadata = metadata
       };
 
-      ci.brandIntroDurationMs = chapterInfo.BrandIntroDurationMs;
-      ci.brandOutroDurationMs = chapterInfo.BrandOutroDurationMs;
-      ci.is_accurate = chapterInfo.IsAccurate ?? false;
-      ci.runtime_length_ms = chapterInfo.RuntimeLengthMs;
-      ci.runtime_length_sec = chapterInfo.RuntimeLengthMs / 1000;
+      ci.BrandIntroDurationMs = chapterInfo.BrandIntroDurationMs;
+      ci.BrandOutroDurationMs = chapterInfo.BrandOutroDurationMs;
+      ci.IsAccurate = chapterInfo.IsAccurate ?? false;
+      ci.RuntimeLengthMs = chapterInfo.RuntimeLengthMs;
+      ci.RuntimeLengthSec = chapterInfo.RuntimeLengthMs / 1000;
 
       var accuChapters = new List<List<ChapterExtract>>();
       var flattenedChapters = BookLibrary?.GetChaptersFlattened(book, accuChapters);
@@ -98,38 +98,38 @@ namespace Oahu.Core
         var chapters = new List<Oahu.Audible.Json.Chapter>();
         foreach (var chapter in flattenedChapters)
         {
-          if (chapters.Count == 0 && skipChapter(chapter))
+          if (chapters.Count == 0 && SkipChapter(chapter))
           {
             continue;
           }
 
           var ch = new Oahu.Audible.Json.Chapter
           {
-            length_ms = chapter.LengthMs,
-            start_offset_ms = chapter.StartOffsetMs,
-            start_offset_sec = chapter.StartOffsetMs / 1000,
-            title = chapter.Title
+            LengthMs = chapter.LengthMs,
+            StartOffsetMs = chapter.StartOffsetMs,
+            StartOffsetSec = chapter.StartOffsetMs / 1000,
+            Title = chapter.Title
           };
           chapters.Add(ch);
         }
 
-        ci.chapters = chapters.ToArray();
+        ci.Chapters = chapters.ToArray();
       }
 
       string json = container.Serialize();
       json = json.CompactJson();
 
-      string filename = CONTENT_METADATA + chapterInfo.BookMeta.Asin + JSON;
+      string filename = ContentMetadata + chapterInfo.BookMeta.Asin + Json;
       string outpath = Path.Combine(ExportSettings.ExportDirectory, filename).AsUncIfLong();
 
       File.WriteAllText(outpath, json);
 
-      updateAccuChapters(accuChapters);
+      UpdateAccuChapters(accuChapters);
 
       return outpath;
     }
 
-    private void exportSinglePart(
+    private void ExportSinglePart(
       IBookCommon book,
       SimpleConversionContext context,
       Action<Conversion> onNewStateCallback,
@@ -137,31 +137,31 @@ namespace Oahu.Core
     {
       Log(3, this, () => book.ToString());
 
-      book.Conversion.State = EConversionState.converting;
+      book.Conversion.State = EConversionState.Converting;
       onNewStateCallback?.Invoke(book.Conversion);
 
-      bool succ = copyFile(book, context);
+      bool succ = CopyFile(book, context);
       if (!succ)
       {
-        book.Conversion.State = EConversionState.conversion_error;
+        book.Conversion.State = EConversionState.ConversionError;
         onNewStateCallback?.Invoke(book.Conversion);
         return;
       }
 
-      exportChapters(book);
+      ExportChapters(book);
 
-      exportProduct(book);
+      ExportProduct(book);
 
       if (!skipSeries)
       {
-        exportSeries(book);
+        ExportSeries(book);
       }
 
-      BookLibrary.SavePersistentState(book.Conversion, EConversionState.exported);
+      BookLibrary.SavePersistentState(book.Conversion, EConversionState.Exported);
       onNewStateCallback?.Invoke(book.Conversion);
     }
 
-    private void exportMultiPart(
+    private void ExportMultiPart(
       Book book,
       SimpleConversionContext context,
       Action<Conversion> onNewStateCallback)
@@ -171,12 +171,12 @@ namespace Oahu.Core
       bool skipSeries = false;
       foreach (var comp in book.Components)
       {
-        exportSinglePart(comp, context, onNewStateCallback, skipSeries);
+        ExportSinglePart(comp, context, onNewStateCallback, skipSeries);
         skipSeries = true;
       }
     }
 
-    private bool copyFile(IBookCommon book, SimpleConversionContext context)
+    private bool CopyFile(IBookCommon book, SimpleConversionContext context)
     {
       Log(3, this, () => book.ToString());
       Conversion conv = book.Conversion;
@@ -191,7 +191,7 @@ namespace Oahu.Core
 
       try
       {
-        lock (__lockable)
+        lock (lockable)
         {
           bool succ = FileEx.Copy(sourcefile, destfile, true,
             pm => context.Progress?.Report(pm),
@@ -207,7 +207,7 @@ namespace Oahu.Core
       return false;
     }
 
-    private bool skipChapter(Chapter ch)
+    private bool SkipChapter(Chapter ch)
     {
       if (AccuChapters.Count < 2)
       {
@@ -228,7 +228,7 @@ namespace Oahu.Core
       return false;
     }
 
-    private void updateAccuChapters(List<List<ChapterExtract>> accuPart)
+    private void UpdateAccuChapters(List<List<ChapterExtract>> accuPart)
     {
       for (int i = 0; i < accuPart.Count; i++)
       {
@@ -241,26 +241,26 @@ namespace Oahu.Core
       }
     }
 
-    private void exportProduct(IBookCommon book)
+    private void ExportProduct(IBookCommon book)
     {
       Log(3, this, () => book.ToString());
-      var product = makeProduct(book);
+      var product = MakeProduct(book);
 
       var container = new Oahu.Audible.Json.ProductResponse
       {
-        product = product
+        Product = product
       };
 
       string json = container.Serialize();
       json = json.CompactJson();
 
-      string filename = book.Asin + JSON;
+      string filename = book.Asin + Json;
       string outpath = Path.Combine(ExportSettings.ExportDirectory, filename).AsUncIfLong();
 
       File.WriteAllText(outpath, json);
     }
 
-    private void exportSeries(IBookCommon prod)
+    private void ExportSeries(IBookCommon prod)
     {
       Book book = prod.GetBook();
       if (book.Series.IsNullOrEmpty())
@@ -294,26 +294,26 @@ namespace Oahu.Core
 
         foreach (var sbk in sbks)
         {
-          var p = makeProduct(sbk.Book);
+          var p = MakeProduct(sbk.Book);
           products.Add(p);
         }
 
         var container = new Oahu.Audible.Json.SimsBySeriesResponse
         {
-          similar_products = products.ToArray()
+          SimilarProducts = products.ToArray()
         };
 
         string json = container.Serialize();
         json = json.CompactJson();
 
-        string filename = SERIES_TITLES + asin + JSON;
+        string filename = SeriesTitles + asin + Json;
         string outpath = Path.Combine(ExportSettings.ExportDirectory, filename).AsUncIfLong();
 
         File.WriteAllText(outpath, json);
       }
     }
 
-    private Oahu.Audible.Json.Product makeProduct(IBookCommon prod)
+    private Oahu.Audible.Json.Product MakeProduct(IBookCommon prod)
     {
       Book book = prod.GetBook();
       Log(3, this, () => book.ToString());
@@ -326,14 +326,14 @@ namespace Oahu.Core
       // sku; sku_lite
       var product = new Oahu.Audible.Json.Product
       {
-        asin = prod.Asin,
-        title = prod.Title,
-        sku = prod.Sku,
-        sku_lite = prod.SkuLite,
-        is_listenable = true,
-        runtime_length_min = prod.RunTimeLengthSeconds / 60,
-        has_children = prod is Book && book.Components.Count > 0,
-        is_adult_product = book.AdultProduct ?? false
+        Asin = prod.Asin,
+        Title = prod.Title,
+        Sku = prod.Sku,
+        SkuLite = prod.SkuLite,
+        IsListenable = true,
+        RuntimeLengthMin = prod.RunTimeLengthSeconds / 60,
+        HasChildren = prod is Book && book.Components.Count > 0,
+        IsAdultProduct = book.AdultProduct ?? false
       };
 
       if (!book.Authors.IsNullOrEmpty())
@@ -343,13 +343,13 @@ namespace Oahu.Core
         {
           var a = new Oahu.Audible.Json.Author
           {
-            asin = author.Asin,
-            name = author.Name
+            Asin = author.Asin,
+            Name = author.Name
           };
           authors.Add(a);
         }
 
-        product.authors = authors.ToArray();
+        product.Authors = authors.ToArray();
       }
 
       if (!book.Series.IsNullOrEmpty())
@@ -359,14 +359,14 @@ namespace Oahu.Core
         {
           var s = new Oahu.Audible.Json.Series
           {
-            asin = serbook.Series.Asin,
-            title = serbook.Series.Title,
-            sequence = serbook.SeqString
+            Asin = serbook.Series.Asin,
+            Title = serbook.Series.Title,
+            Sequence = serbook.SeqString
           };
           series.Add(s);
         }
 
-        product.series = series.ToArray();
+        product.Series = series.ToArray();
       }
 
       return product;

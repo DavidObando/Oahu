@@ -18,7 +18,7 @@ using static Oahu.Aux.ApplEnv;
 
 using R = Oahu.Core.Properties.Resources;
 
-namespace Oahu.Core.ex
+namespace Oahu.Core.Ex
 {
   public static class JsonExtensions
   {
@@ -64,7 +64,7 @@ namespace Oahu.Core.ex
         {
           using (Utf8JsonWriter wr = new Utf8JsonWriter(msm, WriterOptions))
           {
-            parseElem(null, jElem, wr);
+            ParseElem(null, jElem, wr);
             wr.Flush();
             string extracted = Encoding.UTF8.GetString(msm.ToArray());
             return extracted;
@@ -78,18 +78,18 @@ namespace Oahu.Core.ex
       }
     }
 
-    private static void parseElem(string key, JsonElement jElem, Utf8JsonWriter wr)
+    private static void ParseElem(string key, JsonElement jElem, Utf8JsonWriter wr)
     {
       switch (jElem.ValueKind)
       {
         case JsonValueKind.Object:
-          parseObject(key, jElem, wr);
+          ParseObject(key, jElem, wr);
           break;
         case JsonValueKind.Array:
-          parseArray(key, jElem, wr);
+          ParseArray(key, jElem, wr);
           break;
         case JsonValueKind.String:
-          parseString(key, jElem, wr);
+          ParseString(key, jElem, wr);
           break;
         case JsonValueKind.Null:
           wr.WriteNull(key);
@@ -111,7 +111,7 @@ namespace Oahu.Core.ex
       }
     }
 
-    private static void parseObject(string key, JsonElement jElem, Utf8JsonWriter wr)
+    private static void ParseObject(string key, JsonElement jElem, Utf8JsonWriter wr)
     {
       IEnumerable<JsonProperty> props = jElem.EnumerateObject();
       if (key is null)
@@ -125,13 +125,13 @@ namespace Oahu.Core.ex
 
       foreach (var prop in props)
       {
-        parseElem(prop.Name, prop.Value, wr);
+        ParseElem(prop.Name, prop.Value, wr);
       }
 
       wr.WriteEndObject();
     }
 
-    private static void parseArray(string key, JsonElement jElem, Utf8JsonWriter wr)
+    private static void ParseArray(string key, JsonElement jElem, Utf8JsonWriter wr)
     {
       IEnumerable<JsonElement> elems = jElem.EnumerateArray();
       if (key is null)
@@ -145,13 +145,13 @@ namespace Oahu.Core.ex
 
       foreach (var elem in elems)
       {
-        parseElem(null, elem, wr);
+        ParseElem(null, elem, wr);
       }
 
       wr.WriteEndArray();
     }
 
-    private static void parseString(string key, JsonElement jElem, Utf8JsonWriter wr)
+    private static void ParseString(string key, JsonElement jElem, Utf8JsonWriter wr)
     {
       string value = jElem.GetString();
       string newValue = $"string {value.Length} chars";
@@ -173,7 +173,7 @@ namespace Oahu.Core.ex
         return null;
       }
 
-      return writeTempTextFile(html, filenameStub, HTML);
+      return WriteTempTextFile(html, filenameStub, HTML);
     }
 
     public static string WriteTempJsonFile(this string json, string filenameStub = null)
@@ -183,12 +183,12 @@ namespace Oahu.Core.ex
         return null;
       }
 
-      return writeTempTextFile(json, filenameStub, JSON);
+      return WriteTempTextFile(json, filenameStub, JSON);
     }
 
     public static string WriteTempTextFile(this string text, string filenameStub = null)
     {
-      return writeTempTextFile(text, filenameStub, TXT);
+      return WriteTempTextFile(text, filenameStub, TXT);
     }
 
     public static async Task<string> WriteJsonFileAsync(this object any, string directory, string filenameStub = null, bool unique = false)
@@ -204,7 +204,7 @@ namespace Oahu.Core.ex
         filenameStub = any.GetType().Name;
       }
 
-      return await writeTextFileAsync(json, directory, filenameStub, JSON, unique);
+      return await WriteTextFileAsync(json, directory, filenameStub, JSON, unique);
     }
 
     public static async Task<T> ReadJsonFileAsync<T>(string directory, string filenameStub)
@@ -254,27 +254,27 @@ namespace Oahu.Core.ex
       }
     }
 
-    private static async Task<string> writeTextFileAsync(string text, string dir, string filename, string ext, bool unique)
+    private static async Task<string> WriteTextFileAsync(string text, string dir, string filename, string ext, bool unique)
     {
       if (!dir.IsNullOrWhiteSpace())
       {
         Directory.CreateDirectory(dir);
       }
 
-      string path = makePathName(dir, filename, ext, unique);
+      string path = MakePathName(dir, filename, ext, unique);
       await File.WriteAllTextAsync(path, text);
       return path;
     }
 
-    private static string writeTempTextFile(string text, string filename, string ext)
+    private static string WriteTempTextFile(string text, string filename, string ext)
     {
-      string path = makePathName(null, filename, ext, true);
+      string path = MakePathName(null, filename, ext, true);
       Directory.CreateDirectory(TempDirectory);
       File.WriteAllText(path, text);
       return path;
     }
 
-    private static string makePathName(string dir, string filename, string ext, bool unique)
+    private static string MakePathName(string dir, string filename, string ext, bool unique)
     {
       if (dir.IsNullOrWhiteSpace())
       {
@@ -559,7 +559,7 @@ namespace Oahu.Core.ex
 
   internal static class DownloadFilenameExtensions
   {
-    static readonly string[] __knownExtensions = new string[]
+    static readonly string[] KnownExtensions = new string[]
     {
       R.EncryptedFileExt, R.DecryptedFileExt, R.ExportedFileExt
     };
@@ -567,7 +567,7 @@ namespace Oahu.Core.ex
     public static string GetDownloadFileNameWithoutExtension(this string downloadFileName)
     {
       string ext = Path.GetExtension(downloadFileName).ToLower();
-      if (__knownExtensions.Contains(ext))
+      if (KnownExtensions.Contains(ext))
       {
         return Path.GetFileNameWithoutExtension(downloadFileName);
       }

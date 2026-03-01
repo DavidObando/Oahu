@@ -33,10 +33,10 @@ internal class DashChunkReader : ChunkReader
   protected override FrameEntry CreateFrameEntry(ChunkEntry chunk, int frameInChunk, uint frameDelta, Memory<byte> frameData)
   {
     var entry = base.CreateFrameEntry(chunk, frameInChunk, frameDelta, frameData);
-    if (chunk.ExtraData is byte[][] IVs)
+    if (chunk.ExtraData is byte[][] ivs)
     {
-      entry.ExtraData = IVs.Length > frameInChunk ? IVs[frameInChunk]
-      : throw new InvalidDataException($"There are only {IVs.Length} in the chunk, but caller requesting frame at index {frameInChunk}.");
+      entry.ExtraData = ivs.Length > frameInChunk ? ivs[frameInChunk]
+      : throw new InvalidDataException($"There are only {ivs.Length} in the chunk, but caller requesting frame at index {frameInChunk}.");
     }
 
     return entry;

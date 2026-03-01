@@ -16,19 +16,19 @@ namespace Oahu.BooksDatabase
   {
     private const string SUBDIR = "data";
     private const string DBFILE = "audiobooks.db";
-    private static readonly string DEFAULT_DIR = Path.Combine(ApplEnv.LocalApplDirectory, SUBDIR);
-    private static readonly Dictionary<Type, EPseudoAsinId> _pseudoAsins
+    private static readonly string DefaultDir = Path.Combine(ApplEnv.LocalApplDirectory, SUBDIR);
+    private static readonly Dictionary<Type, EPseudoAsinId> pseudoAsins
       = new Dictionary<Type, EPseudoAsinId>
       {
-        { typeof(Author), EPseudoAsinId.author },
-        { typeof(Narrator), EPseudoAsinId.narrator }
+        { typeof(Author), EPseudoAsinId.Author },
+        { typeof(Narrator), EPseudoAsinId.Narrator }
       };
 
     public BookDbContext(string dirpath = null, string filename = null)
     {
       if (dirpath is null)
       {
-        dirpath = DEFAULT_DIR;
+        dirpath = DefaultDir;
       }
 
       if (filename is null)
@@ -73,7 +73,7 @@ namespace Oahu.BooksDatabase
 
     public static async Task<bool> StartupAsync(string dirpath = null, string filename = null)
     {
-      using var _ = new LogGuard(3, typeof(BookDbContext), () => $"dir={dirpath}, file={filename}");
+      using var logGuard = new LogGuard(3, typeof(BookDbContext), () => $"dir={dirpath}, file={filename}");
       using var dbContext = new BookDbContext(dirpath, filename);
 
       var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
@@ -87,11 +87,11 @@ namespace Oahu.BooksDatabase
           Directory.CreateDirectory(Path.GetDirectoryName(dbContext.DbPath));
         }
 
-        await backupPreviousVersionAsync(dbContext);
+        await BackupPreviousVersionAsync(dbContext);
 
         await dbContext.Database.MigrateAsync();
 
-        await compactAsync(dbContext);
+        await CompactAsync(dbContext);
       }
 
       return dbContext.Database.CanConnect();
@@ -101,7 +101,7 @@ namespace Oahu.BooksDatabase
 
     public string GetNextPseudoAsin(Type t)
     {
-      bool succ = _pseudoAsins.TryGetValue(t, out var pseudoAsinId);
+      bool succ = pseudoAsins.TryGetValue(t, out var pseudoAsinId);
       if (!succ)
       {
         return null;
@@ -219,7 +219,7 @@ namespace Oahu.BooksDatabase
         .OnDelete(DeleteBehavior.Cascade);
     }
 
-    private static async Task backupPreviousVersionAsync(BookDbContext dbContext)
+    private static async Task BackupPreviousVersionAsync(BookDbContext dbContext)
     {
       if (!File.Exists(dbContext.DbPath))
       {
@@ -252,7 +252,7 @@ namespace Oahu.BooksDatabase
       });
     }
 
-    private static async Task compactAsync(BookDbContext dbContext)
+    private static async Task CompactAsync(BookDbContext dbContext)
     {
       var fi = new FileInfo(dbContext.DbPath);
       long size = fi.Length / 1024;

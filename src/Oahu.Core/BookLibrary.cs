@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.BooksDatabase;
-using Oahu.BooksDatabase.ex;
-using Oahu.Core.ex;
+using Oahu.BooksDatabase.Ex;
+using Oahu.Core.Ex;
 using static Oahu.Aux.Logging;
 using R = Oahu.Core.Properties.Resources;
 
@@ -19,46 +19,46 @@ namespace Oahu.Core
 {
   class BookLibrary : IBookLibrary
   {
-    public readonly string _dbDir = null;
-    public readonly string IMG_DIR = Path.Combine(ApplEnv.LocalApplDirectory, "img");
+    public readonly string DbDir = null;
+    public readonly string ImgDir = Path.Combine(ApplEnv.LocalApplDirectory, "img");
 
-    public readonly Dictionary<ProfileId, IEnumerable<Book>> _bookCache =
+    public readonly Dictionary<ProfileId, IEnumerable<Book>> BookCache =
       new Dictionary<ProfileId, IEnumerable<Book>>();
 
-    const int PAGE_SIZE = 200;
-    const string REGEX_SERIES = @"(\d+)(\.(\d+))?";
-    static readonly IEnumerable<string> __extensions = new string[] { ".m3u", ".mp3", ".m4a", ".m4b" };
-    static readonly Regex _regexSeries = new Regex(REGEX_SERIES, RegexOptions.Compiled);
-    private static bool __checkUpdateAnswered;
-    private static bool? __checkUpdateAnswer;
-    private SynchronizationContext _syncContext;
+    const int PageSize = 200;
+    const string RegexSeriesPattern = @"(\d+)(\.(\d+))?";
+    static readonly IEnumerable<string> Extensions = new string[] { ".m3u", ".mp3", ".m4a", ".m4b" };
+    static readonly Regex RegexSeries = new Regex(RegexSeriesPattern, RegexOptions.Compiled);
+    private static bool checkUpdateAnswered;
+    private static bool? checkUpdateAnswer;
+    private SynchronizationContext syncContext;
 
     public BookLibrary(string dbDir = null)
     {
-      _dbDir = dbDir;
-      _syncContext = SynchronizationContext.Current;
+      this.DbDir = dbDir;
+      syncContext = SynchronizationContext.Current;
     }
 
     public async Task<DateTime> SinceLatestPurchaseDateAsync(ProfileId profileId, bool resync)
     {
-      return await Task.Run(() => sinceLatestPurchaseDate(profileId, resync));
+      return await Task.Run(() => SinceLatestPurchaseDate(profileId, resync));
     }
 
     public async Task AddRemBooksAsync(List<Oahu.Audible.Json.Product> libProducts, ProfileId profileId, bool resync)
     {
-      using var _ = new LogGuard(3, this, () => $"#items={libProducts.Count}, resync={resync}");
-      await Task.Run(() => addRemBooks(libProducts, profileId, resync));
-      await Task.Run(() => cleanupDuplicateAuthors());
+      using var logGuard = new LogGuard(3, this, () => $"#items={libProducts.Count}, resync={resync}");
+      await Task.Run(() => AddRemBooks(libProducts, profileId, resync));
+      await Task.Run(() => CleanupDuplicateAuthors());
     }
 
     public async Task AddCoverImagesAsync(Func<string, Task<byte[]>> downloadFunc)
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
-      Directory.CreateDirectory(IMG_DIR);
+      Directory.CreateDirectory(ImgDir);
 
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
-      var files = Directory.GetFiles(IMG_DIR);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
+      var files = Directory.GetFiles(ImgDir);
 
       var books = dbContext.Books
         .ToList()
@@ -88,7 +88,7 @@ namespace Oahu.Core
         }
 
         string filename = $"{book.Asin}{ext}";
-        string path = Path.Combine(IMG_DIR, filename);
+        string path = Path.Combine(ImgDir, filename);
         try
         {
           await File.WriteAllBytesAsync(path, img);
@@ -105,11 +105,11 @@ namespace Oahu.Core
 
     public IEnumerable<Book> GetBooks(ProfileId profileId)
     {
-      using var _ = new LogGuard(3, this, () => profileId.ToString());
+      using var logGuard = new LogGuard(3, this, () => profileId.ToString());
 
-      lock (_bookCache)
+      lock (BookCache)
       {
-        bool succ = _bookCache.TryGetValue(profileId, out var cached);
+        bool succ = BookCache.TryGetValue(profileId, out var cached);
         if (succ)
         {
           Log(3, this, () => $"from cache, #books={cached.Count()}");
@@ -117,7 +117,7 @@ namespace Oahu.Core
         }
       }
 
-      using var dbContext = new BookDbContext(_dbDir);
+      using var dbContext = new BookDbContext(DbDir);
 
       // using var rg = new ResourceGuard (x => dbContext.ChangeTracker.LazyLoadingEnabled = !x);
       IEnumerable<Book> books = dbContext.Books
@@ -139,9 +139,9 @@ namespace Oahu.Core
         .Where(b => b.Conversion.AccountId == profileId.AccountId && b.Conversion.Region == profileId.Region)
         .ToList();
 
-      lock (_bookCache)
+      lock (BookCache)
       {
-        _bookCache[profileId] = booksByProfile;
+        BookCache[profileId] = booksByProfile;
       }
 
       Log(3, this, () => $"from DB, #books={booksByProfile.Count()}");
@@ -151,8 +151,8 @@ namespace Oahu.Core
 
     public IEnumerable<AccountAlias> GetAccountAliases()
     {
-      using var _ = new LogGuard(3, this);
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var logGuard = new LogGuard(3, this);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
       var accounts = dbContext.Accounts.ToList();
       var contexts = accounts
         .Select(a => new AccountAlias(a.AudibleId, a.Alias))
@@ -163,14 +163,14 @@ namespace Oahu.Core
 
     public AccountAliasContext GetAccountId(IProfile profile, bool newAlias)
     {
-      using var _ = new LogGuard(3, this);
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var logGuard = new LogGuard(3, this);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
 
       string accountId = profile.CustomerInfo.AccountId;
       var account = dbContext.Accounts.FirstOrDefault(a => a.AudibleId == accountId);
       if (account is null)
       {
-        List<uint> hashes = getAliasHashes();
+        List<uint> hashes = GetAliasHashes();
         account = new Account
         {
           AudibleId = accountId
@@ -185,14 +185,14 @@ namespace Oahu.Core
         {
           if (newAlias)
           {
-            return new AccountAliasContext(account.Id, profile.CustomerInfo.Name, getAliasHashes())
+            return new AccountAliasContext(account.Id, profile.CustomerInfo.Name, GetAliasHashes())
             {
               Alias = account.Alias
             };
           }
           else
           {
-            return new AccountAliasContext(account.Id, profile.CustomerInfo.Name, getAliasHashes());
+            return new AccountAliasContext(account.Id, profile.CustomerInfo.Name, GetAliasHashes());
           }
         }
         else
@@ -204,7 +204,7 @@ namespace Oahu.Core
         }
       }
 
-      List<uint> getAliasHashes()
+      List<uint> GetAliasHashes()
       {
         return dbContext.Accounts
           .ToList()
@@ -216,8 +216,8 @@ namespace Oahu.Core
 
     public bool RemoveAccountId(IProfileKey key)
     {
-      using var _ = new LogGuard(3, this, () => $"id = {key.Id}");
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var logGuard = new LogGuard(3, this, () => $"id = {key.Id}");
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
       string accountId = key.AccountId;
       var account = dbContext.Accounts.FirstOrDefault(a => a.AudibleId == accountId);
       if (account == null)
@@ -231,20 +231,20 @@ namespace Oahu.Core
     }
 
     public void SetAccountAlias(IProfileKey key, string alias) =>
-      setAccountAlias((int)key.Id, alias);
+      SetAccountAlias((int)key.Id, alias);
 
     public void SetAccountAlias(AccountAliasContext ctxt) =>
-      setAccountAlias(ctxt.LocalId, ctxt.Alias);
+      SetAccountAlias(ctxt.LocalId, ctxt.Alias);
 
     public void SaveFileNameSuffix(Conversion conversion, string suffix)
     {
       // run in main thread, to channel DbContext.SaveChanges() invocations
-      _syncContext.Send(saveFileNameSuffix, conversion, suffix);
+      syncContext.Send(SaveFileNameSuffix, conversion, suffix);
 
-      void saveFileNameSuffix(Conversion conversion, string suffix)
+      void SaveFileNameSuffix(Conversion conversion, string suffix)
       {
-        using var _ = new LogGuard(4, this);
-        using var dbContext = new BookDbContext(_dbDir);
+        using var logGuard = new LogGuard(4, this);
+        using var dbContext = new BookDbContext(DbDir);
         dbContext.Conversions.Attach(conversion);
 
         conversion.DownloadFileName += suffix;
@@ -255,27 +255,27 @@ namespace Oahu.Core
     public void SavePersistentState(Conversion conversion, EConversionState state)
     {
       // run in main thread, to channel DbContext.SaveChanges() invocations
-      _syncContext.Send(savePersistentState, conversion, state);
+      syncContext.Send(SavePersistentState, conversion, state);
 
-      void savePersistentState(Conversion conversion, EConversionState state)
+      void SavePersistentState(Conversion conversion, EConversionState state)
       {
-        using var _ = new LogGuard(4, this);
-        using var dbContext = new BookDbContext(_dbDir);
+        using var logGuard = new LogGuard(4, this);
+        using var dbContext = new BookDbContext(DbDir);
         var conv = dbContext.Conversions.FirstOrDefault(c => conversion.Id == c.Id);
         if (conv is null)
         {
           return;
         }
 
-        updateState(conv, state, conversion);
+        UpdateState(conv, state, conversion);
         dbContext.SaveChanges();
       }
     }
 
     public void RestorePersistentState(Conversion conversion)
     {
-      using var _ = new LogGuard(4, this);
-      using var dbContext = new BookDbContext(_dbDir);
+      using var logGuard = new LogGuard(4, this);
+      using var dbContext = new BookDbContext(DbDir);
       Conversion saved = dbContext.Conversions.FirstOrDefault(c => c.Id == conversion.Id);
       if (saved is not null)
       {
@@ -285,23 +285,23 @@ namespace Oahu.Core
 
     public EConversionState GetPersistentState(Conversion conversion)
     {
-      using var _ = new LogGuard(4, this);
-      using var dbContext = new BookDbContext(_dbDir);
+      using var logGuard = new LogGuard(4, this);
+      using var dbContext = new BookDbContext(DbDir);
       Conversion saved = dbContext.Conversions.FirstOrDefault(c => c.Id == conversion.Id);
-      return saved?.State ?? EConversionState.unknown;
+      return saved?.State ?? EConversionState.Unknown;
     }
 
     public void UpdateComponentProduct(IEnumerable<ProductComponentPair> componentPairs)
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
       lock (this)
       {
-        using var dbContext = new BookDbContext(_dbDir);
+        using var dbContext = new BookDbContext(DbDir);
         foreach (var (item, comp) in componentPairs)
         {
           dbContext.Components.Attach(comp);
-          comp.RunTimeLengthSeconds = item.runtime_length_min * 60;
-          comp.Title = item.title;
+          comp.RunTimeLengthSeconds = item.RuntimeLengthMin * 60;
+          comp.Title = item.Title;
         }
 
         dbContext.SaveChanges();
@@ -315,11 +315,11 @@ namespace Oahu.Core
         return;
       }
 
-      using var _ = new LogGuard(3, this, () => item.ToString());
+      using var logGuard = new LogGuard(3, this, () => item.ToString());
 
       try
       {
-        using var dbContext = new BookDbContext(_dbDir);
+        using var dbContext = new BookDbContext(DbDir);
         if (item is Book book)
         {
           dbContext.Books.Attach(book);
@@ -333,9 +333,9 @@ namespace Oahu.Core
           dbContext.Entry(comp.ChapterInfo).Collection(ci => ci.Chapters).Load();
         }
 
-        getChapters(dbContext, item.ChapterInfo.Chapters);
+        GetChapters(dbContext, item.ChapterInfo.Chapters);
 
-        sortChapters(item.ChapterInfo.Chapters);
+        SortChapters(item.ChapterInfo.Chapters);
       }
       catch (Exception exc)
       {
@@ -352,7 +352,7 @@ namespace Oahu.Core
 
       var flattened = new List<Chapter>();
 
-      getChaptersFlattened(item.ChapterInfo?.Chapters, flattened, accuChapters, -1);
+      GetChaptersFlattened(item.ChapterInfo?.Chapters, flattened, accuChapters, -1);
 
       return flattened;
     }
@@ -362,13 +362,13 @@ namespace Oahu.Core
       Conversion conversion,
       EDownloadQuality downloadQuality)
     {
-      using var _ = new LogGuard(3, this, () => conversion.ToString());
+      using var logGuard = new LogGuard(3, this, () => conversion.ToString());
       try
       {
-        using var dbContext = new BookDbContext(_dbDir);
+        using var dbContext = new BookDbContext(DbDir);
         dbContext.Conversions.Attach(conversion);
 
-        conversion.DownloadUrl = license.content_metadata.content_url.offline_url;
+        conversion.DownloadUrl = license.ContentMetadata.ContentUrl.OfflineUrl;
 
         var product = conversion.BookCommon;
 
@@ -381,28 +381,28 @@ namespace Oahu.Core
           dbContext.Books.Attach(book);
         }
 
-        var voucher = license.voucher;
+        var voucher = license.Voucher;
 
         // Key and IV
-        product.LicenseKey = voucher?.key;
-        product.LicenseIv = voucher?.iv;
+        product.LicenseKey = voucher?.Key;
+        product.LicenseIv = voucher?.Iv;
 
-        var aq = setDownloadFilenameAndCodec(license, conversion, downloadQuality);
+        var aq = SetDownloadFilenameAndCodec(license, conversion, downloadQuality);
 
         // file size
-        product.FileSizeBytes = license.content_metadata?.content_reference?.content_size_in_bytes;
+        product.FileSizeBytes = license.ContentMetadata?.ContentReference?.ContentSizeInBytes;
 
         // duration
-        int? runtime = license.content_metadata?.chapter_info?.runtime_length_sec;
+        int? runtime = license.ContentMetadata?.ChapterInfo?.RuntimeLengthSec;
         if (runtime.HasValue)
         {
           product.RunTimeLengthSeconds = runtime;
         }
 
         // chapters
-        addChapters(dbContext, license, conversion);
+        AddChapters(dbContext, license, conversion);
 
-        updateState(conversion, EConversionState.license_granted);
+        UpdateState(conversion, EConversionState.LicenseGranted);
 
         dbContext.SaveChanges();
         return aq;
@@ -424,7 +424,7 @@ namespace Oahu.Core
       IInteractionCallback<InteractionMessage<BookLibInteract>, bool?> interactCallback)
     {
       using var lg = new LogGuard(3, this);
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
 
       var collectedCallbacks = new List<IConversion>();
 
@@ -438,54 +438,54 @@ namespace Oahu.Core
       var dnlddir = downloadSettings.DownloadDirectory;
       foreach (var conv in conversions)
       {
-        var _ = conv.State switch
+        _ = conv.State switch
         {
-          EConversionState.local_locked => checkLocalLocked(conv, callback, dnlddir),
-          EConversionState.local_unlocked => checkLocalUnlocked(conv, callback, dnlddir),
-          EConversionState.exported => checkExported(conv, callback, dnlddir, exportSettings?.ExportDirectory),
-          EConversionState.converted => checkConverted(conv, callback, dnlddir),
+          EConversionState.LocalLocked => CheckLocalLocked(conv, Callback, dnlddir),
+          EConversionState.LocalUnlocked => CheckLocalUnlocked(conv, Callback, dnlddir),
+          EConversionState.Exported => CheckExported(conv, Callback, dnlddir, exportSettings?.ExportDirectory),
+          EConversionState.Converted => CheckConverted(conv, Callback, dnlddir),
           _ => false
         };
-        checkRemoved(conv, callback);
+        CheckRemoved(conv, Callback);
       }
 
       if (collectedCallbacks.Any())
       {
-        if (!__checkUpdateAnswered && interactCallback is not null)
+        if (!checkUpdateAnswered && interactCallback is not null)
         {
-          __checkUpdateAnswer = interactCallback.Interact(
+          checkUpdateAnswer = interactCallback.Interact(
             new InteractionMessage<BookLibInteract>(
-              ECallbackType.question3,
+              ECallbackType.Question3,
               null,
-              new(EBookLibInteract.checkFile)));
-          __checkUpdateAnswered = true;
+              new(EBookLibInteract.CheckFile)));
+          checkUpdateAnswered = true;
         }
 
-        Log(3, this, () => $"Interact response={__checkUpdateAnswer}");
+        Log(3, this, () => $"Interact response={checkUpdateAnswer}");
 
-        if (!__checkUpdateAnswer.HasValue)
+        if (!checkUpdateAnswer.HasValue)
         {
           return;
         }
 
         collectedCallbacks.ForEach(c => callbackRefConversion(c));
 
-        if (__checkUpdateAnswer.HasValue && __checkUpdateAnswer.Value)
+        if (checkUpdateAnswer.HasValue && checkUpdateAnswer.Value)
         {
           dbContext.SaveChanges();
         }
       }
 
-      void callback(IConversion conv)
+      void Callback(IConversion conv)
       {
         collectedCallbacks.Add(conv);
       }
     }
 
     // internal instead of private for testing only
-    internal static void addChapters(BookDbContext dbContext, Oahu.Audible.Json.ContentLicense license, Conversion conversion)
+    internal static void AddChapters(BookDbContext dbContext, Oahu.Audible.Json.ContentLicense license, Conversion conversion)
     {
-      var source = license?.content_metadata?.chapter_info;
+      var source = license?.ContentMetadata?.ChapterInfo;
       if (source is null)
       {
         return;
@@ -516,32 +516,32 @@ namespace Oahu.Core
         comp.ChapterInfo = chapterInfo;
       }
 
-      chapterInfo.BrandIntroDurationMs = source.brandIntroDurationMs ?? 0;
-      chapterInfo.BrandOutroDurationMs = source.brandOutroDurationMs ?? 0;
-      chapterInfo.IsAccurate = source.is_accurate;
-      chapterInfo.RuntimeLengthMs = source.runtime_length_ms ?? 0;
+      chapterInfo.BrandIntroDurationMs = source.BrandIntroDurationMs ?? 0;
+      chapterInfo.BrandOutroDurationMs = source.BrandOutroDurationMs ?? 0;
+      chapterInfo.IsAccurate = source.IsAccurate;
+      chapterInfo.RuntimeLengthMs = source.RuntimeLengthMs ?? 0;
 
-      if (source.chapters.IsNullOrEmpty())
+      if (source.Chapters.IsNullOrEmpty())
       {
         return;
       }
 
-      foreach (var ch in source.chapters)
+      foreach (var ch in source.Chapters)
       {
         Chapter chapter = new Chapter();
         dbContext.Chapters.Add(chapter);
         chapterInfo.Chapters.Add(chapter);
 
-        setChapter(ch, chapter);
+        SetChapter(ch, chapter);
 
-        if (!ch.chapters.IsNullOrEmpty())
+        if (!ch.Chapters.IsNullOrEmpty())
         {
-          addChapters(dbContext, ch, chapter);
+          AddChapters(dbContext, ch, chapter);
         }
       }
     }
 
-    private static void updateState(Conversion conversion, EConversionState state, Conversion original = null)
+    private static void UpdateState(Conversion conversion, EConversionState state, Conversion original = null)
     {
       conversion.State = state;
       conversion.LastUpdate = DateTime.UtcNow;
@@ -553,7 +553,7 @@ namespace Oahu.Core
       }
     }
 
-    private static AudioQuality setDownloadFilenameAndCodec(
+    private static AudioQuality SetDownloadFilenameAndCodec(
       Oahu.Audible.Json.ContentLicense license,
       Conversion conversion,
       EDownloadQuality downloadQuality)
@@ -576,8 +576,8 @@ namespace Oahu.Core
       sb.Append($"_{asin}_LC");
 
       AudioQuality aq = null;
-      string format = license.content_metadata?.content_reference?.content_format?.ToLower();
-      bool succ = Enum.TryParse<ECodec>(format, out ECodec codec);
+      string format = license.ContentMetadata?.ContentReference?.ContentFormat?.ToLower();
+      bool succ = ExCodec.TryParseCodec(format, out ECodec codec);
       if (succ)
       {
         product.FileCodec = codec;
@@ -604,71 +604,71 @@ namespace Oahu.Core
       return aq;
     }
 
-    private static void setChapter(Oahu.Audible.Json.Chapter src, Chapter chapter)
+    private static void SetChapter(Oahu.Audible.Json.Chapter src, Chapter chapter)
     {
-      chapter.LengthMs = src.length_ms ?? 0;
-      chapter.StartOffsetMs = src.start_offset_ms ?? 0;
-      chapter.Title = src.title;
+      chapter.LengthMs = src.LengthMs ?? 0;
+      chapter.StartOffsetMs = src.StartOffsetMs ?? 0;
+      chapter.Title = src.Title;
     }
 
-    private static void addChapters(BookDbContext dbContext, Oahu.Audible.Json.Chapter source, Chapter parent)
+    private static void AddChapters(BookDbContext dbContext, Oahu.Audible.Json.Chapter source, Chapter parent)
     {
-      foreach (var ch in source.chapters)
+      foreach (var ch in source.Chapters)
       {
         Chapter chapter = new Chapter();
         dbContext.Chapters.Add(chapter);
 
         parent.Chapters.Add(chapter);
 
-        setChapter(ch, chapter);
+        SetChapter(ch, chapter);
 
-        if (!ch.chapters.IsNullOrEmpty())
+        if (!ch.Chapters.IsNullOrEmpty())
         {
-          addChapters(dbContext, ch, chapter);
+          AddChapters(dbContext, ch, chapter);
         }
       }
     }
 
-    private static Book addBook(BookDbContextLazyLoad dbContext, Oahu.Audible.Json.Product product)
+    private static Book AddBook(BookDbContextLazyLoad dbContext, Oahu.Audible.Json.Product product)
     {
       Book book = new Book
       {
-        Asin = product.asin,
-        Title = product.title,
-        Subtitle = product.subtitle,
-        PublisherName = product.publisher_name,
-        PublisherSummary = product.publisher_summary,
-        MerchandisingSummary = product.merchandising_summary,
-        AverageRating = product.rating?.overall_distribution?.average_rating,
-        RunTimeLengthSeconds = product.runtime_length_min.HasValue ? product.runtime_length_min.Value * 60 : null,
-        AdultProduct = product.is_adult_product,
-        PurchaseDate = product.purchase_date,
-        ReleaseDate = product.release_date ?? product.issue_date,
-        Language = product.language,
-        CoverImageUrl = product.product_images?._500,
-        Sku = product.sku,
-        SkuLite = product.sku_lite
+        Asin = product.Asin,
+        Title = product.Title,
+        Subtitle = product.Subtitle,
+        PublisherName = product.PublisherName,
+        PublisherSummary = product.PublisherSummary,
+        MerchandisingSummary = product.MerchandisingSummary,
+        AverageRating = product.Rating?.OverallDistribution?.AverageRating,
+        RunTimeLengthSeconds = product.RuntimeLengthMin.HasValue ? product.RuntimeLengthMin.Value * 60 : null,
+        AdultProduct = product.IsAdultProduct,
+        PurchaseDate = product.PurchaseDate,
+        ReleaseDate = product.ReleaseDate ?? product.IssueDate,
+        Language = product.Language,
+        CoverImageUrl = product.ProductImages?.Image500,
+        Sku = product.Sku,
+        SkuLite = product.SkuLite
       };
 
-      bool succ = Enum.TryParse<EDeliveryType>(product.content_delivery_type, out var deltype);
+      bool succ = Enum.TryParse<EDeliveryType>(product.ContentDeliveryType, out var deltype);
       if (succ)
       {
         book.DeliveryType = deltype;
       }
 
-      if (!product.format_type.IsNullOrEmpty())
+      if (!product.FormatType.IsNullOrEmpty())
       {
-        book.Unabridged = product.format_type == "unabridged";
+        book.Unabridged = product.FormatType == "unabridged";
       }
 
       dbContext.Books.Add(book);
       return book;
     }
 
-    private static void addComponents(Book book, ICollection<Component> components, IEnumerable<Oahu.Audible.Json.Relationship> itmRelations)
+    private static void AddComponents(Book book, ICollection<Component> components, IEnumerable<Oahu.Audible.Json.Relationship> itmRelations)
     {
       var relations = itmRelations?
-        .Where(r => r.relationship_to_product == "child" && r.relationship_type == "component")
+        .Where(r => r.RelationshipToProduct == "child" && r.RelationshipType == "component")
         .ToList();
 
       if (relations.IsNullOrEmpty())
@@ -678,13 +678,13 @@ namespace Oahu.Core
 
       foreach (var rel in relations)
       {
-        int.TryParse(rel.sort, out int partNum);
+        int.TryParse(rel.Sort, out int partNum);
         var component = new Component
         {
-          Asin = rel.asin,
-          Title = rel.title,
-          Sku = rel.sku,
-          SkuLite = rel.sku_lite,
+          Asin = rel.Asin,
+          Title = rel.Title,
+          Sku = rel.Sku,
+          SkuLite = rel.SkuLite,
           PartNumber = partNum
         };
 
@@ -693,26 +693,26 @@ namespace Oahu.Core
       }
     }
 
-    private static void addSeries(Book book, ICollection<Series> series, ICollection<SeriesBook> seriesBooks, IEnumerable<Oahu.Audible.Json.Relationship> itmRelations)
+    private static void AddSeries(Book book, ICollection<Series> series, ICollection<SeriesBook> seriesBooks, IEnumerable<Oahu.Audible.Json.Relationship> itmRelations)
     {
       if (itmRelations is null)
       {
         return;
       }
 
-      var itmSeries = itmRelations.Where(r => r.relationship_to_product == "parent" && r.relationship_type == "series").ToList();
+      var itmSeries = itmRelations.Where(r => r.RelationshipToProduct == "parent" && r.RelationshipType == "series").ToList();
 
       foreach (var itmSerie in itmSeries)
       {
-        var serie = series.FirstOrDefault(s => s.Asin == itmSerie.asin);
+        var serie = series.FirstOrDefault(s => s.Asin == itmSerie.Asin);
         if (serie is null)
         {
           serie = new Series
           {
-            Asin = itmSerie.asin,
-            Title = itmSerie.title,
-            Sku = itmSerie.sku,
-            SkuLite = itmSerie.sku_lite
+            Asin = itmSerie.Asin,
+            Title = itmSerie.Title,
+            Sku = itmSerie.Sku,
+            SkuLite = itmSerie.SkuLite
           };
           series.Add(serie);
         }
@@ -721,16 +721,16 @@ namespace Oahu.Core
         {
           Book = book,
           Series = serie,
-          Sequence = itmSerie.sequence
+          Sequence = itmSerie.Sequence
         };
 
-        bool succ = int.TryParse(itmSerie.sort, out int sort);
+        bool succ = int.TryParse(itmSerie.Sort, out int sort);
         if (succ)
         {
           seriesBook.Sort = sort;
         }
 
-        Match match = _regexSeries.Match(itmSerie.sequence);
+        Match match = RegexSeries.Match(itmSerie.Sequence);
         if (match.Success)
         {
           int n = match.Groups.Count;
@@ -760,7 +760,7 @@ namespace Oahu.Core
       }
     }
 
-    private static void addPersons<TPerson>(
+    private static void AddPersons<TPerson>(
       BookDbContextLazyLoad dbContext,
       Book book,
       ICollection<TPerson> persons,
@@ -776,26 +776,26 @@ namespace Oahu.Core
       foreach (var itmPerson in itmPersons)
       {
         TPerson person = null;
-        if (itmPerson.asin is null)
+        if (itmPerson.Asin is null)
         {
-          person = persons.FirstOrDefault(a => a.Name == itmPerson.name);
+          person = persons.FirstOrDefault(a => a.Name == itmPerson.Name);
           if (person is null)
           {
-            itmPerson.asin = dbContext.GetNextPseudoAsin(typeof(TPerson));
+            itmPerson.Asin = dbContext.GetNextPseudoAsin(typeof(TPerson));
           }
         }
 
         if (person is null)
         {
-          person = persons.FirstOrDefault(a => a.Asin == itmPerson.asin);
+          person = persons.FirstOrDefault(a => a.Asin == itmPerson.Asin);
         }
 
         if (person is null)
         {
           person = new TPerson
           {
-            Asin = itmPerson.asin,
-            Name = itmPerson.name
+            Asin = itmPerson.Asin,
+            Name = itmPerson.Name
           };
 
           persons.Add(person);
@@ -806,24 +806,24 @@ namespace Oahu.Core
       }
     }
 
-    private static void addGenres(Book book, ICollection<Genre> genres, ICollection<Ladder> ladders, ICollection<Rung> rungs, IEnumerable<Oahu.Audible.Json.Category> itmCategories)
+    private static void AddGenres(Book book, ICollection<Genre> genres, ICollection<Ladder> ladders, ICollection<Rung> rungs, IEnumerable<Oahu.Audible.Json.Category> itmCategories)
     {
       if (itmCategories is null)
       {
         return;
       }
 
-      var categories = itmCategories.Where(c => c.root == "Genres").ToList();
+      var categories = itmCategories.Where(c => c.Root == "Genres").ToList();
 
       foreach (var category in categories)
       {
         var ladder = new Ladder();
 
-        for (int i = 0; i < category.ladder.Length; i++)
+        for (int i = 0; i < category.Ladder.Length; i++)
         {
-          var itmLadder = category.ladder[i];
+          var itmLadder = category.Ladder[i];
           int idx = i + 1;
-          bool succ = long.TryParse(itmLadder.id, out long id);
+          bool succ = long.TryParse(itmLadder.Id, out long id);
           if (!succ)
           {
             continue;
@@ -835,7 +835,7 @@ namespace Oahu.Core
             genre = new Genre
             {
               ExternalId = id,
-              Name = itmLadder.name
+              Name = itmLadder.Name
             };
             genres.Add(genre);
           }
@@ -856,7 +856,7 @@ namespace Oahu.Core
           ladder.Rungs.Add(rung);
         }
 
-        var existingLadder = ladders.FirstOrDefault(l => equals(l, ladder));
+        var existingLadder = ladders.FirstOrDefault(l => Equals(l, ladder));
 
         if (existingLadder is null)
         {
@@ -871,7 +871,7 @@ namespace Oahu.Core
       }
 
       // local function
-      static bool equals(Ladder oldLadder, Ladder newLadder)
+      static bool Equals(Ladder oldLadder, Ladder newLadder)
       {
         if (newLadder.Rungs.Count != oldLadder.Rungs.Count)
         {
@@ -896,7 +896,7 @@ namespace Oahu.Core
       }
     }
 
-    private static void addCodecs(Book book, ICollection<Codec> codecList, IEnumerable<Oahu.Audible.Json.Codec> itmCodecs)
+    private static void AddCodecs(Book book, ICollection<Codec> codecList, IEnumerable<Oahu.Audible.Json.Codec> itmCodecs)
     {
       if (itmCodecs is null)
       {
@@ -905,7 +905,7 @@ namespace Oahu.Core
 
       foreach (var itmCodec in itmCodecs)
       {
-        bool succ = Enum.TryParse<ECodec>(itmCodec.name, out var codecName);
+        bool succ = ExCodec.TryParseCodec(itmCodec.Name, out var codecName);
         if (!succ)
         {
           continue;
@@ -926,7 +926,7 @@ namespace Oahu.Core
       }
     }
 
-    private static void addConversions(Book book, ICollection<Conversion> conversions, ProfileId profileId)
+    private static void AddConversions(Book book, ICollection<Conversion> conversions, ProfileId profileId)
     {
       // default
       {
@@ -935,7 +935,7 @@ namespace Oahu.Core
           AccountId = profileId.AccountId,
           Region = profileId.Region
         };
-        updateState(conversion, EConversionState.remote);
+        UpdateState(conversion, EConversionState.Remote);
         book.Conversion = conversion;
         conversions.Add(conversion);
       }
@@ -950,7 +950,7 @@ namespace Oahu.Core
 
         var conversion = new Conversion
         {
-          State = EConversionState.remote,
+          State = EConversionState.Remote,
           AccountId = profileId.AccountId,
           Region = profileId.Region
         };
@@ -959,15 +959,15 @@ namespace Oahu.Core
       }
     }
 
-    private void setAccountAlias(int id, string alias)
+    private void SetAccountAlias(int id, string alias)
     {
-      using var _ = new LogGuard(3, this, () => $"id = {id}, alias = \"{alias}\"");
+      using var logGuard = new LogGuard(3, this, () => $"id = {id}, alias = \"{alias}\"");
       if (alias.IsNullOrWhiteSpace())
       {
         return;
       }
 
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
       var account = dbContext.Accounts.FirstOrDefault(a => a.Id == id);
       if (account is null)
       {
@@ -978,7 +978,7 @@ namespace Oahu.Core
       dbContext.SaveChanges();
     }
 
-    private void checkRemoved(Conversion conv, Action<IConversion> callback)
+    private void CheckRemoved(Conversion conv, Action<IConversion> callback)
     {
       var book = conv.Book;
       if (book?.Deleted is null)
@@ -989,9 +989,9 @@ namespace Oahu.Core
       bool removed = book.Deleted.Value;
       if (removed)
       {
-        if (conv.State > EConversionState.unknown && conv.State < EConversionState.local_locked)
+        if (conv.State > EConversionState.Unknown && conv.State < EConversionState.LocalLocked)
         {
-          updateState(conv, EConversionState.unknown);
+          UpdateState(conv, EConversionState.Unknown);
           callback(conv);
           Log(3, this, () => $"removed: {conv}");
         }
@@ -999,9 +999,9 @@ namespace Oahu.Core
         foreach (var comp in book.Components)
         {
           var cconv = comp.Conversion;
-          if (cconv.State > EConversionState.unknown && cconv.State < EConversionState.local_locked)
+          if (cconv.State > EConversionState.Unknown && cconv.State < EConversionState.LocalLocked)
           {
-            updateState(cconv, EConversionState.unknown);
+            UpdateState(cconv, EConversionState.Unknown);
             callback(cconv);
             Log(3, this, () => $"removed: {cconv}");
           }
@@ -1009,9 +1009,9 @@ namespace Oahu.Core
       }
       else
       {
-        if (conv.State == EConversionState.unknown)
+        if (conv.State == EConversionState.Unknown)
         {
-          updateState(conv, EConversionState.remote);
+          UpdateState(conv, EConversionState.Remote);
           callback(conv);
           Log(3, this, () => $"re-added: {conv}");
         }
@@ -1019,9 +1019,9 @@ namespace Oahu.Core
         foreach (var comp in book.Components)
         {
           var cconv = comp.Conversion;
-          if (cconv.State == EConversionState.unknown)
+          if (cconv.State == EConversionState.Unknown)
           {
-            updateState(cconv, EConversionState.remote);
+            UpdateState(cconv, EConversionState.Remote);
             callback(cconv);
             Log(3, this, () => $"re-added: {cconv}");
           }
@@ -1029,58 +1029,58 @@ namespace Oahu.Core
       }
     }
 
-    private bool checkLocalLocked(Conversion conv, Action<IConversion> callback, string downloadDirectory) =>
-      checkFile(conv, R.EncryptedFileExt, callback, downloadDirectory,
-        EConversionState.remote, ECheckFile.deleteIfMissing | ECheckFile.relocatable);
+    private bool CheckLocalLocked(Conversion conv, Action<IConversion> callback, string downloadDirectory) =>
+      CheckFile(conv, R.EncryptedFileExt, callback, downloadDirectory,
+        EConversionState.Remote, ECheckFile.DeleteIfMissing | ECheckFile.Relocatable);
 
-    private bool checkLocalUnlocked(Conversion conv, Action<IConversion> callback, string downloadDirectory)
+    private bool CheckLocalUnlocked(Conversion conv, Action<IConversion> callback, string downloadDirectory)
     {
-      return checkLocal(conv, callback, downloadDirectory);
+      return CheckLocal(conv, callback, downloadDirectory);
     }
 
-    private bool checkLocal(
+    private bool CheckLocal(
       Conversion conv,
       Action<IConversion> callback,
       string downloadDirectory,
       EConversionState? transientfallback = null)
     {
-      bool succ = checkFile(conv, R.DecryptedFileExt, callback, downloadDirectory,
-        EConversionState.local_locked, ECheckFile.relocatable, transientfallback);
+      bool succ = CheckFile(conv, R.DecryptedFileExt, callback, downloadDirectory,
+        EConversionState.LocalLocked, ECheckFile.Relocatable, transientfallback);
       if (!succ)
       {
-        succ = checkFile(conv, R.EncryptedFileExt, callback, downloadDirectory,
-          EConversionState.remote, ECheckFile.deleteIfMissing | ECheckFile.relocatable, transientfallback);
+        succ = CheckFile(conv, R.EncryptedFileExt, callback, downloadDirectory,
+          EConversionState.Remote, ECheckFile.DeleteIfMissing | ECheckFile.Relocatable, transientfallback);
       }
 
       return succ;
     }
 
-    private bool checkExported(
+    private bool CheckExported(
       Conversion conv, Action<IConversion> callback,
       string downloadDirectory, string exportDirectory)
     {
-      bool succ = checkFile(conv, R.ExportedFileExt, callback, exportDirectory,
-        EConversionState.local_unlocked, ECheckFile.none, EConversionState.converted_unknown);
+      bool succ = CheckFile(conv, R.ExportedFileExt, callback, exportDirectory,
+        EConversionState.LocalUnlocked, ECheckFile.None, EConversionState.ConvertedUnknown);
       if (!succ)
       {
-        succ = checkLocal(conv, callback, downloadDirectory, EConversionState.converted_unknown);
+        succ = CheckLocal(conv, callback, downloadDirectory, EConversionState.ConvertedUnknown);
       }
 
       return succ;
     }
 
-    private bool checkConverted(Conversion conv, Action<IConversion> callback, string downloadDirectory)
+    private bool CheckConverted(Conversion conv, Action<IConversion> callback, string downloadDirectory)
     {
-      bool succ = checkConvertedFiles(conv, callback);
+      bool succ = CheckConvertedFiles(conv, callback);
       if (!succ)
       {
-        succ = checkLocal(conv, callback, downloadDirectory, EConversionState.converted_unknown);
+        succ = CheckLocal(conv, callback, downloadDirectory, EConversionState.ConvertedUnknown);
       }
 
       return succ;
     }
 
-    private bool checkConvertedFiles(Conversion conv, Action<IConversion> callback)
+    private bool CheckConvertedFiles(Conversion conv, Action<IConversion> callback)
     {
       string dir = conv.DestDirectory.AsUncIfLong();
       bool exists = false;
@@ -1089,7 +1089,7 @@ namespace Oahu.Core
         string[] files = Directory.GetFiles(dir);
         exists = files
           .Select(f => Path.GetExtension(f).ToLower())
-          .Where(e => __extensions.Contains(e))
+          .Where(e => Extensions.Contains(e))
           .Any();
       }
 
@@ -1100,13 +1100,13 @@ namespace Oahu.Core
       else
       {
         Log(3, this, () => $"not found: \"{conv.DownloadFileName.GetDownloadFileNameWithoutExtension()}\"");
-        conv.State = EConversionState.converted_unknown;
+        conv.State = EConversionState.ConvertedUnknown;
         callback?.Invoke(conv);
         return false;
       }
     }
 
-    private bool checkFile(
+    private bool CheckFile(
       Conversion conv,
       string ext,
       Action<IConversion> callback,
@@ -1115,7 +1115,7 @@ namespace Oahu.Core
       ECheckFile flags,
       EConversionState? transientfallback = null)
     {
-      if (flags.HasFlag(ECheckFile.relocatable))
+      if (flags.HasFlag(ECheckFile.Relocatable))
       {
         if (downloadDirectory is null)
         {
@@ -1154,7 +1154,7 @@ namespace Oahu.Core
 
       Log(3, this, () => $"not found \"{ext}\": \"{conv.DownloadFileName.GetDownloadFileNameWithoutExtension()}\"");
 
-      if (flags.HasFlag(ECheckFile.deleteIfMissing))
+      if (flags.HasFlag(ECheckFile.DeleteIfMissing))
       {
         conv.DownloadFileName = null;
       }
@@ -1166,7 +1166,7 @@ namespace Oahu.Core
         callback?.Invoke(tmp);
       }
 
-      updateState(conv, fallback);
+      UpdateState(conv, fallback);
       if (!transientfallback.HasValue)
       {
         callback?.Invoke(conv);
@@ -1175,14 +1175,14 @@ namespace Oahu.Core
       return false;
     }
 
-    private void addRemBooks(List<Oahu.Audible.Json.Product> libProducts, ProfileId profileId, bool resync)
+    private void AddRemBooks(List<Oahu.Audible.Json.Product> libProducts, ProfileId profileId, bool resync)
     {
-      lock (_bookCache)
+      lock (BookCache)
       {
-        _bookCache.Remove(profileId);
+        BookCache.Remove(profileId);
       }
 
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
 
       var bcl = new BookCompositeLists(
         dbContext.Books.Select(b => b.Asin).ToList(),
@@ -1201,21 +1201,21 @@ namespace Oahu.Core
       int remaining = libProducts.Count;
       while (remaining > 0)
       {
-        int count = Math.Min(remaining, PAGE_SIZE);
-        int start = page * PAGE_SIZE;
+        int count = Math.Min(remaining, PageSize);
+        int start = page * PageSize;
         page++;
         remaining -= count;
         var subrange = libProducts.GetRange(start, count);
-        addPageBooks(dbContext, bcl, subrange, profileId, resync);
+        AddPageBooks(dbContext, bcl, subrange, profileId, resync);
       }
 
       if (resync)
       {
-        removeBooks(dbContext, bcl, libProducts, profileId);
+        RemoveBooks(dbContext, bcl, libProducts, profileId);
       }
     }
 
-    private DateTime sinceLatestPurchaseDate(ProfileId profileId, bool resync)
+    private DateTime SinceLatestPurchaseDate(ProfileId profileId, bool resync)
     {
       DateTime dt = new DateTime(1970, 1, 1);
       if (resync)
@@ -1223,7 +1223,7 @@ namespace Oahu.Core
         return dt;
       }
 
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
 
       var latest = dbContext.Books
           .Where(b => b.PurchaseDate.HasValue &&
@@ -1240,9 +1240,9 @@ namespace Oahu.Core
       return dt;
     }
 
-    private void cleanupDuplicateAuthors()
+    private void CleanupDuplicateAuthors()
     {
-      using var dbContext = new BookDbContextLazyLoad(_dbDir);
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
 
       var authors = dbContext.Authors;
 
@@ -1281,42 +1281,42 @@ namespace Oahu.Core
       dbContext.SaveChanges();
     }
 
-    private void addPageBooks(BookDbContextLazyLoad dbContext, BookCompositeLists bcl, IEnumerable<Oahu.Audible.Json.Product> products, ProfileId profileId, bool resync)
+    private void AddPageBooks(BookDbContextLazyLoad dbContext, BookCompositeLists bcl, IEnumerable<Oahu.Audible.Json.Product> products, ProfileId profileId, bool resync)
     {
       try
       {
-        using var _ = new LogGuard(3, this, () => $"#items={products.Count()}");
+        using var logGuard = new LogGuard(3, this, () => $"#items={products.Count()}");
 
         foreach (var product in products)
         {
           try
           {
-            if (readd(bcl, product, profileId, resync))
+            if (Readd(bcl, product, profileId, resync))
             {
               continue;
             }
 
-            Book book = addBook(dbContext, product);
+            Book book = AddBook(dbContext, product);
 
-            addComponents(book, bcl.Components, product.relationships);
+            AddComponents(book, bcl.Components, product.Relationships);
 
-            addConversions(book, bcl.Conversions, profileId);
+            AddConversions(book, bcl.Conversions, profileId);
 
-            addSeries(book, bcl.Series, bcl.SeriesBooks, product.relationships);
+            AddSeries(book, bcl.Series, bcl.SeriesBooks, product.Relationships);
 
-            addPersons(dbContext, book, bcl.Authors, product.authors, b => b.Authors);
-            addPersons(dbContext, book, bcl.Narrators, product.narrators, b => b.Narrators);
+            AddPersons(dbContext, book, bcl.Authors, product.Authors, b => b.Authors);
+            AddPersons(dbContext, book, bcl.Narrators, product.Narrators, b => b.Narrators);
 
-            addGenres(book, bcl.Genres, bcl.Ladders, bcl.Rungs, product.category_ladders);
+            AddGenres(book, bcl.Genres, bcl.Ladders, bcl.Rungs, product.CategoryLadders);
 
-            addCodecs(book, bcl.Codecs, product.available_codecs);
+            AddCodecs(book, bcl.Codecs, product.AvailableCodecs);
 
             Log(3, this, () => $"added: {book}");
           }
           catch (Exception exc)
           {
             Log(1, this, () =>
-              $"asin={product.asin}, \"{product.title}\", throwing{Environment.NewLine}" +
+              $"asin={product.Asin}, \"{product.Title}\", throwing{Environment.NewLine}" +
               $"{exc.Summary()})");
             throw;
           }
@@ -1336,9 +1336,9 @@ namespace Oahu.Core
       }
     }
 
-    private bool readd(BookCompositeLists bcl, Oahu.Audible.Json.Product product, ProfileId profileId, bool resync)
+    private bool Readd(BookCompositeLists bcl, Oahu.Audible.Json.Product product, ProfileId profileId, bool resync)
     {
-      if (bcl.BookAsins.Contains(product.asin))
+      if (bcl.BookAsins.Contains(product.Asin))
       {
         if (!resync)
         {
@@ -1346,7 +1346,7 @@ namespace Oahu.Core
         }
 
         var bk = bcl.Conversions
-          .FirstOrDefault(conv => string.Equals(conv.Book?.Asin, product.asin))?.Book;
+          .FirstOrDefault(conv => string.Equals(conv.Book?.Asin, product.Asin))?.Book;
         if (!(bk?.Deleted ?? false))
         {
           return true;
@@ -1355,16 +1355,16 @@ namespace Oahu.Core
         bk.Deleted = false;
         bk.Conversion.AccountId = profileId.AccountId;
         bk.Conversion.Region = profileId.Region;
-        if (bk.Conversion.State < EConversionState.local_locked)
+        if (bk.Conversion.State < EConversionState.LocalLocked)
         {
-          updateState(bk.Conversion, EConversionState.remote);
+          UpdateState(bk.Conversion, EConversionState.Remote);
         }
 
         foreach (var comp in bk.Components)
         {
-          if (comp.Conversion.State < EConversionState.local_locked)
+          if (comp.Conversion.State < EConversionState.LocalLocked)
           {
-            updateState(comp.Conversion, EConversionState.remote);
+            UpdateState(comp.Conversion, EConversionState.Remote);
           }
 
           comp.Conversion.AccountId = profileId.AccountId;
@@ -1381,7 +1381,7 @@ namespace Oahu.Core
       }
     }
 
-    private void removeBooks(
+    private void RemoveBooks(
       BookDbContextLazyLoad dbContext,
       BookCompositeLists bcl,
       IEnumerable<Oahu.Audible.Json.Product> products,
@@ -1389,9 +1389,9 @@ namespace Oahu.Core
     {
       try
       {
-        using var _ = new LogGuard(3, this, () => $"#items={products.Count()}");
+        using var logGuard = new LogGuard(3, this, () => $"#items={products.Count()}");
 
-        var currentAsins = products.Select(p => p.asin).ToList();
+        var currentAsins = products.Select(p => p.Asin).ToList();
         var removeAsins = bcl.BookAsins.Except(currentAsins).ToList();
         if (!removeAsins.Any())
         {
@@ -1416,16 +1416,16 @@ namespace Oahu.Core
           }
 
           book.Deleted = true;
-          if (book.Conversion.State < EConversionState.local_locked)
+          if (book.Conversion.State < EConversionState.LocalLocked)
           {
-            updateState(book.Conversion, EConversionState.unknown);
+            UpdateState(book.Conversion, EConversionState.Unknown);
           }
 
           foreach (var comp in book.Components)
           {
-            if (comp.Conversion.State < EConversionState.local_locked)
+            if (comp.Conversion.State < EConversionState.LocalLocked)
             {
-              updateState(comp.Conversion, EConversionState.unknown);
+              UpdateState(comp.Conversion, EConversionState.Unknown);
             }
           }
 
@@ -1443,7 +1443,7 @@ namespace Oahu.Core
       }
     }
 
-    private void getChaptersFlattened(IEnumerable<Chapter> source, List<Chapter> dest, List<List<ChapterExtract>> accuChapters, int level)
+    private void GetChaptersFlattened(IEnumerable<Chapter> source, List<Chapter> dest, List<List<ChapterExtract>> accuChapters, int level)
     {
       if (source.IsNullOrEmpty())
       {
@@ -1471,11 +1471,11 @@ namespace Oahu.Core
       {
         dest.Add(new Chapter(ch));
         accu?.Add(new ChapterExtract(ch.Title, ch.LengthMs));
-        getChaptersFlattened(ch.Chapters, dest, accuChapters, level);
+        GetChaptersFlattened(ch.Chapters, dest, accuChapters, level);
       }
     }
 
-    private void getChapters(BookDbContext dbContext, ICollection<Chapter> chapters)
+    private void GetChapters(BookDbContext dbContext, ICollection<Chapter> chapters)
     {
       if (chapters.IsNullOrEmpty())
       {
@@ -1485,11 +1485,11 @@ namespace Oahu.Core
       foreach (var ch in chapters)
       {
         dbContext.Entry(ch).Collection(ci => ci.Chapters).Load();
-        getChapters(dbContext, ch.Chapters);
+        GetChapters(dbContext, ch.Chapters);
       }
     }
 
-    private void sortChapters(ICollection<Chapter> chapters)
+    private void SortChapters(ICollection<Chapter> chapters)
     {
       if (chapters.IsNullOrEmpty())
       {
@@ -1501,7 +1501,7 @@ namespace Oahu.Core
         list.Sort((x, y) => x.StartOffsetMs.CompareTo(y.StartOffsetMs));
       }
 
-      chapters.ForEach(ch => sortChapters(ch.Chapters));
+      chapters.ForEach(ch => SortChapters(ch.Chapters));
     }
   }
 }

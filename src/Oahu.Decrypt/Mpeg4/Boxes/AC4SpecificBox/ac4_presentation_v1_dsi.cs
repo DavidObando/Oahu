@@ -8,152 +8,152 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// </summary>
 public class ac4_presentation_v1_dsi
 {
-  public uint presentation_version;
-  public byte presentation_config_v1;
-  public bool b_add_emdf_substreams;
-  public byte? mdcompat;
-  public bool? b_presentation_id;
-  public byte? presentation_id;
-  public byte? dsi_frame_rate_multiply_info;
-  public byte? dsi_frame_rate_fraction_info;
-  public byte? presentation_emdf_version;
-  public ushort? presentation_key_id;
-  public bool? b_presentation_channel_coded;
-  public byte? dsi_presentation_ch_mode;
-  public byte? pres_b_4_back_channels_present;
-  public byte? pres_top_channel_pairs;
-  public ChannelGroups? presentation_channel_mask_v1;
-  public bool? b_presentation_core_differs;
-  public bool? b_presentation_core_channel_coded;
-  public byte? dsi_presentation_channel_mode_core;
-  public bool? b_presentation_filter;
-  public bool? b_enable_presentation;
-  public byte? n_filter_bytes;
-  public byte[]? filter_data;
+  public uint PresentationVersion;
+  public byte PresentationConfigV1;
+  public bool BAddEmdfSubstreams;
+  public byte? Mdcompat;
+  public bool? BPresentationId;
+  public byte? PresentationId;
+  public byte? DsiFrameRateMultiplyInfo;
+  public byte? DsiFrameRateFractionInfo;
+  public byte? PresentationEmdfVersion;
+  public ushort? PresentationKeyId;
+  public bool? BPresentationChannelCoded;
+  public byte? DsiPresentationChMode;
+  public byte? PresB4BackChannelsPresent;
+  public byte? PresTopChannelPairs;
+  public ChannelGroups? PresentationChannelMaskV1;
+  public bool? BPresentationCoreDiffers;
+  public bool? BPresentationCoreChannelCoded;
+  public byte? DsiPresentationChannelModeCore;
+  public bool? BPresentationFilter;
+  public bool? BEnablePresentation;
+  public byte? NFilterBytes;
+  public byte[]? FilterData;
 
-  public ac4_substream_group_dsi? substream;
-  public bool? b_pre_virtualized;
-  public byte? n_add_emdf_substreams;
-  public (byte substream_emdf_version, ushort substream_key_id)[]? substreams_emdfs;
-  public bool b_presentation_bitrate_info;
-  public ac4_bitrate_dsi? ac4_Bitrate_Dsi;
-  public bool b_alternative;
-  public alternative_info? alternative_Info;
-  public byte? de_indicator;
-  public bool? b_extended_presentation_id;
-  public ushort? extended_presentation_id;
+  public ac4_substream_group_dsi? Substream;
+  public bool? BPreVirtualized;
+  public byte? NAddEmdfSubstreams;
+  public (byte SubstreamEmdfVersion, ushort SubstreamKeyId)[]? SubstreamsEmdfs;
+  public bool BPresentationBitrateInfo;
+  public ac4_bitrate_dsi? Ac4BitrateDsi;
+  public bool BAlternative;
+  public alternative_info? AlternativeInfo;
+  public byte? DeIndicator;
+  public bool? BExtendedPresentationId;
+  public ushort? ExtendedPresentationId;
 
-  public bool? dolby_atmos_indicator;
+  public bool? DolbyAtmosIndicator;
 
-  public ac4_presentation_v1_dsi(uint presentation_version, uint pres_bytes, BitReader reader)
+  public ac4_presentation_v1_dsi(uint presentationVersion, uint presBytes, BitReader reader)
   {
-    this.presentation_version = presentation_version;
+    PresentationVersion = presentationVersion;
     var start = reader.Position;
 
-    presentation_config_v1 = (byte)reader.Read(5);
-    if (presentation_config_v1 is 6)
+    PresentationConfigV1 = (byte)reader.Read(5);
+    if (PresentationConfigV1 is 6)
     {
-      b_add_emdf_substreams = true;
+      BAddEmdfSubstreams = true;
     }
     else
     {
-      mdcompat = (byte)reader.Read(3);
-      b_presentation_id = reader.ReadBool();
-      if (b_presentation_id.Value)
+      Mdcompat = (byte)reader.Read(3);
+      BPresentationId = reader.ReadBool();
+      if (BPresentationId.Value)
       {
-        presentation_id = (byte)reader.Read(5);
+        PresentationId = (byte)reader.Read(5);
       }
 
-      dsi_frame_rate_multiply_info = (byte)reader.Read(2);
-      dsi_frame_rate_fraction_info = (byte)reader.Read(2);
-      presentation_emdf_version = (byte)reader.Read(5);
-      presentation_key_id = (ushort)reader.Read(10);
-      b_presentation_channel_coded = reader.ReadBool();
+      DsiFrameRateMultiplyInfo = (byte)reader.Read(2);
+      DsiFrameRateFractionInfo = (byte)reader.Read(2);
+      PresentationEmdfVersion = (byte)reader.Read(5);
+      PresentationKeyId = (ushort)reader.Read(10);
+      BPresentationChannelCoded = reader.ReadBool();
 
-      if (b_presentation_channel_coded.Value)
+      if (BPresentationChannelCoded.Value)
       {
-        dsi_presentation_ch_mode = (byte)reader.Read(5);
-        if (dsi_presentation_ch_mode is 11 or 12 or 13 or 14)
+        DsiPresentationChMode = (byte)reader.Read(5);
+        if (DsiPresentationChMode is 11 or 12 or 13 or 14)
         {
-          pres_b_4_back_channels_present = (byte)reader.Read(1);
-          pres_top_channel_pairs = (byte)reader.Read(2);
+          PresB4BackChannelsPresent = (byte)reader.Read(1);
+          PresTopChannelPairs = (byte)reader.Read(2);
         }
 
-        presentation_channel_mask_v1 = (ChannelGroups)reader.Read(24);
+        PresentationChannelMaskV1 = (ChannelGroups)reader.Read(24);
       }
 
-      b_presentation_core_differs = reader.ReadBool();
-      if (b_presentation_core_differs.Value)
+      BPresentationCoreDiffers = reader.ReadBool();
+      if (BPresentationCoreDiffers.Value)
       {
-        b_presentation_core_channel_coded = reader.ReadBool();
-        if (b_presentation_core_channel_coded.Value)
+        BPresentationCoreChannelCoded = reader.ReadBool();
+        if (BPresentationCoreChannelCoded.Value)
         {
-          dsi_presentation_channel_mode_core = (byte)reader.Read(2);
-        }
-      }
-
-      b_presentation_filter = reader.ReadBool();
-      if (b_presentation_filter.Value)
-      {
-        b_enable_presentation = reader.ReadBool();
-        n_filter_bytes = (byte)reader.Read(8);
-        filter_data = new byte[n_filter_bytes.Value];
-        for (int i = 0; i < n_filter_bytes.Value; i++)
-        {
-          filter_data[i] = (byte)reader.Read(8);
+          DsiPresentationChannelModeCore = (byte)reader.Read(2);
         }
       }
 
-      if (presentation_config_v1 == 0x1f)
+      BPresentationFilter = reader.ReadBool();
+      if (BPresentationFilter.Value)
       {
-        substream = new ac4_substream_group_dsi(reader);
+        BEnablePresentation = reader.ReadBool();
+        NFilterBytes = (byte)reader.Read(8);
+        FilterData = new byte[NFilterBytes.Value];
+        for (int i = 0; i < NFilterBytes.Value; i++)
+        {
+          FilterData[i] = (byte)reader.Read(8);
+        }
+      }
+
+      if (PresentationConfigV1 == 0x1f)
+      {
+        Substream = new ac4_substream_group_dsi(reader);
       }
       else
       {
         throw new NotSupportedException();
       }
 
-      b_pre_virtualized = reader.ReadBool();
-      b_add_emdf_substreams = reader.ReadBool();
+      BPreVirtualized = reader.ReadBool();
+      BAddEmdfSubstreams = reader.ReadBool();
     }
 
-    if (b_add_emdf_substreams)
+    if (BAddEmdfSubstreams)
     {
-      n_add_emdf_substreams = (byte)reader.Read(7);
-      substreams_emdfs = new (byte substream_emdf_version, ushort substream_key_id)[n_add_emdf_substreams.Value];
-      for (int j = 0; j < n_add_emdf_substreams; j++)
+      NAddEmdfSubstreams = (byte)reader.Read(7);
+      SubstreamsEmdfs = new (byte SubstreamEmdfVersion, ushort SubstreamKeyId)[NAddEmdfSubstreams.Value];
+      for (int j = 0; j < NAddEmdfSubstreams; j++)
       {
-        substreams_emdfs[j] = ((byte)reader.Read(5), (ushort)reader.Read(10));
+        SubstreamsEmdfs[j] = ((byte)reader.Read(5), (ushort)reader.Read(10));
       }
     }
 
-    b_presentation_bitrate_info = reader.ReadBool();
-    if (b_presentation_bitrate_info)
+    BPresentationBitrateInfo = reader.ReadBool();
+    if (BPresentationBitrateInfo)
     {
-      ac4_Bitrate_Dsi = new ac4_bitrate_dsi(reader);
+      Ac4BitrateDsi = new ac4_bitrate_dsi(reader);
     }
 
-    b_alternative = reader.ReadBool();
-    if (b_alternative)
+    BAlternative = reader.ReadBool();
+    if (BAlternative)
     {
       reader.ByteAlign();
-      alternative_Info = new alternative_info(reader);
+      AlternativeInfo = new alternative_info(reader);
     }
 
     reader.ByteAlign();
 
     var read = reader.Position - start;
-    if (read <= (pres_bytes - 1) * 8)
+    if (read <= (presBytes - 1) * 8)
     {
-      de_indicator = (byte)reader.Read(1);
+      DeIndicator = (byte)reader.Read(1);
 
       // Extension to AC-4 DSI
-      dolby_atmos_indicator = reader.ReadBool();
+      DolbyAtmosIndicator = reader.ReadBool();
       _ = reader.Read(4);
-      b_extended_presentation_id = reader.ReadBool();
-      if (b_extended_presentation_id.Value)
+      BExtendedPresentationId = reader.ReadBool();
+      if (BExtendedPresentationId.Value)
       {
-        extended_presentation_id = (ushort)reader.Read(9);
+        ExtendedPresentationId = (ushort)reader.Read(9);
       }
       else
       {

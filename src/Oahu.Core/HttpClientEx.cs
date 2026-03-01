@@ -19,10 +19,10 @@ namespace Oahu.Core
         AllowAutoRedirect = false,
         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
       };
-      return create(handler, baseUri);
+      return Create(handler, baseUri);
     }
 
-    private static HttpClientEx create(HttpClientHandler handler, Uri baseUri)
+    private static HttpClientEx Create(HttpClientHandler handler, Uri baseUri)
     {
       var client = new HttpClientEx(handler);
       client.BaseAddress = baseUri;

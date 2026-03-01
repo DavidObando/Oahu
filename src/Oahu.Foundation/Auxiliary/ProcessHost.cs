@@ -12,7 +12,7 @@ namespace Oahu.Aux
     /// <summary>
     /// Executes a process and passes its command-line output back after the process has exited
     /// </summary>
-    protected string runProcess(
+    protected string RunProcess(
       string exePath, string parameters,
       bool getStdErrorNotOutput = false,
       DataReceivedEventHandler eventHandler = null)

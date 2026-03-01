@@ -6,30 +6,30 @@ using System.Threading.Tasks;
 using Oahu.Aux;
 using Oahu.Aux.Extensions;
 using Oahu.CommonTypes;
-using Oahu.Core.ex;
+using Oahu.Core.Ex;
 using static Oahu.Aux.Logging;
 
 namespace Oahu.Core
 {
   public class AudibleClient
   {
-    private IAudibleApi _audibleApi;
-    private IHardwareIdProvider _hardwareIdProvider;
+    private IAudibleApi audibleApi;
+    private IHardwareIdProvider hardwareIdProvider;
 
     public AudibleClient(ConfigSettings configSettings, IAuthorizeSettings authSettings, IHardwareIdProvider hardwareIdProvider = null, string dbDir = null)
     {
       Log(3, this);
 
-      _hardwareIdProvider = hardwareIdProvider;
+      this.hardwareIdProvider = hardwareIdProvider;
       ConfigSettings = configSettings;
       if (ConfigSettings is not null)
       {
-        ConfigSettings.ChangedSettings += settings_ChangedSettings;
+        ConfigSettings.ChangedSettings += SettingsChangedSettings;
       }
 
       AuthorizeSettings = authSettings;
       BookLibrary = new BookLibrary(dbDir);
-      Authorize = new Authorize(getConfigurationToken, authSettings);
+      Authorize = new Authorize(GetConfigurationToken, authSettings);
       AudibleLogin = new AudibleLogin();
     }
 
@@ -47,14 +47,14 @@ namespace Oahu.Core
     {
       get
       {
-        if (_audibleApi is null)
+        if (audibleApi is null)
         {
           if (Profile is null)
           {
             return null;
           }
 
-          _audibleApi = new AudibleApi(
+          audibleApi = new AudibleApi(
             Profile.Profile,
             Authorize.HttpClientAmazon,
             Authorize.HttpClientAudible,
@@ -62,11 +62,11 @@ namespace Oahu.Core
             Authorize.RefreshTokenAsync);
         }
 
-        return _audibleApi;
+        return audibleApi;
       }
     }
 
-    internal AudibleApi FullApi => _audibleApi as AudibleApi;
+    internal AudibleApi FullApi => audibleApi as AudibleApi;
 
     private AudibleLogin AudibleLogin { get; }
 
@@ -103,7 +103,7 @@ namespace Oahu.Core
       bool withPreAmazonUsername)
     {
       Log(3, this, () => $"reg={region}, preAmznAccnt={withPreAmazonUsername}");
-      disposeProfileAndApi();
+      DisposeProfileAndApi();
 
       return AudibleLogin.BuildAuthUri(region, withPreAmazonUsername);
     }
@@ -112,23 +112,23 @@ namespace Oahu.Core
       Uri uri,
       Callbacks callbacks)
     {
-      using var _ = new LogGuard(3, this);
+      using var logGuard = new LogGuard(3, this);
 
       var profile = AudibleLogin.ParseExternalResponse(uri);
 
       if (profile is null)
       {
         Log(1, this, () => "response parsing failed.");
-        return new RegisterResult(EAuthorizeResult.authorizationFailed, null, null);
+        return new RegisterResult(EAuthorizeResult.AuthorizationFailed, null, null);
       }
 
       var (succ, prevProfile) = await Authorize.RegisterAsync(profile);
       if (!succ)
       {
-        return new RegisterResult(EAuthorizeResult.registrationFailed, null, null);
+        return new RegisterResult(EAuthorizeResult.RegistrationFailed, null, null);
       }
 
-      EAuthorizeResult result = EAuthorizeResult.succ;
+      EAuthorizeResult result = EAuthorizeResult.Succ;
 
       if (profile.Matches(prevProfile))
       {
@@ -142,12 +142,12 @@ namespace Oahu.Core
       // if (deregister) {
       //  succ = await Authorize.DeregisterAsync (prevProfile);
       //  if (!succ)
-      //    result = EAuthorizeResult.deregistrationFailed;
+      //    result = EAuthorizeResult.DeregistrationFailed;
       // }
       bool deregister = prevProfile is not null;
       if (deregister)
       {
-        result = EAuthorizeResult.deregistrationFailed;
+        result = EAuthorizeResult.DeregistrationFailed;
       }
 
       return new(result, profile.CreateKeyEx(), prevProfile?.DeviceInfo?.Name);
@@ -158,8 +158,8 @@ namespace Oahu.Core
       Func<AccountAliasContext, bool> getAccountAliasFunc)
     {
       Log(3, typeof(AudibleClient), () => aliasKey?.ToString());
-      disposeProfileAndApi();
-      var resultKey = await fromFileAsync(aliasKey, getAccountAliasFunc);
+      DisposeProfileAndApi();
+      var resultKey = await FromFileAsync(aliasKey, getAccountAliasFunc);
       return resultKey;
     }
 
@@ -207,10 +207,10 @@ namespace Oahu.Core
     {
       Log(3, this, () => key.ToString());
       var result = await Authorize.RemoveProfileAsync(key);
-      if (result >= EAuthorizeResult.succ)
+      if (result >= EAuthorizeResult.Succ)
       {
         BookLibrary.RemoveAccountId(key);
-        setProfile(null, null);
+        SetProfile(null, null);
       }
 
       return result;
@@ -228,7 +228,7 @@ namespace Oahu.Core
       }
 
       Log(3, this, () => Authorize?.GetProfile(key)?.CreateAliasKey(BookLibrary, null)?.ToString());
-      disposeProfileAndApi();
+      DisposeProfileAndApi();
 
       var profiles = await Authorize.GetRegisteredProfilesAsync();
       if (profiles is null)
@@ -242,7 +242,7 @@ namespace Oahu.Core
         return null;
       }
 
-      setProfile(profile, null);
+      SetProfile(profile, null);
 
       if (profileChanged)
       {
@@ -252,7 +252,7 @@ namespace Oahu.Core
       return true;
     }
 
-    private IProfileAliasKey setProfile(IProfile profile, Func<AccountAliasContext, bool> getAccountAliasFunc)
+    private IProfileAliasKey SetProfile(IProfile profile, Func<AccountAliasContext, bool> getAccountAliasFunc)
     {
       if (profile is null)
       {
@@ -266,17 +266,17 @@ namespace Oahu.Core
       return aliasKey;
     }
 
-    private void disposeProfileAndApi()
+    private void DisposeProfileAndApi()
     {
       Profile = null;
-      _audibleApi?.Dispose();
-      _audibleApi = null;
+      audibleApi?.Dispose();
+      audibleApi = null;
     }
 
-    private async void settings_ChangedSettings(object sender, EventArgs e) =>
+    private async void SettingsChangedSettings(object sender, EventArgs e) =>
       await Authorize.WriteConfigurationAsync();
 
-    private ConfigurationTokenResult getConfigurationToken(bool enforce)
+    private ConfigurationTokenResult GetConfigurationToken(bool enforce)
     {
       if (!(ConfigSettings?.EncryptConfiguration ?? false) && !enforce)
       {
@@ -289,7 +289,7 @@ namespace Oahu.Core
       string uid = ApplEnv.UserName.Rot13();
       sb.Append(uid);
 
-      string cid = _hardwareIdProvider?.GetCpuId();
+      string cid = hardwareIdProvider?.GetCpuId();
       if (cid.IsNullOrWhiteSpace())
       {
         weak = true;
@@ -299,10 +299,10 @@ namespace Oahu.Core
         sb.Append(cid);
       }
 
-      string mbId = _hardwareIdProvider?.GetMotherboardId();
+      string mbId = hardwareIdProvider?.GetMotherboardId();
       if (mbId.IsNullOrWhiteSpace())
       {
-        mbId = _hardwareIdProvider?.GetMotherboardPnpDeviceId();
+        mbId = hardwareIdProvider?.GetMotherboardPnpDeviceId();
       }
 
       if (mbId.IsNullOrWhiteSpace())
@@ -317,7 +317,7 @@ namespace Oahu.Core
       return new(sb.ToString(), weak);
     }
 
-    private async Task<IProfileAliasKey> fromFileAsync(
+    private async Task<IProfileAliasKey> FromFileAsync(
       IProfileAliasKey aliasKey,
       Func<AccountAliasContext, bool> getAccountAliasFunc)
     {
@@ -350,7 +350,7 @@ namespace Oahu.Core
 
       await Authorize.RefreshTokenAsync(profile, true);
 
-      var resultKey = setProfile(profile, getAccountAliasFunc);
+      var resultKey = SetProfile(profile, getAccountAliasFunc);
       return resultKey;
     }
   }

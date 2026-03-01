@@ -5,357 +5,499 @@ namespace Oahu.Audible.Json
 {
   public interface IPerson
   {
-    string asin { get; set; }
+    [JsonPropertyName("asin")]
+    string Asin { get; set; }
 
-    string name { get; set; }
+    [JsonPropertyName("name")]
+    string Name { get; set; }
   }
 
   public class LibraryResponse : Serialization<LibraryResponse>
   {
-    public Product[] items { get; set; }
+    [JsonPropertyName("items")]
+    public Product[] Items { get; set; }
 
-    public string[] response_groups { get; set; }
+    [JsonPropertyName("response_groups")]
+    public string[] ResponseGroups { get; set; }
   }
 
   public class ProductResponse : Serialization<ProductResponse>
   {
-    public Product product { get; set; }
+    [JsonPropertyName("product")]
+    public Product Product { get; set; }
 
-    public string[] response_groups { get; set; }
+    [JsonPropertyName("response_groups")]
+    public string[] ResponseGroups { get; set; }
   }
 
   public class SimsBySeriesResponse : Serialization<SimsBySeriesResponse>
   {
-    public Product[] similar_products { get; set; }
+    [JsonPropertyName("similar_products")]
+    public Product[] SimilarProducts { get; set; }
 
-    public string[] response_groups { get; set; }
+    [JsonPropertyName("response_groups")]
+    public string[] ResponseGroups { get; set; }
   }
 
   public class Product
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string audible_editors_summary { get; set; }
+    [JsonPropertyName("audible_editors_summary")]
+    public string AudibleEditorsSummary { get; set; }
 
-    public Author[] authors { get; set; }
+    [JsonPropertyName("authors")]
+    public Author[] Authors { get; set; }
 
-    public Codec[] available_codecs { get; set; }
+    [JsonPropertyName("available_codecs")]
+    public Codec[] AvailableCodecs { get; set; }
 
-    public Category[] category_ladders { get; set; }
+    [JsonPropertyName("category_ladders")]
+    public Category[] CategoryLadders { get; set; }
 
-    public string content_delivery_type { get; set; }
+    [JsonPropertyName("content_delivery_type")]
+    public string ContentDeliveryType { get; set; }
 
-    public Content_Rating content_rating { get; set; }
+    [JsonPropertyName("content_rating")]
+    public ContentRating ContentRating { get; set; }
 
-    public string content_type { get; set; }
+    [JsonPropertyName("content_type")]
+    public string ContentType { get; set; }
 
-    public Customer_Reviews[] customer_reviews { get; set; }
+    [JsonPropertyName("customer_reviews")]
+    public CustomerReviews[] CustomerReviews { get; set; }
 
-    public string[] editorial_reviews { get; set; }
+    [JsonPropertyName("editorial_reviews")]
+    public string[] EditorialReviews { get; set; }
 
-    public string format_type { get; set; }
+    [JsonPropertyName("format_type")]
+    public string FormatType { get; set; }
 
-    public bool? has_children { get; set; }
+    [JsonPropertyName("has_children")]
+    public bool? HasChildren { get; set; }
 
-    public bool? is_adult_product { get; set; }
+    [JsonPropertyName("is_adult_product")]
+    public bool? IsAdultProduct { get; set; }
 
-    public bool? is_ayce { get; set; }
+    [JsonPropertyName("is_ayce")]
+    public bool? IsAyce { get; set; }
 
-    public bool? is_downloaded { get; set; }
+    [JsonPropertyName("is_downloaded")]
+    public bool? IsDownloaded { get; set; }
 
-    public bool? is_listenable { get; set; }
+    [JsonPropertyName("is_listenable")]
+    public bool? IsListenable { get; set; }
 
-    public bool? is_pdf_url_available { get; set; }
+    [JsonPropertyName("is_pdf_url_available")]
+    public bool? IsPdfUrlAvailable { get; set; }
 
-    public bool? is_pending { get; set; }
+    [JsonPropertyName("is_pending")]
+    public bool? IsPending { get; set; }
 
-    public bool? is_playable { get; set; }
+    [JsonPropertyName("is_playable")]
+    public bool? IsPlayable { get; set; }
 
-    public bool? is_preorderable { get; set; }
+    [JsonPropertyName("is_preorderable")]
+    public bool? IsPreorderable { get; set; }
 
-    public bool? is_purchasability_suppressed { get; set; }
+    [JsonPropertyName("is_purchasability_suppressed")]
+    public bool? IsPurchasabilitySuppressed { get; set; }
 
-    public bool? is_removable { get; set; }
+    [JsonPropertyName("is_removable")]
+    public bool? IsRemovable { get; set; }
 
-    public bool? is_removable_by_parent { get; set; }
+    [JsonPropertyName("is_removable_by_parent")]
+    public bool? IsRemovableByParent { get; set; }
 
-    public bool? is_returnable { get; set; }
+    [JsonPropertyName("is_returnable")]
+    public bool? IsReturnable { get; set; }
 
-    public bool? is_searchable { get; set; }
+    [JsonPropertyName("is_searchable")]
+    public bool? IsSearchable { get; set; }
 
-    public bool? is_visible { get; set; }
+    [JsonPropertyName("is_visible")]
+    public bool? IsVisible { get; set; }
 
-    public bool? is_world_rights { get; set; }
+    [JsonPropertyName("is_world_rights")]
+    public bool? IsWorldRights { get; set; }
 
-    public bool? is_ws4v_companion_asin_owned { get; set; }
+    [JsonPropertyName("is_ws4v_companion_asin_owned")]
+    public bool? IsWs4vCompanionAsinOwned { get; set; }
 
-    public bool? is_ws4v_enabled { get; set; }
+    [JsonPropertyName("is_ws4v_enabled")]
+    public bool? IsWs4vEnabled { get; set; }
 
-    public bool? isbn { get; set; }
+    [JsonPropertyName("isbn")]
+    public bool? Isbn { get; set; }
 
-    public DateTime? issue_date { get; set; }
+    [JsonPropertyName("issue_date")]
+    public DateTime? IssueDate { get; set; }
 
-    public string language { get; set; }
+    [JsonPropertyName("language")]
+    public string Language { get; set; }
 
-    public Library_Status library_status { get; set; }
+    [JsonPropertyName("library_status")]
+    public LibraryStatus LibraryStatus { get; set; }
 
-    public string merchandising_summary { get; set; }
+    [JsonPropertyName("merchandising_summary")]
+    public string MerchandisingSummary { get; set; }
 
-    public object music_id { get; set; }
+    [JsonPropertyName("music_id")]
+    public object MusicId { get; set; }
 
-    public Narrator[] narrators { get; set; }
+    [JsonPropertyName("narrators")]
+    public Narrator[] Narrators { get; set; }
 
-    public string origin_asin { get; set; }
+    [JsonPropertyName("origin_asin")]
+    public string OriginAsin { get; set; }
 
-    public string origin_id { get; set; }
+    [JsonPropertyName("origin_id")]
+    public string OriginId { get; set; }
 
-    public string origin_marketplace { get; set; }
+    [JsonPropertyName("origin_marketplace")]
+    public string OriginMarketplace { get; set; }
 
-    public string origin_type { get; set; }
+    [JsonPropertyName("origin_type")]
+    public string OriginType { get; set; }
 
-    public string pdf_url { get; set; }
+    [JsonPropertyName("pdf_url")]
+    public string PdfUrl { get; set; }
 
-    public float? percent_complete { get; set; }
+    [JsonPropertyName("percent_complete")]
+    public float? PercentComplete { get; set; }
 
-    public Plan[] plans { get; set; }
+    [JsonPropertyName("plans")]
+    public Plan[] Plans { get; set; }
 
-    public Product_Images product_images { get; set; }
+    [JsonPropertyName("product_images")]
+    public ProductImages ProductImages { get; set; }
 
-    public string publication_name { get; set; }
+    [JsonPropertyName("publication_name")]
+    public string PublicationName { get; set; }
 
-    public string publisher_name { get; set; }
+    [JsonPropertyName("publisher_name")]
+    public string PublisherName { get; set; }
 
-    public string publisher_summary { get; set; }
+    [JsonPropertyName("publisher_summary")]
+    public string PublisherSummary { get; set; }
 
-    public DateTime purchase_date { get; set; }
+    [JsonPropertyName("purchase_date")]
+    public DateTime PurchaseDate { get; set; }
 
-    public Rating rating { get; set; }
+    [JsonPropertyName("rating")]
+    public Rating Rating { get; set; }
 
-    public Relationship[] relationships { get; set; }
+    [JsonPropertyName("relationships")]
+    public Relationship[] Relationships { get; set; }
 
-    public DateTime? release_date { get; set; }
+    [JsonPropertyName("release_date")]
+    public DateTime? ReleaseDate { get; set; }
 
-    public int? runtime_length_min { get; set; }
+    [JsonPropertyName("runtime_length_min")]
+    public int? RuntimeLengthMin { get; set; }
 
-    public string sample_url { get; set; }
+    [JsonPropertyName("sample_url")]
+    public string SampleUrl { get; set; }
 
-    public Series[] series { get; set; }
+    [JsonPropertyName("series")]
+    public Series[] Series { get; set; }
 
-    public string sku { get; set; }
+    [JsonPropertyName("sku")]
+    public string Sku { get; set; }
 
-    public string sku_lite { get; set; }
+    [JsonPropertyName("sku_lite")]
+    public string SkuLite { get; set; }
 
-    public Social_Media_Images social_media_images { get; set; }
+    [JsonPropertyName("social_media_images")]
+    public SocialMediaImages SocialMediaImages { get; set; }
 
-    public string status { get; set; }
+    [JsonPropertyName("status")]
+    public string Status { get; set; }
 
-    public string subtitle { get; set; }
+    [JsonPropertyName("subtitle")]
+    public string Subtitle { get; set; }
 
-    public string[] thesaurus_subject_keywords { get; set; }
+    [JsonPropertyName("thesaurus_subject_keywords")]
+    public string[] ThesaurusSubjectKeywords { get; set; }
 
-    public string title { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 
-    public string voice_description { get; set; }
+    [JsonPropertyName("voice_description")]
+    public string VoiceDescription { get; set; }
   }
 
-  public class Content_Rating
+  public class ContentRating
   {
-    public string steaminess { get; set; }
+    [JsonPropertyName("steaminess")]
+    public string Steaminess { get; set; }
   }
 
-  public class Library_Status
+  public class LibraryStatus
   {
-    public DateTime date_added { get; set; }
+    [JsonPropertyName("date_added")]
+    public DateTime DateAdded { get; set; }
 
-    public bool? is_pending { get; set; }
+    [JsonPropertyName("is_pending")]
+    public bool? IsPending { get; set; }
 
-    public bool? is_preordered { get; set; }
+    [JsonPropertyName("is_preordered")]
+    public bool? IsPreordered { get; set; }
 
-    public bool? is_removable { get; set; }
+    [JsonPropertyName("is_removable")]
+    public bool? IsRemovable { get; set; }
 
-    public bool? is_visible { get; set; }
+    [JsonPropertyName("is_visible")]
+    public bool? IsVisible { get; set; }
   }
 
-  public class Product_Images
+  public class ProductImages
   {
     [JsonPropertyName("500")]
-    public string _500 { get; set; }
+    public string Image500 { get; set; }
   }
 
   public class Rating
   {
-    public int? num_reviews { get; set; }
+    [JsonPropertyName("num_reviews")]
+    public int? NumReviews { get; set; }
 
-    public Distribution overall_distribution { get; set; }
+    [JsonPropertyName("overall_distribution")]
+    public Distribution OverallDistribution { get; set; }
 
-    public Distribution performance_distribution { get; set; }
+    [JsonPropertyName("performance_distribution")]
+    public Distribution PerformanceDistribution { get; set; }
 
-    public Distribution story_distribution { get; set; }
+    [JsonPropertyName("story_distribution")]
+    public Distribution StoryDistribution { get; set; }
   }
 
   public class Distribution
   {
-    public float? average_rating { get; set; }
+    [JsonPropertyName("average_rating")]
+    public float? AverageRating { get; set; }
 
-    public string display_average_rating { get; set; }
+    [JsonPropertyName("display_average_rating")]
+    public string DisplayAverageRating { get; set; }
 
-    public float? display_stars { get; set; }
+    [JsonPropertyName("display_stars")]
+    public float? DisplayStars { get; set; }
 
-    public int? num_five_star_ratings { get; set; }
+    [JsonPropertyName("num_five_star_ratings")]
+    public int? NumFiveStarRatings { get; set; }
 
-    public int? num_four_star_ratings { get; set; }
+    [JsonPropertyName("num_four_star_ratings")]
+    public int? NumFourStarRatings { get; set; }
 
-    public int? num_one_star_ratings { get; set; }
+    [JsonPropertyName("num_one_star_ratings")]
+    public int? NumOneStarRatings { get; set; }
 
-    public int? num_ratings { get; set; }
+    [JsonPropertyName("num_ratings")]
+    public int? NumRatings { get; set; }
 
-    public int? num_three_star_ratings { get; set; }
+    [JsonPropertyName("num_three_star_ratings")]
+    public int? NumThreeStarRatings { get; set; }
 
-    public int? num_two_star_ratings { get; set; }
+    [JsonPropertyName("num_two_star_ratings")]
+    public int? NumTwoStarRatings { get; set; }
   }
 
-  public class Social_Media_Images
+  public class SocialMediaImages
   {
-    public string facebook { get; set; }
+    [JsonPropertyName("facebook")]
+    public string Facebook { get; set; }
 
-    public string twitter { get; set; }
+    [JsonPropertyName("twitter")]
+    public string Twitter { get; set; }
   }
 
   public class Author : IPerson
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
   }
 
   public class Codec
   {
-    public string enhanced_codec { get; set; }
+    [JsonPropertyName("enhanced_codec")]
+    public string EnhancedCodec { get; set; }
 
-    public string format { get; set; }
+    [JsonPropertyName("format")]
+    public string Format { get; set; }
 
-    public bool? is_kindle_enhanced { get; set; }
+    [JsonPropertyName("is_kindle_enhanced")]
+    public bool? IsKindleEnhanced { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
   }
 
   public class Category
   {
-    public Ladder[] ladder { get; set; }
+    [JsonPropertyName("ladder")]
+    public Ladder[] Ladder { get; set; }
 
-    public string root { get; set; }
+    [JsonPropertyName("root")]
+    public string Root { get; set; }
   }
 
   public class Ladder
   {
-    public string id { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
   }
 
-  public class Customer_Reviews
+  public class CustomerReviews
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string author_id { get; set; }
+    [JsonPropertyName("author_id")]
+    public string AuthorId { get; set; }
 
-    public string author_name { get; set; }
+    [JsonPropertyName("author_name")]
+    public string AuthorName { get; set; }
 
-    public string body { get; set; }
+    [JsonPropertyName("body")]
+    public string Body { get; set; }
 
-    public string format { get; set; }
+    [JsonPropertyName("format")]
+    public string Format { get; set; }
 
-    public Guided_Responses[] guided_responses { get; set; }
+    [JsonPropertyName("guided_responses")]
+    public GuidedResponses[] GuidedResponses { get; set; }
 
-    public string id { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
 
-    public string location { get; set; }
+    [JsonPropertyName("location")]
+    public string Location { get; set; }
 
-    public Ratings ratings { get; set; }
+    [JsonPropertyName("ratings")]
+    public Ratings Ratings { get; set; }
 
-    public Review_Content_Scores review_content_scores { get; set; }
+    [JsonPropertyName("review_content_scores")]
+    public ReviewContentScores ReviewContentScores { get; set; }
 
-    public DateTime? submission_date { get; set; }
+    [JsonPropertyName("submission_date")]
+    public DateTime? SubmissionDate { get; set; }
 
-    public string title { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
   }
 
   public class Ratings
   {
-    public int? overall_rating { get; set; }
+    [JsonPropertyName("overall_rating")]
+    public int? OverallRating { get; set; }
 
-    public int? performance_rating { get; set; }
+    [JsonPropertyName("performance_rating")]
+    public int? PerformanceRating { get; set; }
 
-    public int? story_rating { get; set; }
+    [JsonPropertyName("story_rating")]
+    public int? StoryRating { get; set; }
   }
 
-  public class Review_Content_Scores
+  public class ReviewContentScores
   {
-    public int? content_quality { get; set; }
+    [JsonPropertyName("content_quality")]
+    public int? ContentQuality { get; set; }
 
-    public int? num_helpful_votes { get; set; }
+    [JsonPropertyName("num_helpful_votes")]
+    public int? NumHelpfulVotes { get; set; }
 
-    public int? num_unhelpful_votes { get; set; }
+    [JsonPropertyName("num_unhelpful_votes")]
+    public int? NumUnhelpfulVotes { get; set; }
   }
 
-  public class Guided_Responses
+  public class GuidedResponses
   {
-    public string answer { get; set; }
+    [JsonPropertyName("answer")]
+    public string Answer { get; set; }
 
-    public string id { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
 
-    public string question { get; set; }
+    [JsonPropertyName("question")]
+    public string Question { get; set; }
 
-    public string question_type { get; set; }
+    [JsonPropertyName("question_type")]
+    public string QuestionType { get; set; }
   }
 
   public class Narrator : IPerson
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
   }
 
   public class Plan
   {
-    public DateTime? end_date { get; set; }
+    [JsonPropertyName("end_date")]
+    public DateTime? EndDate { get; set; }
 
-    public string plan_name { get; set; }
+    [JsonPropertyName("plan_name")]
+    public string PlanName { get; set; }
 
-    public DateTime? start_date { get; set; }
+    [JsonPropertyName("start_date")]
+    public DateTime? StartDate { get; set; }
   }
 
   public class Relationship
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string content_delivery_type { get; set; }
+    [JsonPropertyName("content_delivery_type")]
+    public string ContentDeliveryType { get; set; }
 
-    public string relationship_to_product { get; set; }
+    [JsonPropertyName("relationship_to_product")]
+    public string RelationshipToProduct { get; set; }
 
-    public string relationship_type { get; set; }
+    [JsonPropertyName("relationship_type")]
+    public string RelationshipType { get; set; }
 
-    public string sequence { get; set; }
+    [JsonPropertyName("sequence")]
+    public string Sequence { get; set; }
 
-    public string sku { get; set; }
+    [JsonPropertyName("sku")]
+    public string Sku { get; set; }
 
-    public string sku_lite { get; set; }
+    [JsonPropertyName("sku_lite")]
+    public string SkuLite { get; set; }
 
-    public string sort { get; set; }
+    [JsonPropertyName("sort")]
+    public string Sort { get; set; }
 
-    public string title { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 
-    public string url { get; set; }
+    [JsonPropertyName("url")]
+    public string Url { get; set; }
   }
 
   public class Series
   {
-    public string asin { get; set; }
+    [JsonPropertyName("asin")]
+    public string Asin { get; set; }
 
-    public string sequence { get; set; }
+    [JsonPropertyName("sequence")]
+    public string Sequence { get; set; }
 
-    public string title { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 
-    public string url { get; set; }
+    [JsonPropertyName("url")]
+    public string Url { get; set; }
   }
 }

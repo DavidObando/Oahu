@@ -86,14 +86,14 @@ public class DashFile : Mp4File
 
   public void SetDecryptionKey(string keyId, string decryptionKey)
   {
-    if (string.IsNullOrWhiteSpace(keyId) || keyId.Length != AesCtr.AES_BLOCK_SIZE * 2)
+    if (string.IsNullOrWhiteSpace(keyId) || keyId.Length != AesCtr.AesBlockSize * 2)
     {
-      throw new ArgumentException($"{nameof(keyId)} must be {AesCtr.AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(keyId)} must be {AesCtr.AesBlockSize} bytes long.");
     }
 
-    if (string.IsNullOrWhiteSpace(decryptionKey) || decryptionKey.Length != AesCtr.AES_BLOCK_SIZE * 2)
+    if (string.IsNullOrWhiteSpace(decryptionKey) || decryptionKey.Length != AesCtr.AesBlockSize * 2)
     {
-      throw new ArgumentException($"{nameof(decryptionKey)} must be {AesCtr.AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(decryptionKey)} must be {AesCtr.AesBlockSize} bytes long.");
     }
 
     byte[] keyIdBts = Convert.FromHexString(keyId);
@@ -116,14 +116,14 @@ public class DashFile : Mp4File
       throw new InvalidOperationException($"This instance of {nameof(DashFile)} does not contain a {nameof(TencBox)}.");
     }
 
-    if (keyId is null || keyId.Length != AesCtr.AES_BLOCK_SIZE)
+    if (keyId is null || keyId.Length != AesCtr.AesBlockSize)
     {
-      throw new ArgumentException($"{nameof(keyId)} must be {AesCtr.AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(keyId)} must be {AesCtr.AesBlockSize} bytes long.");
     }
 
-    if (decryptionKey is null || decryptionKey.Length != AesCtr.AES_BLOCK_SIZE)
+    if (decryptionKey is null || decryptionKey.Length != AesCtr.AesBlockSize)
     {
-      throw new ArgumentException($"{nameof(decryptionKey)} must be {AesCtr.AES_BLOCK_SIZE} bytes long.");
+      throw new ArgumentException($"{nameof(decryptionKey)} must be {AesCtr.AesBlockSize} bytes long.");
     }
 
     var keyUUID = new Guid(keyId, bigEndian: true);

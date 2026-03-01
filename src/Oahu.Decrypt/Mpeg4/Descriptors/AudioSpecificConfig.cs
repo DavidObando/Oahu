@@ -23,11 +23,11 @@ public interface IASC
 // and only parses data through the dependsOnCoreCoder flag in GASpecificConfig (Subpart 4)
 public class AudioSpecificConfig : BaseDescriptor, IASC
 {
-  public static readonly int[] ASC_SampleRates = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
-  public static readonly int MinSampleRate = ASC_SampleRates[^1];
-  public static readonly int MaxSampleRate = ASC_SampleRates[0];
+  public static readonly int[] AscSampleRates = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+  public static readonly int MinSampleRate = AscSampleRates[^1];
+  public static readonly int MaxSampleRate = AscSampleRates[0];
 
-  private const byte AOT_ESCAPE = 31;
+  private const byte AotEscape = 31;
   private static readonly byte[] SupportedObjectTypes = [1, 2, 3, 4, 6, 7, 17, 19, 20, 21, 22, 23, 42];
 
   private int ascBlobLength = 0;
@@ -91,7 +91,7 @@ public class AudioSpecificConfig : BaseDescriptor, IASC
   {
     var bitReader = new BitReader(ascBlob);
     asc.AudioObjectType = (int)bitReader.Read(5);
-    if (asc.AudioObjectType == AOT_ESCAPE)
+    if (asc.AudioObjectType == AotEscape)
     {
       asc.AudioObjectType = (int)bitReader.Read(6) + 32;
     }
@@ -103,7 +103,7 @@ public class AudioSpecificConfig : BaseDescriptor, IASC
 
     var samplingFrequencyIndex = bitReader.Read(4);
     asc.SamplingFrequency = samplingFrequencyIndex <= 12
-        ? ASC_SampleRates[samplingFrequencyIndex]
+        ? AscSampleRates[samplingFrequencyIndex]
         : throw new NotSupportedException($"Sampling frequency index of {samplingFrequencyIndex} is not supported.");
 
     asc.ChannelConfiguration = (int)bitReader.Read(4);
@@ -117,7 +117,7 @@ public class AudioSpecificConfig : BaseDescriptor, IASC
     ArgumentOutOfRangeException.ThrowIfLessThan(AudioObjectType, 0, nameof(AudioObjectType));
     ArgumentOutOfRangeException.ThrowIfGreaterThan(AudioObjectType, 32 + 63, nameof(AudioObjectType));
 
-    var sampleIndex = Array.IndexOf(ASC_SampleRates, SamplingFrequency);
+    var sampleIndex = Array.IndexOf(AscSampleRates, SamplingFrequency);
     if (sampleIndex < 0)
     {
       throw new ArgumentException($"Unsupported SamplingFrequency of {SamplingFrequency}. Supported values are [{string.Join(", ", SamplingFrequency)}]", nameof(SamplingFrequency));
@@ -127,13 +127,13 @@ public class AudioSpecificConfig : BaseDescriptor, IASC
     ArgumentOutOfRangeException.ThrowIfGreaterThan(ChannelConfiguration, 7, nameof(ChannelConfiguration));
 
     var writer = new BitWriter();
-    if (AudioObjectType < AOT_ESCAPE)
+    if (AudioObjectType < AotEscape)
     {
       writer.Write((uint)AudioObjectType, 5);
     }
     else
     {
-      writer.Write(AOT_ESCAPE, 5);
+      writer.Write(AotEscape, 5);
       writer.Write((uint)AudioObjectType - 32, 6);
     }
 

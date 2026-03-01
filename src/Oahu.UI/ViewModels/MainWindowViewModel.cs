@@ -7,22 +7,22 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
   public partial class MainWindowViewModel : ObservableObject
   {
     [ObservableProperty]
-    private string _title = "Oahu";
+    private string title = "Oahu";
 
     [ObservableProperty]
-    private bool _isBusy;
+    private bool isBusy;
 
     [ObservableProperty]
-    private string _statusMessage = "Ready";
+    private string statusMessage = "Ready";
 
     [ObservableProperty]
-    private object _currentView;
+    private object currentView;
 
     [ObservableProperty]
-    private bool _isInitialized;
+    private bool isInitialized;
 
     [ObservableProperty]
-    private SettingsViewModel _settings;
+    private SettingsViewModel settings;
 
     public MainWindowViewModel()
     {

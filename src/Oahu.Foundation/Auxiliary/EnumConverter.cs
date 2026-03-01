@@ -12,8 +12,8 @@ namespace Oahu.Aux
   public class EnumConverter<TEnum> : TypeConverter
     where TEnum : struct, Enum
   {
-    private ResourceManager _resourceManager;
-    Dictionary<string, TEnum> _reverseLookup;
+    private ResourceManager resourceManager;
+    Dictionary<string, TEnum> reverseLookup;
 
     public EnumConverter()
     {
@@ -24,11 +24,11 @@ namespace Oahu.Aux
 
     protected ResourceManager ResourceManager
     {
-      get => _resourceManager;
+      get => resourceManager;
       set
       {
-        _resourceManager = value;
-        initReverseLookup();
+        resourceManager = value;
+        InitReverseLookup();
       }
     }
 
@@ -74,7 +74,7 @@ namespace Oahu.Aux
         default:
           return base.ConvertTo(context, culture, value, destinationType);
         case TEnum enm:
-          return toDisplayString(enm);
+          return ToDisplayString(enm);
       }
     }
 
@@ -83,11 +83,11 @@ namespace Oahu.Aux
 #if TRACE && EXTRA
       Trace.WriteLine ($"{nameof (ConvertFrom)}: \"{value}\", from: {value.GetType ().Name}");
 #endif
-      if (!(_reverseLookup is null))
+      if (!(reverseLookup is null))
       {
         if (value is string s)
         {
-          bool succ = _reverseLookup.TryGetValue(s, out TEnum e);
+          bool succ = reverseLookup.TryGetValue(s, out TEnum e);
           if (succ)
           {
             return e;
@@ -98,14 +98,14 @@ namespace Oahu.Aux
       return base.ConvertFrom(context, culture, value);
     }
 
-    private string toDisplayString(TEnum value) => ResourceManager.GetStringEx(value.ToString());
+    private string ToDisplayString(TEnum value) => ResourceManager.GetStringEx(value.ToString());
 
-    private void initReverseLookup()
+    private void InitReverseLookup()
     {
-      _reverseLookup = new Dictionary<string, TEnum>();
+      reverseLookup = new Dictionary<string, TEnum>();
       foreach (var v in Values)
       {
-        _reverseLookup.Add(toDisplayString(v), v);
+        reverseLookup.Add(ToDisplayString(v), v);
       }
     }
   }

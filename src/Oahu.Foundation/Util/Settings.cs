@@ -7,6 +7,6 @@ namespace Oahu.Common.Util
 
   public class UpdateSettings : IUpdateSettings
   {
-    public EOnlineUpdate OnlineUpdate { get; set; } = EOnlineUpdate.promptForDownload;
+    public EOnlineUpdate OnlineUpdate { get; set; } = EOnlineUpdate.PromptForDownload;
   }
 }

@@ -12,7 +12,7 @@ namespace Oahu.Common.Util
   public static class FileEx
   {
     private const int BUFSIZ = 10 * 1000 * 1000; // 10 MB
-    private const int IVL_MS = 50;
+    private const int IvlMs = 50;
 
     public static bool Copy(string sourceFileName, string destFileName, bool overwrite,
         Action<ProgressMessage> report = null, Func<bool> cancel = null) =>
@@ -23,15 +23,15 @@ namespace Oahu.Common.Util
     {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
       {
-        return copyWin32(sourceFileName, destFileName, overwrite, callout, report, cancel);
+        return CopyWin32(sourceFileName, destFileName, overwrite, callout, report, cancel);
       }
       else
       {
-        return copyPortable(sourceFileName, destFileName, overwrite, callout, report, cancel);
+        return CopyPortable(sourceFileName, destFileName, overwrite, callout, report, cancel);
       }
     }
 
-    private static bool copyWin32(string sourceFileName, string destFileName, bool overwrite, IFileCopyCallout callout,
+    private static bool CopyWin32(string sourceFileName, string destFileName, bool overwrite, IFileCopyCallout callout,
       Action<ProgressMessage> report, Func<bool> cancel)
     {
       byte[] buf = new byte[BUFSIZ];
@@ -71,7 +71,7 @@ namespace Oahu.Common.Util
             count += read;
             DateTime dt = DateTime.Now;
             long tot_ms = (int)(dt - dt0).TotalMilliseconds;
-            long q = tot_ms / IVL_MS;
+            long q = tot_ms / IvlMs;
             if (q <= ivlcnt)
             {
               continue;
@@ -88,7 +88,7 @@ namespace Oahu.Common.Util
       return true;
     }
 
-    private static bool copyPortable(string sourceFileName, string destFileName, bool overwrite, IFileCopyCallout callout,
+    private static bool CopyPortable(string sourceFileName, string destFileName, bool overwrite, IFileCopyCallout callout,
       Action<ProgressMessage> report, Func<bool> cancel)
     {
       byte[] buf = new byte[BUFSIZ];
@@ -127,7 +127,7 @@ namespace Oahu.Common.Util
             count += read;
             DateTime dt = DateTime.Now;
             long tot_ms = (int)(dt - dt0).TotalMilliseconds;
-            long q = tot_ms / IVL_MS;
+            long q = tot_ms / IvlMs;
             if (q <= ivlcnt)
             {
               continue;

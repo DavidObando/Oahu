@@ -6,7 +6,7 @@ namespace Oahu.App.Avalonia
 {
   public partial class SetupWizardWindow : Window
   {
-    private readonly ProfileWizardViewModel _viewModel;
+    private readonly ProfileWizardViewModel viewModel;
 
     public SetupWizardWindow()
     {
@@ -15,7 +15,7 @@ namespace Oahu.App.Avalonia
 
     public SetupWizardWindow(ProfileWizardViewModel viewModel) : this()
     {
-      _viewModel = viewModel;
+      this.viewModel = viewModel;
       DataContext = viewModel;
       viewModel.WizardCompleted += (s, e) => Close(viewModel.RegistrationSucceeded);
     }

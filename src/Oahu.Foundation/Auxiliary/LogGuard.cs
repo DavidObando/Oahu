@@ -7,117 +7,117 @@ namespace Oahu.Aux
   {
     const string IN = ">>> ";
     const string OUT = "<<< ";
-    readonly uint _level;
-    readonly Func<string> _func;
-    readonly string _msg;
-    readonly string _method;
-    readonly object _caller;
-    readonly Type _type;
-    bool _isDispose;
+    readonly uint level;
+    readonly Func<string> func;
+    readonly string msg;
+    readonly string method;
+    readonly object caller;
+    readonly Type type;
+    bool isDispose;
 
     public LogGuard(uint level, Type type, Func<string> func, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _type = type;
-      _func = func;
-      _method = method;
-      Logging.Log(level, type, getFuncMsg, method);
+      this.level = level;
+      this.type = type;
+      this.func = func;
+      this.method = method;
+      Logging.Log(level, type, GetFuncMsg, method);
     }
 
     public LogGuard(uint level, object caller, Func<string> func, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _caller = caller;
-      _func = func;
-      _method = method;
-      Logging.Log(level, caller, getFuncMsg, method);
+      this.level = level;
+      this.caller = caller;
+      this.func = func;
+      this.method = method;
+      Logging.Log(level, caller, GetFuncMsg, method);
     }
 
     public LogGuard(uint level, Type type, string msg, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _type = type;
-      _msg = msg;
-      _method = method;
-      Logging.Log(level, type, getMsg, method);
+      this.level = level;
+      this.type = type;
+      this.msg = msg;
+      this.method = method;
+      Logging.Log(level, type, GetMsg, method);
     }
 
     public LogGuard(uint level, object caller, string msg, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _caller = caller;
-      _msg = msg;
-      _method = method;
-      Logging.Log(level, caller, getMsg(), method);
+      this.level = level;
+      this.caller = caller;
+      this.msg = msg;
+      this.method = method;
+      Logging.Log(level, caller, GetMsg(), method);
     }
 
     public LogGuard(uint level, Type type, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _type = type;
-      _method = method;
+      this.level = level;
+      this.type = type;
+      this.method = method;
       Logging.Log(level, type, () => IN, method);
     }
 
     public LogGuard(uint level, object caller, [CallerMemberName] string method = null)
     {
-      _level = level;
-      _caller = caller;
-      _method = method;
+      this.level = level;
+      this.caller = caller;
+      this.method = method;
       Logging.Log(level, caller, () => IN, method);
     }
 
     public void Dispose()
     {
-      _isDispose = true;
-      if (_type is null)
+      isDispose = true;
+      if (type is null)
       {
-        if (_func is null)
+        if (func is null)
         {
-          if (_msg is null)
+          if (msg is null)
           {
-            Logging.Log(_level, _caller, () => OUT, _method);
+            Logging.Log(level, caller, () => OUT, method);
           }
           else
           {
-            Logging.Log(_level, _caller, getMsg(), _method);
+            Logging.Log(level, caller, GetMsg(), method);
           }
         }
         else
         {
-          Logging.Log(_level, _caller, getFuncMsg, _method);
+          Logging.Log(level, caller, GetFuncMsg, method);
         }
       }
-      else if (_type is not null)
+      else if (type is not null)
       {
-        if (_func is null)
+        if (func is null)
         {
-          if (_msg is null)
+          if (msg is null)
           {
-            Logging.Log(_level, _type, () => OUT, _method);
+            Logging.Log(level, type, () => OUT, method);
           }
           else
           {
-            Logging.Log(_level, _type, getMsg(), _method);
+            Logging.Log(level, type, GetMsg(), method);
           }
         }
         else
         {
-          Logging.Log(_level, _type, getFuncMsg, _method);
+          Logging.Log(level, type, GetFuncMsg, method);
         }
       }
     }
 
-    private string getFuncMsg()
+    private string GetFuncMsg()
     {
-      string prefix = _isDispose ? OUT : IN;
-      return prefix + _func?.Invoke();
+      string prefix = isDispose ? OUT : IN;
+      return prefix + func?.Invoke();
     }
 
-    private string getMsg()
+    private string GetMsg()
     {
-      string prefix = _isDispose ? OUT : IN;
-      return prefix + _msg;
+      string prefix = isDispose ? OUT : IN;
+      return prefix + msg;
     }
   }
 }
