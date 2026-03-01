@@ -100,6 +100,17 @@ namespace Oahu.App.Avalonia
               await viewModel.Api.DownloadCoverImagesAsync();
             }
 
+            // Verify that completed downloads still have their output files on disk.
+            // If a file is missing, the conversion state is reset to Remote.
+            viewModel.SetBusy(true, "Verifying downloaded files...");
+            int resetCount = viewModel.Api.VerifyCompletedDownloads(
+              userSettings.DownloadSettings,
+              userSettings.ExportSettings);
+            if (resetCount > 0)
+            {
+              Log(3, this, () => $"{resetCount} book(s) reset to Remote (output files missing)");
+            }
+
             // Load books into the library view
             var books = viewModel.Api.GetBooks();
             if (books is not null)
@@ -204,6 +215,11 @@ namespace Oahu.App.Avalonia
       int totalItems = conversions.Count;
       int completedItems = 0;
 
+      // Per-item accumulated progress for download (permille) and decrypt (percent)
+      var downloadPermille = new Dictionary<string, int>();
+      var decryptPercent = new Dictionary<string, int>();
+      var itemProgress = new Dictionary<string, double>();
+
       var progress = new Progress<ProgressMessage>(msg =>
       {
         Dispatcher.UIThread.Post(() =>
@@ -213,8 +229,33 @@ namespace Oahu.App.Avalonia
             completedItems += msg.IncItem.Value;
           }
 
-          double pct = totalItems > 0 ? (double)completedItems / totalItems : 0;
-          viewModel.Conversion.UpdateOverallProgress(pct,
+          // Per-item download progress (0% to 50% of item bar)
+          if (msg.IncStepsPerMille.HasValue && msg.Asin is not null
+            && lookup.TryGetValue(msg.Asin, out var dlItem))
+          {
+            int accumulated = downloadPermille.GetValueOrDefault(msg.Asin) + msg.IncStepsPerMille.Value;
+            downloadPermille[msg.Asin] = accumulated;
+            double p = Math.Min(accumulated / 1000.0, 1.0) * 0.5;
+            itemProgress[msg.Asin] = p;
+            dlItem.UpdateProgress(p);
+          }
+
+          // Per-item decrypt progress (50% to 100% of item bar)
+          if (msg.IncStepsPerCent.HasValue && msg.Asin is not null
+            && lookup.TryGetValue(msg.Asin, out var decItem))
+          {
+            int accumulated = decryptPercent.GetValueOrDefault(msg.Asin) + msg.IncStepsPerCent.Value;
+            decryptPercent[msg.Asin] = accumulated;
+            double p = 0.5 + Math.Min(accumulated / 100.0, 1.0) * 0.5;
+            itemProgress[msg.Asin] = p;
+            decItem.UpdateProgress(p);
+          }
+
+          // Overall progress: average of all per-item progress
+          double overallPct = totalItems > 0
+            ? itemProgress.Values.Sum() / totalItems
+            : 0;
+          viewModel.Conversion.UpdateOverallProgress(overallPct,
             $"Processing {completedItems} of {totalItems}...");
         });
       });
@@ -242,6 +283,10 @@ namespace Oahu.App.Avalonia
 
           if (done)
           {
+            // Mark item as fully complete for overall progress calculation
+            itemProgress[conv.Book.Asin] = 1.0;
+            itemVm.UpdateProgress(1.0);
+
             string title = conv.Book.Title ?? conv.Book.Asin;
             string stateLabel = conv.State switch
             {

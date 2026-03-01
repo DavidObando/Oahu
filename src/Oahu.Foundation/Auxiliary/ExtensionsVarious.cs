@@ -536,7 +536,7 @@ namespace Oahu.Aux.Extensions
       }
 
       var unmangledName = typeDefinition.Substring(0, idx);
-      return unmangledName + $"<{string.Join(",", genericArguments.Select(t => t.PrettyName(1)))}>";  
+      return unmangledName + $"<{string.Join(",", genericArguments.Select(t => t.PrettyName(1)))}>";
 
       string TypeName() => fullName ? type.FullName : type.Name;
     }

@@ -70,9 +70,9 @@ namespace Oahu.Aux.Diagnostics
   internal class TreeDecomposition<T>
     where T : IPrimitiveTypes, new()
   {
-    static IPrimitiveTypes PrimitveTypes = new T();
+    static IPrimitiveTypes primitveTypes = new T();
 
-    static TreeDecomposition<T> Default_;
+    static TreeDecomposition<T> @default;
 
     private TreeDecomposition()
     {
@@ -82,12 +82,12 @@ namespace Oahu.Aux.Diagnostics
     {
       get
       {
-        if (Default_ is null)
+        if (@default is null)
         {
-          Default_ = new TreeDecomposition<T>();
+          @default = new TreeDecomposition<T>();
         }
 
-        return Default_;
+        return @default;
       }
     }
 
@@ -97,7 +97,7 @@ namespace Oahu.Aux.Diagnostics
     /// <param name="o">The object to dump.</param>
     /// <param name="tw">The TextWriter output.</param>
     /// <param name="ind">The indentation.</param>
-    /// <param name="falgs">The output modifier flags.</param>
+    /// <param name="flags">The output modifier flags.</param>
     /// <param name="caption">The optional caption for this indentation level.</param>
     public void Dump(object o, TextWriter tw, Indent ind, EDumpFlags flags = default, string caption = null) =>
       DumpInternal(o, new Stack<Type>(), tw, ind, flags, caption, null, null, null, false);
@@ -156,7 +156,7 @@ namespace Oahu.Aux.Diagnostics
       // type == typeof (DateTimeOffset) ||
       // type == typeof (TimeSpan);
       // ||  Nullable.GetUnderlyingType (type) != null;
-      bool isAddedPrimitive = PrimitveTypes.IsPrimitiveType(type);
+      bool isAddedPrimitive = primitveTypes.IsPrimitiveType(type);
 
       bool isPrimitive = isBuiltInPrimitive || isSystemType || isAddedPrimitive;
       return isPrimitive;
@@ -217,10 +217,10 @@ namespace Oahu.Aux.Diagnostics
       }
       else
       {
-        sValue = PrimitveTypes.ToString(value);
+        sValue = primitveTypes.ToString(value);
         if (sValue is null && value.GetType().IsEnum)
         {
-          sValue = PrimitveTypes.ToString<Enum>(value);
+          sValue = primitveTypes.ToString<Enum>(value);
         }
 
         if (sValue is null)

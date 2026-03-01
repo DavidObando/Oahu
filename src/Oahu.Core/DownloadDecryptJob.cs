@@ -85,7 +85,7 @@ namespace Oahu.Core
       const int TP_KEY = 1;
       using var lg = new LogGuard(3, this, () => conversion.ToString());
 
-      using var tp = new ThreadProgressPerMille(pm => progress.Report(pm));
+      using var tp = new ThreadProgressPerMille(pm => progress.Report(pm), conversion.Book.Asin);
       threadProgress.TryAdd((conversion, TP_KEY), tp);
 
       bool succ = true;
@@ -175,7 +175,7 @@ namespace Oahu.Core
       const int TP_KEY = 2;
       using var lg = new LogGuard(3, this, () => conversion.ToString());
 
-      using var tp = new ThreadProgressPerCent(pm => progress.Report(pm));
+      using var tp = new ThreadProgressPerCent(pm => progress.Report(pm), conversion.Book.Asin);
       threadProgress.TryAdd((conversion, TP_KEY), tp);
 
       bool succ = true;

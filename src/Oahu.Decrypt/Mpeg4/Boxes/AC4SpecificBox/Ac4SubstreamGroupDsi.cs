@@ -5,13 +5,13 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// <summary>
 /// ETSI TS 103 190-2 E.11 ac4_substream_group_dsi
 /// </summary>
-public class ac4_substream_group_dsi
+public class Ac4SubstreamGroupDsi
 {
   public bool BSubstreamsPresent;
   public bool BHsfExt;
   public bool BChannelCoded;
   public byte NSubstreams;
-  public ac4_substream[] Substreams;
+  public Ac4Substream[] Substreams;
   public bool BContentType;
 
   public byte? ContentClassifier;
@@ -19,16 +19,16 @@ public class ac4_substream_group_dsi
   public int? NLanguageTagBytes;
   public byte[]? LanguageTagBytes;
 
-  public ac4_substream_group_dsi(BitReader reader)
+  public Ac4SubstreamGroupDsi(BitReader reader)
   {
     BSubstreamsPresent = reader.ReadBool();
     BHsfExt = reader.ReadBool();
     BChannelCoded = reader.ReadBool();
     NSubstreams = (byte)reader.Read(8);
-    Substreams = new ac4_substream[NSubstreams];
+    Substreams = new Ac4Substream[NSubstreams];
     for (int i = 0; i < NSubstreams; i++)
     {
-      Substreams[i] = new ac4_substream(this, reader);
+      Substreams[i] = new Ac4Substream(this, reader);
     }
 
     BContentType = reader.ReadBool();

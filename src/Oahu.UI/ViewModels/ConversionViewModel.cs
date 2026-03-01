@@ -165,10 +165,13 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
         EConversionState.Unknown => "Queued",
         EConversionState.LicenseGranted => "Licensed",
         EConversionState.LicenseDenied => "License denied",
+        EConversionState.Downloading => "Downloading...",
         EConversionState.LocalLocked => "Downloaded",
         EConversionState.DownloadError => "Download error",
+        EConversionState.Unlocking => "Decrypting...",
         EConversionState.LocalUnlocked => "Decrypted",
         EConversionState.UnlockingFailed => "Decrypt error",
+        EConversionState.Converting => "Exporting...",
         EConversionState.Exported => "Exported",
         EConversionState.ConversionError => "Export error",
         _ => state.ToString()

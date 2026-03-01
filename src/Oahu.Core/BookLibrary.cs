@@ -482,8 +482,150 @@ namespace Oahu.Core
       }
     }
 
-    // internal instead of private for testing only
-    internal static void AddChapters(BookDbContext dbContext, Oahu.Audible.Json.ContentLicense license, Conversion conversion)
+    /// <summary>
+    /// Verifies that books in terminal download states (LocalUnlocked, Exported, Converted)
+    /// still have their output files on disk. If a file is missing, the conversion state is
+    /// reset to Remote so the book can be re-downloaded.
+    /// Loads the full Book graph (same shape as <see cref="GetBooks"/>) and populates the
+    /// <see cref="BookCache"/> so the caller always sees consistent state.
+    /// </summary>
+    /// <returns>The number of conversions that were reset.</returns>
+    public int VerifyCompletedDownloads(
+      ProfileId profileId,
+      IDownloadSettings downloadSettings,
+      IExportSettings exportSettings)
+    {
+      using var lg = new LogGuard(3, this);
+      using var dbContext = new BookDbContext(DbDir);
+
+      // Load books with full graph, matching the GetBooks() query shape,
+      // so the cached objects and DB stay in sync.
+      IEnumerable<Book> books = dbContext.Books
+        .Include(b => b.Conversion)
+        .Include(b => b.Components)
+        .ThenInclude(c => c.Conversion)
+        .Include(b => b.Authors)
+        .Include(b => b.Narrators)
+        .Include(b => b.Series)
+        .ThenInclude(s => s.Series)
+        .Include(b => b.Ladders)
+        .ThenInclude(l => l.Rungs)
+        .ThenInclude(r => r.Genre)
+        .Include(b => b.Genres)
+        .Include(b => b.Codecs)
+        .ToList();
+
+      var booksByProfile = books
+        .Where(b => b.Conversion.AccountId == profileId.AccountId && b.Conversion.Region == profileId.Region)
+        .ToList();
+
+      // Collect all conversions (book-level and component-level) in terminal states
+      var candidateConversions = new List<Conversion>();
+      foreach (var book in booksByProfile)
+      {
+        if (book.Conversion?.State is EConversionState.LocalUnlocked
+            or EConversionState.Exported
+            or EConversionState.Converted)
+        {
+          candidateConversions.Add(book.Conversion);
+        }
+
+        if (book.Components is not null)
+        {
+          foreach (var comp in book.Components)
+          {
+            if (comp.Conversion?.State is EConversionState.LocalUnlocked
+                or EConversionState.Exported
+                or EConversionState.Converted)
+            {
+              candidateConversions.Add(comp.Conversion);
+            }
+          }
+        }
+      }
+
+      var dnldDir = downloadSettings?.DownloadDirectory;
+      var exportDir = exportSettings?.ExportDirectory;
+      int resetCount = 0;
+
+      foreach (var conv in candidateConversions)
+      {
+        bool fileExists = conv.State switch
+        {
+          EConversionState.LocalUnlocked => OutputFileExists(conv, R.DecryptedFileExt, dnldDir),
+          EConversionState.Exported => OutputFileExists(conv, R.ExportedFileExt, exportDir),
+          EConversionState.Converted => ConvertedFilesExist(conv),
+          _ => true
+        };
+
+        if (!fileExists)
+        {
+          Log(3, this, () =>
+            $"output file missing for \"{conv.DownloadFileName}\" (state={conv.State}), resetting to Remote");
+          UpdateState(conv, EConversionState.Remote);
+          conv.DownloadFileName = null;
+          resetCount++;
+        }
+      }
+
+      if (resetCount > 0)
+      {
+        dbContext.SaveChanges();
+        Log(3, this, () => $"reset {resetCount} conversion(s) to Remote");
+      }
+
+      // Populate the book cache with the objects we just loaded and verified.
+      // GetBooks() will return these exact instances, avoiding stale reads.
+      lock (BookCache)
+      {
+        BookCache[profileId] = booksByProfile;
+      }
+
+      Log(3, this, () => $"cached {booksByProfile.Count} book(s)");
+
+      return resetCount;
+    }
+
+    private static bool OutputFileExists(Conversion conv, string ext, string directory)
+    {
+      if (conv.DownloadFileName is not null)
+      {
+        // Check using the stored full path
+        string path = (conv.DownloadFileName + ext).AsUncIfLong();
+        if (File.Exists(path))
+        {
+          return true;
+        }
+      }
+
+      // Check in the configured directory (file may have been relocated)
+      if (conv.DownloadFileName is not null && directory is not null)
+      {
+        string filename = conv.DownloadFileName.GetDownloadFileNameWithoutExtension();
+        string path = Path.Combine(directory, filename + ext).AsUncIfLong();
+        if (File.Exists(path))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    private static bool ConvertedFilesExist(Conversion conv)
+    {
+      string dir = conv.DestDirectory?.AsUncIfLong();
+      if (dir is null || !Directory.Exists(dir))
+      {
+        return false;
+      }
+
+      return Directory.GetFiles(dir)
+        .Select(f => Path.GetExtension(f).ToLower())
+        .Any(e => Extensions.Contains(e));
+    }
+
+    private static void AddChapters(BookDbContext dbContext, Oahu.Audible.Json.ContentLicense license, Conversion conversion)
     {
       var source = license?.ContentMetadata?.ChapterInfo;
       if (source is null)

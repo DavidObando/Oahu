@@ -9,7 +9,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes;
 /// </summary>
 public class Dac4Box : Box
 {
-  public ac4_dsi_v1? Ac4DsiV1;
+  public Ac4DsiV1? Ac4DsiV1;
 
   private readonly byte[] ac4Data;
 
@@ -19,7 +19,7 @@ public class Dac4Box : Box
     try
     {
       var reader = new BitReader(ac4Data);
-      Ac4DsiV1 = new ac4_dsi_v1(reader);
+      Ac4DsiV1 = new Ac4DsiV1(reader);
     }
     catch
     {

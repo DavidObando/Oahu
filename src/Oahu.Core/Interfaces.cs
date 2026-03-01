@@ -91,6 +91,10 @@ namespace Oahu.Core
       IExportSettings exportSettings,
       Action<IConversion> callbackRefConversion,
       IInteractionCallback<InteractionMessage<BookLibInteract>, bool?> interactCallback);
+
+    int VerifyCompletedDownloads(
+      IDownloadSettings downloadSettings,
+      IExportSettings exportSettings);
   }
 
   interface IProfile

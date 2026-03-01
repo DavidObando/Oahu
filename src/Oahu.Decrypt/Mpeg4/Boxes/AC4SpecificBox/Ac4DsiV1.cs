@@ -6,7 +6,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// <summary>
 /// ETSI TS 103 190-2 E.6 ac4_dsi_v1
 /// </summary>
-public class ac4_dsi_v1
+public class Ac4DsiV1
 {
   public byte Ac4DsiVersion;
   public byte BitstreamVersion;
@@ -17,10 +17,10 @@ public class ac4_dsi_v1
   public ushort? ShortProgramId;
   public bool? BUuid;
   public Guid? ProgramUuid;
-  public ac4_bitrate_dsi Ac4BitrateDsi;
+  public Ac4BitrateDsi Ac4BitrateDsi;
   public object?[] Presentations;
 
-  public ac4_dsi_v1(BitReader reader)
+  public Ac4DsiV1(BitReader reader)
   {
     Ac4DsiVersion = (byte)reader.Read(3);
     BitstreamVersion = (byte)reader.Read(7);
@@ -52,7 +52,7 @@ public class ac4_dsi_v1
       }
     }
 
-    Ac4BitrateDsi = new ac4_bitrate_dsi(reader);
+    Ac4BitrateDsi = new Ac4BitrateDsi(reader);
     reader.ByteAlign();
     Presentations = new object[NPresentations];
     for (int i = 0; i < NPresentations; i++)
@@ -77,7 +77,7 @@ public class ac4_dsi_v1
         {
           // 2 is an Extension to AC-4 DSI
           var start = reader.Position;
-          Presentations[i] = new ac4_presentation_v1_dsi(presentationVersion, presBytes, reader);
+          Presentations[i] = new Ac4PresentationV1Dsi(presentationVersion, presBytes, reader);
           presentationBytes = (uint)(reader.Position - start) / 8;
         }
         else

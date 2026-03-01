@@ -5,7 +5,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// <summary>
 /// ETSI TS 103 190-2 E.11 ac4_substream_group_dsi
 /// </summary>
-public class ac4_substream
+public class Ac4Substream
 {
   public byte DsiSfMultiplier;
   public bool BSubstreamBitrateIndicator;
@@ -19,7 +19,7 @@ public class ac4_substream
   public bool? BSubstreamContainsDynamicObjects;
   public bool? BSubstreamContainsIsfObjects;
 
-  public ac4_substream(ac4_substream_group_dsi info, BitReader reader)
+  public Ac4Substream(Ac4SubstreamGroupDsi info, BitReader reader)
   {
     DsiSfMultiplier = (byte)reader.Read(2);
     BSubstreamBitrateIndicator = reader.ReadBool();
