@@ -455,6 +455,16 @@ namespace Oahu.Core
         interactCallback);
     }
 
+    public int VerifyCompletedDownloads(
+      IDownloadSettings downloadSettings,
+      IExportSettings exportSettings)
+    {
+      return BookLibrary.VerifyCompletedDownloads(
+        new ProfileId(AccountId, Region),
+        downloadSettings,
+        exportSettings);
+    }
+
     internal async Task<Oahu.Audible.Json.LibraryResponse> GetLibraryAsync(string json, bool resync)
     {
       using var logGuard = new LogGuard(3, this, () => $"resync={resync}");

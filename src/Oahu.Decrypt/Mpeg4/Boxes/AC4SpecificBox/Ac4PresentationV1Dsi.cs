@@ -6,7 +6,7 @@ namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 /// <summary>
 /// ETSI TS 103 190-2 E.10 ac4_presentation_v1_dsi
 /// </summary>
-public class ac4_presentation_v1_dsi
+public class Ac4PresentationV1Dsi
 {
   public uint PresentationVersion;
   public byte PresentationConfigV1;
@@ -31,21 +31,21 @@ public class ac4_presentation_v1_dsi
   public byte? NFilterBytes;
   public byte[]? FilterData;
 
-  public ac4_substream_group_dsi? Substream;
+  public Ac4SubstreamGroupDsi? Substream;
   public bool? BPreVirtualized;
   public byte? NAddEmdfSubstreams;
   public (byte SubstreamEmdfVersion, ushort SubstreamKeyId)[]? SubstreamsEmdfs;
   public bool BPresentationBitrateInfo;
-  public ac4_bitrate_dsi? Ac4BitrateDsi;
+  public Ac4BitrateDsi? Ac4BitrateDsi;
   public bool BAlternative;
-  public alternative_info? AlternativeInfo;
+  public AlternativeInfo? AlternativeInfo;
   public byte? DeIndicator;
   public bool? BExtendedPresentationId;
   public ushort? ExtendedPresentationId;
 
   public bool? DolbyAtmosIndicator;
 
-  public ac4_presentation_v1_dsi(uint presentationVersion, uint presBytes, BitReader reader)
+  public Ac4PresentationV1Dsi(uint presentationVersion, uint presBytes, BitReader reader)
   {
     PresentationVersion = presentationVersion;
     var start = reader.Position;
@@ -106,7 +106,7 @@ public class ac4_presentation_v1_dsi
 
       if (PresentationConfigV1 == 0x1f)
       {
-        Substream = new ac4_substream_group_dsi(reader);
+        Substream = new Ac4SubstreamGroupDsi(reader);
       }
       else
       {
@@ -130,14 +130,14 @@ public class ac4_presentation_v1_dsi
     BPresentationBitrateInfo = reader.ReadBool();
     if (BPresentationBitrateInfo)
     {
-      Ac4BitrateDsi = new ac4_bitrate_dsi(reader);
+      Ac4BitrateDsi = new Ac4BitrateDsi(reader);
     }
 
     BAlternative = reader.ReadBool();
     if (BAlternative)
     {
       reader.ByteAlign();
-      AlternativeInfo = new alternative_info(reader);
+      AlternativeInfo = new AlternativeInfo(reader);
     }
 
     reader.ByteAlign();

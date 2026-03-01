@@ -19,7 +19,8 @@ namespace Oahu.Common.Util
     int? ItemCount,
     int? IncItem,
     int? IncStepsPerCent,
-    int? IncStepsPerMille);
+    int? IncStepsPerMille,
+    string Asin = null);
 
   public record UpdateInteractionMessage(EUpdateInteract Kind, IPackageInfo PckInfo);
 

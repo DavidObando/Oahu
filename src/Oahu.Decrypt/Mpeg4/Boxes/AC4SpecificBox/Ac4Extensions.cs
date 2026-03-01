@@ -6,12 +6,12 @@ public static class Ac4Extensions
 {
   static readonly byte[] NumChannelsPerGroup = [2, 1, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2];
 
-  public static int? SampleRate(this ac4_dsi_v1? ac4DsiV1) =>
+  public static int? SampleRate(this Ac4DsiV1? ac4DsiV1) =>
       ac4DsiV1 is null ? null
       : ac4DsiV1.FsIndex == 0 ? 44100
       : 48000;
 
-  public static uint? AverageBitrate(this ac4_dsi_v1? ac4DsiV1)
+  public static uint? AverageBitrate(this Ac4DsiV1? ac4DsiV1)
   {
     if (ac4DsiV1 is null)
     {
@@ -23,9 +23,9 @@ public static class Ac4Extensions
       return ac4DsiV1.Ac4BitrateDsi.BitRate;
     }
 
-    foreach (var presentation in ac4DsiV1.Presentations.OfType<ac4_presentation_v1_dsi>().Where(p => p.BPresentationBitrateInfo))
+    foreach (var presentation in ac4DsiV1.Presentations.OfType<Ac4PresentationV1Dsi>().Where(p => p.BPresentationBitrateInfo))
     {
-      if (presentation.Ac4BitrateDsi is ac4_bitrate_dsi btrt && btrt.BitRate != 0)
+      if (presentation.Ac4BitrateDsi is Ac4BitrateDsi btrt && btrt.BitRate != 0)
       {
         return btrt.BitRate;
       }
@@ -34,7 +34,7 @@ public static class Ac4Extensions
     return null;
   }
 
-  public static ChannelGroups? Channels(this ac4_dsi_v1? ac4DsiV1)
+  public static ChannelGroups? Channels(this Ac4DsiV1? ac4DsiV1)
   {
     if (ac4DsiV1 is null)
     {
@@ -43,7 +43,7 @@ public static class Ac4Extensions
 
     foreach (var presentation in ac4DsiV1
             .Presentations
-            .OfType<ac4_presentation_v1_dsi>()
+            .OfType<Ac4PresentationV1Dsi>()
             .OrderByDescending(p => p.PresentationVersion))
     {
       if (presentation.BPresentationChannelCoded is true)

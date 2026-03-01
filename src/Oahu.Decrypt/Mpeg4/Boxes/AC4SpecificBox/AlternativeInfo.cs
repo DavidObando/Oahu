@@ -2,14 +2,14 @@ using Oahu.Decrypt.Mpeg4.Util;
 
 namespace Oahu.Decrypt.Mpeg4.Boxes.AC4SpecificBox;
 
-public class alternative_info
+public class AlternativeInfo
 {
   public ushort NameLen;
   public string PresentationName;
   public byte NTargets;
   public (byte TargetMdCompat, byte TargetDeviceCategory)[] TargetIds;
 
-  public alternative_info(BitReader reader)
+  public AlternativeInfo(BitReader reader)
   {
     NameLen = (ushort)reader.Read(16);
     char[] nameBts = new char[NameLen];

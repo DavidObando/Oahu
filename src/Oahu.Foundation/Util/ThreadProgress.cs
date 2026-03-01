@@ -41,23 +41,29 @@ namespace Oahu.Common.Util
 
   public class ThreadProgressPerMille : ThreadProgressBase<ProgressMessage>
   {
-    public ThreadProgressPerMille(Action<ProgressMessage> report) : base(report)
+    private readonly string asin;
+
+    public ThreadProgressPerMille(Action<ProgressMessage> report, string asin = null) : base(report)
     {
+      this.asin = asin;
     }
 
     protected override int Max => 1000;
 
-    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, null, inc);
+    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, null, inc, asin);
   }
 
   public class ThreadProgressPerCent : ThreadProgressBase<ProgressMessage>
   {
-    public ThreadProgressPerCent(Action<ProgressMessage> report) : base(report)
+    private readonly string asin;
+
+    public ThreadProgressPerCent(Action<ProgressMessage> report, string asin = null) : base(report)
     {
+      this.asin = asin;
     }
 
     protected override int Max => 100;
 
-    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, inc, null);
+    protected override ProgressMessage GetProgressMessage(int inc) => new(null, null, inc, null, asin);
   }
 }

@@ -19,7 +19,7 @@ namespace Oahu.Core
     const string ContentMetadata = "content_metadata_";
     const string SeriesTitles = "series_titles_";
 
-    private static readonly object lockable = new object();
+    private static readonly object Lockable = new object();
 
     public AaxExporter(IExportSettings exportSettings, IMultiPartSettings multipartSettings)
     {
@@ -191,7 +191,7 @@ namespace Oahu.Core
 
       try
       {
-        lock (lockable)
+        lock (Lockable)
         {
           bool succ = FileEx.Copy(sourcefile, destfile, true,
             pm => context.Progress?.Report(pm),
