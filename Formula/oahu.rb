@@ -32,10 +32,13 @@ class Oahu < Formula
   def install
     libexec.install Dir["*"]
     chmod 0755, libexec/"Oahu"
+    chmod 0755, libexec/"oahu-cli"
     bin.write_exec_script libexec/"Oahu"
+    bin.write_exec_script libexec/"oahu-cli"
   end
 
   test do
     assert_predicate libexec/"Oahu", :executable?
+    assert_predicate libexec/"oahu-cli", :executable?
   end
 end
