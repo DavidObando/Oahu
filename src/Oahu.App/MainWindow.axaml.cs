@@ -212,6 +212,7 @@ namespace Oahu.App.Avalonia
     private void ClearLoadedSession()
     {
       viewModel.BookLibrary.DownloadRequested -= OnDownloadRequested;
+      viewModel.BookLibrary.RefreshRequested -= OnLibraryRefreshRequested;
       viewModel.Conversion.RunRequested -= OnRunDownloadPipeline;
       viewModel.Conversion.CancelRequested -= OnCancelDownload;
       viewModel.BookLibrary.LoadBooks(Array.Empty<Book>());
@@ -224,10 +225,58 @@ namespace Oahu.App.Avalonia
     {
       viewModel.BookLibrary.DownloadRequested -= OnDownloadRequested;
       viewModel.BookLibrary.DownloadRequested += OnDownloadRequested;
+      viewModel.BookLibrary.RefreshRequested -= OnLibraryRefreshRequested;
+      viewModel.BookLibrary.RefreshRequested += OnLibraryRefreshRequested;
       viewModel.Conversion.RunRequested -= OnRunDownloadPipeline;
       viewModel.Conversion.RunRequested += OnRunDownloadPipeline;
       viewModel.Conversion.CancelRequested -= OnCancelDownload;
       viewModel.Conversion.CancelRequested += OnCancelDownload;
+    }
+
+    private async void OnLibraryRefreshRequested(object sender, EventArgs e)
+    {
+      using var logGuard = new LogGuard(3, this);
+
+      if (viewModel?.Api is null)
+      {
+        Log(3, this, () => "Refresh requested but no active profile/API.");
+        return;
+      }
+
+      try
+      {
+        viewModel.BookLibrary.SetRefreshing(true);
+        viewModel.SetBusy(true, "Refreshing library...");
+
+        var libraryResult = await viewModel.Api.GetLibraryAsync(false);
+        if (libraryResult is null)
+        {
+          Log(1, this, () => "Library refresh returned null — API call likely failed.");
+          viewModel.StatusMessage = "Warning: Library refresh failed. See logs for details.";
+        }
+        else
+        {
+          Log(3, this, () => $"Library refresh: {libraryResult.Items?.Length ?? 0} book(s)");
+        }
+
+        viewModel.SetBusy(true, "Downloading cover images...");
+        await viewModel.Api.DownloadCoverImagesAsync();
+
+        var books = viewModel.Api.GetBooks() ?? Enumerable.Empty<Book>();
+        Log(3, this, () => $"Local books after refresh: {books.Count()}");
+        viewModel.BookLibrary.LoadBooks(books);
+
+        viewModel.SetBusy(false, "Ready");
+      }
+      catch (Exception ex)
+      {
+        Log(1, this, () => $"Library refresh error: {ex.Message}");
+        viewModel.SetBusy(false, $"Refresh error: {ex.Message}");
+      }
+      finally
+      {
+        viewModel.BookLibrary.SetRefreshing(false);
+      }
     }
 
     private void UpdateSignedInProfile()

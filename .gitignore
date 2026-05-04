@@ -93,3 +93,5 @@ lcov.info
 
 ## Publish output ##
 *.Publish.xml
+
+*.lscache

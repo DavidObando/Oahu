@@ -212,6 +212,38 @@ public class LibraryScreenTests : IDisposable
         Assert.False(screen.HandleKey(Key('q', ConsoleKey.Q)));
     }
 
+    [Fact]
+    public async Task OnActivated_Reloads_When_LibraryGeneration_Bumped()
+    {
+        // Wire the screen and library service against a shared AppShellState so
+        // that bumping LibraryGeneration on Home triggers a fresh ListAsync the
+        // next time the user activates the Library tab.
+        var state = new AppShellState();
+        var lib = new FakeLibraryService { Items = new[] { MakeItem("A1", "Alpha") } };
+        var screen = new LibraryScreen(state, () => lib);
+
+        var firstLoad = screen.OnActivatedAsync(new NullNavigator());
+        if (firstLoad is not null)
+        {
+            await firstLoad;
+        }
+        Assert.Single(screen.Items);
+
+        // Simulate a Home-screen 'r' refresh that pulled a newly-purchased title.
+        lib.Items = new[] { MakeItem("A1", "Alpha"), MakeItem("A2", "Beta") };
+
+        // Without invalidation, OnActivatedAsync should be a no-op (loaded gate).
+        Assert.Null(screen.OnActivatedAsync(new NullNavigator()));
+        Assert.Single(screen.Items);
+
+        // Bump the generation: next activation must reload.
+        state.InvalidateLibrary();
+        var reload = screen.OnActivatedAsync(new NullNavigator());
+        Assert.NotNull(reload);
+        await reload!;
+        Assert.Equal(2, screen.Items.Count);
+    }
+
     private static async Task WaitForEnqueue(LibraryScreen screen)
     {
         var task = screen.PendingEnqueue;
@@ -235,6 +267,9 @@ public class LibraryScreenTests : IDisposable
             => Task.FromResult(0);
 
         public Task EnsureFreshAsync(CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public Task RefreshAsync(CancellationToken ct = default)
             => Task.CompletedTask;
     }
 }

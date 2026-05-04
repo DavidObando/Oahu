@@ -169,6 +169,26 @@ public sealed class CoreLibraryService : ILibraryService
         }
     }
 
+    /// <inheritdoc/>
+    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await refreshGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Reset the once-per-process gate so the next ListAsync (or this
+            // call) re-contacts Audible for an incremental pull.
+            refreshed = false;
+        }
+        finally
+        {
+            refreshGate.Release();
+        }
+
+        await EnsureFreshAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static IEnumerable<LibraryItem> ApplyFilter(IEnumerable<LibraryItem> items, LibraryFilter filter)
     {
         if (filter.AvailableOnly)

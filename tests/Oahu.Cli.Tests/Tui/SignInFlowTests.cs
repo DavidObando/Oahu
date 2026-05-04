@@ -361,5 +361,8 @@ public class SignInFlowTests : IDisposable
 
         public Task EnsureFreshAsync(CancellationToken ct = default)
             => Task.CompletedTask;
+
+        public Task RefreshAsync(CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

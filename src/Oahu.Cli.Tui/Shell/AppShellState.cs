@@ -20,6 +20,17 @@ public sealed class AppShellState
     /// <summary>True when at least one profile is signed in.</summary>
     public bool IsSignedIn => !string.IsNullOrEmpty(Profile);
 
+    /// <summary>
+    /// Monotonic counter incremented whenever the user explicitly asks for a
+    /// library refresh (e.g. Home screen 'r'). Library-aware screens compare
+    /// against the last value they observed and reload when it changes so a
+    /// freshly-purchased title shows up after switching tabs.
+    /// </summary>
+    public int LibraryGeneration { get; private set; }
+
+    /// <summary>Bump <see cref="LibraryGeneration"/> to signal stale data.</summary>
+    public void InvalidateLibrary() => LibraryGeneration++;
+
     /// <summary>Formatted header display: "profile@region" or "(not signed in)".</summary>
     public string ProfileDisplay =>
         string.IsNullOrEmpty(Profile)
