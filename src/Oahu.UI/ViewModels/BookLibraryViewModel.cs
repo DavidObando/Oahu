@@ -35,12 +35,22 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     [ObservableProperty]
     private int selectedCount;
 
+    [ObservableProperty]
+    private bool isRefreshing;
+
     public BookLibraryViewModel(IDownloadSettings downloadSettings = null)
     {
       SetDownloadSettings(downloadSettings);
     }
 
     public event EventHandler<IEnumerable<BookItemViewModel>> DownloadRequested;
+
+    /// <summary>
+    /// Raised when the user asks for a fresh library pull (toolbar button or
+    /// the R keybinding). MainWindow handles this by re-running the
+    /// Audible library sync and rebinding the resulting books.
+    /// </summary>
+    public event EventHandler RefreshRequested;
 
     public string SelectedBookAsin { get; set; }
 
@@ -108,6 +118,17 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
       OpenDownloadsFolderCommand.NotifyCanExecuteChanged();
     }
 
+    /// <summary>
+    /// Toggle the spinner / disabled state on the refresh button. MainWindow
+    /// calls this around the Audible round-trip so the user sees the click
+    /// took effect even when the network is slow.
+    /// </summary>
+    public void SetRefreshing(bool refreshing)
+    {
+      IsRefreshing = refreshing;
+      RefreshCommand.NotifyCanExecuteChanged();
+    }
+
     partial void OnSelectedBookChanged(BookItemViewModel value)
     {
       HasSelectedBook = value is not null;
@@ -142,6 +163,14 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
         DownloadRequested?.Invoke(this, selected);
       }
     }
+
+    [RelayCommand(CanExecute = nameof(CanRefresh))]
+    private void Refresh()
+    {
+      RefreshRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool CanRefresh() => !IsRefreshing;
 
     [RelayCommand(CanExecute = nameof(CanOpenDownloadsFolder))]
     private void OpenDownloadsFolder()

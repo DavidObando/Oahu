@@ -39,4 +39,12 @@ public interface ILibraryService
     /// network call fails.
     /// </summary>
     Task EnsureFreshAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Forces an incremental library refresh from Audible right now, bypassing the
+    /// once-per-process cache used by <see cref="EnsureFreshAsync"/>. Use this when
+    /// the user explicitly asks to refresh (e.g. the Home screen 'r' key) so that
+    /// recently-purchased titles show up without restarting the process.
+    /// </summary>
+    Task RefreshAsync(CancellationToken cancellationToken = default);
 }

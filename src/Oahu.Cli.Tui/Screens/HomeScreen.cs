@@ -28,6 +28,7 @@ public sealed class HomeScreen : ITabScreen
     private bool loaded;
     private int libraryCount;
     private string? accountName;
+    private bool refreshing;
 
     private IAppShellNavigator? navigator;
     private RegionPickerModal? pendingRegionModal;
@@ -147,7 +148,7 @@ public sealed class HomeScreen : ITabScreen
                 }
                 break;
             case ConsoleKey.R when key.Modifiers == 0:
-                Refresh();
+                BeginRefresh();
                 return true;
         }
         return false;
@@ -166,15 +167,65 @@ public sealed class HomeScreen : ITabScreen
             }
 
             var lib = libraryServiceFactory();
+            // Force an Audible pull so a freshly-purchased title shows up
+            // in the count (and propagates to the Library screen via the
+            // shared LibraryGeneration token).
+            lib.RefreshAsync().GetAwaiter().GetResult();
             var items = lib.ListAsync().GetAwaiter().GetResult();
             libraryCount = items.Count;
             loaded = true;
+            state.InvalidateLibrary();
         }
         catch
         {
             loaded = true;
             // Swallow — the TUI must not crash.
         }
+    }
+
+    /// <summary>
+    /// Kick off a refresh on a background thread, tracked by the shell so it
+    /// renders a spinner while the Audible pull is in flight. Used by the
+    /// 'r' key — keeping this off the render thread avoids freezing the UI
+    /// during the network round-trip.
+    /// </summary>
+    private void BeginRefresh()
+    {
+        if (refreshing)
+        {
+            return;
+        }
+
+        refreshing = true;
+        var task = Task.Run(() =>
+        {
+            try
+            {
+                var auth = authServiceFactory();
+                var session = auth.GetActiveAsync().GetAwaiter().GetResult();
+                if (session is not null)
+                {
+                    accountName = session.AccountName;
+                }
+
+                var lib = libraryServiceFactory();
+                lib.RefreshAsync().GetAwaiter().GetResult();
+                var items = lib.ListAsync().GetAwaiter().GetResult();
+                libraryCount = items.Count;
+                loaded = true;
+                state.InvalidateLibrary();
+            }
+            catch
+            {
+                // Swallow — the TUI must not crash on transient refresh errors.
+            }
+            finally
+            {
+                refreshing = false;
+            }
+        });
+
+        navigator?.TrackLoad(task);
     }
 
     /// <summary>Load data asynchronously (returned to shell for tracking).</summary>

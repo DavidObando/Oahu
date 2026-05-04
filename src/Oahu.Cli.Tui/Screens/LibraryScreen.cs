@@ -29,6 +29,7 @@ public sealed class LibraryScreen : ITabScreen
     private int scrollOffset;
     private int lastListHeight = 20;
     private bool loaded;
+    private int lastSeenLibraryGeneration;
     private bool searchMode;
 
     private IAppShellNavigator? navigator;
@@ -89,8 +90,19 @@ public sealed class LibraryScreen : ITabScreen
         if (!loaded)
         {
             loaded = true;
+            lastSeenLibraryGeneration = state.LibraryGeneration;
             return LoadAsync();
         }
+
+        // The user pressed 'r' on Home (or another screen invalidated the
+        // library cache) while we were on a different tab — pull a fresh
+        // snapshot so the new title shows up without restarting.
+        if (state.LibraryGeneration != lastSeenLibraryGeneration)
+        {
+            lastSeenLibraryGeneration = state.LibraryGeneration;
+            return LoadAsync();
+        }
+
         return null;
     }
 

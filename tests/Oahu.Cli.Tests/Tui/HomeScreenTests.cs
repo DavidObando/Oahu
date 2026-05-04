@@ -172,12 +172,65 @@ public class HomeScreenTests : IDisposable
         Assert.Equal('1', screen.NumberKey);
     }
 
+    [Fact]
+    public async Task R_Key_Triggers_Cache_Busting_Refresh_And_Invalidates_Library()
+    {
+        // Repro for the bug where pressing 'r' on Home only re-read the cached
+        // local library — newly purchased titles never appeared until restart.
+        var state = new AppShellState { Profile = "alice", Region = "us" };
+        var lib = new CountingLibraryService();
+        var screen = new HomeScreen(state, () => new FakeAuthService(), () => lib);
+        var nav = new RecordingNavigator();
+        var activation = screen.OnActivatedAsync(nav);
+        if (activation is not null)
+        {
+            await activation;
+        }
+
+        var initialGeneration = state.LibraryGeneration;
+
+        var consumed = screen.HandleKey(Key('r', ConsoleKey.R));
+        Assert.True(consumed);
+
+        // BeginRefresh runs on the thread pool and is tracked by the navigator.
+        var refreshTask = nav.LastTrackedLoad;
+        Assert.NotNull(refreshTask);
+        await refreshTask!;
+
+        Assert.True(lib.RefreshCallCount >= 1, "Expected RefreshAsync to bypass the once-per-process cache.");
+        Assert.True(state.LibraryGeneration > initialGeneration, "LibraryGeneration should bump so the Library tab reloads.");
+    }
+
+    private sealed class CountingLibraryService : ILibraryService
+    {
+        public int RefreshCallCount;
+
+        public Task<IReadOnlyList<LibraryItem>> ListAsync(LibraryFilter? filter = null, System.Threading.CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<LibraryItem>>(Array.Empty<LibraryItem>());
+
+        public Task<LibraryItem?> GetAsync(string asin, System.Threading.CancellationToken ct = default)
+            => Task.FromResult<LibraryItem?>(null);
+
+        public Task<int> SyncAsync(string profileAlias, System.Threading.CancellationToken ct = default)
+            => Task.FromResult(0);
+
+        public Task EnsureFreshAsync(System.Threading.CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public Task RefreshAsync(System.Threading.CancellationToken ct = default)
+        {
+            System.Threading.Interlocked.Increment(ref RefreshCallCount);
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class RecordingNavigator : IAppShellNavigator
     {
         public IModal? LastModal { get; private set; }
         public string? LastToast { get; private set; }
         public bool DismissCalled { get; private set; }
         public Oahu.Cli.Tui.Auth.TuiCallbackBroker? LastBroker { get; private set; }
+        public System.Threading.Tasks.Task? LastTrackedLoad { get; private set; }
 
         public IModal? ActiveModal => LastModal;
         public void SwitchToTab(char numberKey) { }
@@ -185,7 +238,7 @@ public class HomeScreenTests : IDisposable
         public void ShowToast(string message) => LastToast = message;
         public void DismissModal() { DismissCalled = true; LastModal = null; }
         public void SetBroker(Oahu.Cli.Tui.Auth.TuiCallbackBroker? broker) => LastBroker = broker;
-        public void TrackLoad(System.Threading.Tasks.Task loadTask) { }
+        public void TrackLoad(System.Threading.Tasks.Task loadTask) => LastTrackedLoad = loadTask;
     }
 
     private sealed class FakeAuthService : IAuthService
@@ -218,6 +271,9 @@ public class HomeScreenTests : IDisposable
             => Task.FromResult(0);
 
         public Task EnsureFreshAsync(System.Threading.CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public Task RefreshAsync(System.Threading.CancellationToken ct = default)
             => Task.CompletedTask;
     }
 }
