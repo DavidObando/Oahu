@@ -90,8 +90,25 @@ namespace Oahu.Decrypt
     public void Add(FrameEntry entry)
     {
       ReadOnlySpan<byte> frameData = entry.FrameData.Span;
-      int size = frameData[1] | frameData[0];
-      string title = Encoding.UTF8.GetString(frameData.Slice(2, size));
+
+      string title = string.Empty;
+      if (frameData.Length >= 2)
+      {
+        // MPEG-4 timed text format: [2-byte big-endian length] [UTF-8 text] [optional style atoms]
+        int size = (frameData[0] << 8) | frameData[1];
+
+        // Guard against malformed or unusual text samples where the declared
+        // size exceeds the available frame data.
+        if (size > frameData.Length - 2)
+        {
+          size = frameData.Length - 2;
+        }
+
+        if (size > 0)
+        {
+          title = Encoding.UTF8.GetString(frameData.Slice(2, size));
+        }
+      }
 
       // Takes care of 'negative' sample deltas in malformed Stts entries (e.g. Broken Angels)
       var sif = (int)entry.SamplesInFrame;

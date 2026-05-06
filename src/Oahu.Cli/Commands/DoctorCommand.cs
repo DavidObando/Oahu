@@ -35,12 +35,54 @@ public static class DoctorCommand
             Description = "Print the resolved CLI paths (config dir, log dir, token path, lock path) and exit. Useful for support and debugging.",
         };
 
+        var fileOpt = new Option<string?>("--file")
+        {
+            Description = "Path to an encrypted .aaxc/.aax file to diagnose for decryption issues.",
+        };
+
+        var keyOpt = new Option<string?>("--key")
+        {
+            Description = "Hex-encoded 16-byte decryption key (used with --file).",
+        };
+
+        var ivOpt = new Option<string?>("--iv")
+        {
+            Description = "Hex-encoded 16-byte initialization vector (used with --file).",
+        };
+
+        var asinOpt = new Option<string?>("--asin")
+        {
+            Description = "Book ASIN for database key lookup (auto-detected from filename if omitted).",
+        };
+
+        var dbOpt = new Option<string?>("--db")
+        {
+            Description = "Path to audiobooks.db for key lookup (auto-detected if omitted).",
+        };
+
+        var exportOpt = new Option<bool>("--export")
+        {
+            Description = "Attempt a full decryption export to .m4b (used with --file).",
+        };
+
+        var outputOpt = new Option<string?>("--output")
+        {
+            Description = "Output .m4b file path when --export is used (defaults to input with .m4b extension).",
+        };
+
         var cmd = new Command("doctor", "Run environment self-checks and exit non-zero if any error is found.")
         {
             jsonOpt,
             skipNetworkOpt,
             fixOpt,
             printConfigOpt,
+            fileOpt,
+            keyOpt,
+            ivOpt,
+            asinOpt,
+            dbOpt,
+            exportOpt,
+            outputOpt,
         };
 
         cmd.SetAction(async (parse, ct) =>
@@ -53,8 +95,39 @@ public static class DoctorCommand
                 return ExitCodes.Success;
             }
 
-            using var lf = loggerFactory();
-            var logger = lf.CreateLogger<DoctorService>();
+            // File diagnostics mode
+            var filePath = parse.GetValue(fileOpt);
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                using var lf = loggerFactory();
+                var fileLogger = lf.CreateLogger<FileDiagnosticService>();
+                var fileService = new FileDiagnosticService(fileLogger);
+
+                var fileReport = fileService.Run(new FileDiagnosticOptions
+                {
+                    FilePath = filePath,
+                    Key = parse.GetValue(keyOpt),
+                    Iv = parse.GetValue(ivOpt),
+                    Asin = parse.GetValue(asinOpt),
+                    DatabasePath = parse.GetValue(dbOpt),
+                    AttemptExport = parse.GetValue(exportOpt),
+                    OutputPath = parse.GetValue(outputOpt),
+                });
+
+                if (parse.GetValue(jsonOpt))
+                {
+                    DoctorRender.Json(fileReport);
+                }
+                else
+                {
+                    DoctorRender.Pretty(fileReport, globals);
+                }
+
+                return fileReport.HasErrors ? ExitCodes.GenericFailure : ExitCodes.Success;
+            }
+
+            using var lf2 = loggerFactory();
+            var logger = lf2.CreateLogger<DoctorService>();
             var service = new DoctorService(logger);
 
             var report = await service.RunAsync(

@@ -92,17 +92,27 @@ namespace Oahu.Decrypt
         }
         catch (Exception ex)
         {
-          if (t.Exception is null)
+          if (t.Exception is null && !t.IsCanceled)
           {
             throw;
           }
 
-          throw new AggregateException("Two or more errors occurred.", t.Exception.InnerExceptions.Append(ex));
+          if (t.Exception is not null)
+          {
+            throw new AggregateException("Two or more errors occurred.", t.Exception.InnerExceptions.Append(ex));
+          }
+
+          throw;
         }
 
         if (t.IsFaulted && t.Exception is not null)
         {
           throw t.Exception;
+        }
+
+        if (t.IsCanceled)
+        {
+          throw new TaskCanceledException("The decryption operation was cancelled.", null, cancellationSource.Token);
         }
       },
       TaskContinuationOptions.ExecuteSynchronously);
