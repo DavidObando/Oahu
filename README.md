@@ -22,9 +22,13 @@ Oahu ships two independent front-ends — a graphical app and a terminal app —
 
 ### GUI (Avalonia)
 
+![](docs/oahu-gui.png?raw=true)
+
 The cross-platform desktop app (`Oahu.App`) provides a traditional graphical interface for browsing your library, queuing downloads, and monitoring progress.
 
 ### CLI + TUI (`oahu-cli`)
+
+![](docs/oahu-cli-tui.png?raw=true)
 
 A single binary that operates in three modes:
 
@@ -50,6 +54,8 @@ oahu-cli completion                 Generate shell completions
 ```
 
 #### MCP / HTTP server
+
+![](docs/oahu-mcp.png?raw=true)
 
 The `serve` command exposes the full CLI surface for programmatic use:
 

@@ -146,7 +146,7 @@ public static class ServerHost
         builder.Services
             .AddMcpServer()
             .WithStdioServerTransport()
-            .WithTools(new[] { typeof(McpTools) });
+            .WithTools<McpTools>();
 
         return builder.Build();
     }

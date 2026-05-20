@@ -75,6 +75,8 @@ clients always start from a consistent snapshot.
 calls without an interactive confirmation prompt. Without it, the stdio
 transport auto-denies any tool tagged `Mutating` or `Expensive`.
 
+Use the actual `oahu-cli` executable as `command`. Do not configure Claude Desktop as `"command": "dotnet", "args": ["oahu-cli", ...]`; that starts the .NET host instead of Oahu and writes `Possible reasons for this include:` to stdout/stderr, which corrupts the MCP JSON-RPC stream.
+
 ## Capability classes
 
 Every tool is tagged with one of four capability classes. The capability
