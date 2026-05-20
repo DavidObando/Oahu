@@ -4,28 +4,28 @@
 class Oahu < Formula
   desc "Standalone Audible downloader and decrypter"
   homepage "https://github.com/DavidObando/Oahu"
-  version "1.1.4"
+  version "1.1.6"
   license "GPL-3.0-only"
 
   on_macos do
     on_arm do
       url "https://github.com/DavidObando/Oahu/releases/download/v#{version}/Oahu-#{version}-osx-arm64.tar.gz"
-      sha256 "d51b30d12e3f5b6c82e18c4a3e693216ca48447f3d1012e35311d59fd6d93573"
+      sha256 "89c07728e068f2bc2aca664ac7e0f0a6365f430f70ec0b734357ab0a0206d54f"
     end
     on_intel do
       url "https://github.com/DavidObando/Oahu/releases/download/v#{version}/Oahu-#{version}-osx-x64.tar.gz"
-      sha256 "209efe64b10f47b7b301fb5201cbbbced7e0745986f2f5bc50411202396f1ab4"
+      sha256 "4a17dda087f8aac6a491dad0ae786bb8df51f961b64a0e1cd083e6106f8d95dd"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/DavidObando/Oahu/releases/download/v#{version}/Oahu-#{version}-linux-arm64.tar.gz"
-      sha256 "25254423c1ff0f7c38a53520abcdfdf15d218b1d580689e00d366e6f02fc0c2c"
+      sha256 "eaa812b5b8e327b394b8bbfd865886c059ea2d16bc359e5c493adf1cafb61aff"
     end
     on_intel do
       url "https://github.com/DavidObando/Oahu/releases/download/v#{version}/Oahu-#{version}-linux-x64.tar.gz"
-      sha256 "7018cb1ae6465c2076081c6e432c1868477c75b4f382a830f337c43f65a105cd"
+      sha256 "21851d1feac41ae762a697ab7fbe60d206e1cd45c3deb5758f8c086232dc97de"
     end
   end
 
