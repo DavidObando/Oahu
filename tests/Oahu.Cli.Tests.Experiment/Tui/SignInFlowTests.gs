@@ -1,44 +1,68 @@
-// G# port of Tui/SignInFlowTests.cs (partial).
+// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.459.
 //
-// Covers: RegionPickerModal navigation/selection/cancellation,
-// ExternalLoginModal escape, ChallengeModal text entry,
-// and PulseSpinner frame cycling.
+// Covers: RegionPickerModal, ExternalLoginModal (char-by-char via .ToCharArray()),
+// ChallengeModal (incl. ApprovalOnly), CredentialsModal, PulseSpinner (incl. UseAscii),
+// TuiCallbackBroker (sync), SignInFlow state.
 //
-// LIMITATIONS:
-// - String/char[] iteration yields garbled char values at runtime (new anomaly).
-//   Tests that type long strings via iteration are dropped.
-// - CredentialsModal ctor has nullable param (string?) → invisible (GS0130). Drop.
-// - ChallengeModal ApprovalOnly is init-only → approval test dropped.
-// - PulseSpinner UseAscii is init-only → ascii test dropped.
-// - TuiCallbackBroker tests are async (gsharp#502) and ModalRequest has required init. Drop.
-// - SignInFlow/AppShell tests need fake interfaces (GS0157). Drop.
-// - AppShell tests need nested type IKeyReader and TestConsole init properties. Drop.
+// WORKAROUNDS:
+// - gsharp#537: `for c in string` → .ToCharArray().
+// - gsharp#502: async tests → .GetAwaiter().GetResult().
+// - GS9002: out params → pass by reference with `&`.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
 import System
+import System.Collections.Generic
+import System.Threading
+import System.Threading.Tasks
+import Oahu.Cli.App.Auth
+import Oahu.Cli.App.Library
+import Oahu.Cli.App.Models
 import Oahu.Cli.Tui.Auth
+import Oahu.Cli.Tui.Shell
+import Oahu.Cli.Tui.Themes
 import Oahu.Cli.Tui.Widgets
+import Spectre.Console
+import Spectre.Console.Rendering
 import Xunit
 
-type SignInFlowTests class {
+type SignInFlowTests class : IDisposable {
+    init() {
+        Theme.Reset()
+    }
+
+    func Dispose() {
+        Theme.Reset()
+    }
+
     func MakeKey(key ConsoleKey) ConsoleKeyInfo {
         return ConsoleKeyInfo(char(0), key, false, false, false)
     }
 
-    func TypeChar(modal RegionPickerModal, ch char) {
-        modal.HandleKey(ConsoleKeyInfo(ch, ConsoleKey.NoName, false, false, false))
+    func TypeString(modal ExternalLoginModal, s string) {
+        for c in s.ToCharArray() {
+            modal.HandleKey(ConsoleKeyInfo(c, ConsoleKey.NoName, false, false, false))
+        }
+    }
+
+    func TypeStringOnCreds(modal CredentialsModal, s string) {
+        for c in s.ToCharArray() {
+            modal.HandleKey(ConsoleKeyInfo(c, ConsoleKey.NoName, false, false, false))
+        }
+    }
+
+    func TypeStringOnChallenge(modal ChallengeModal, s string) {
+        for c in s.ToCharArray() {
+            modal.HandleKey(ConsoleKeyInfo(c, ConsoleKey.NoName, false, false, false))
+        }
     }
 
     @Fact
     func RegionPicker_Returns_Selected_Region() {
         var modal = RegionPickerModal()
         Assert.False(modal.IsComplete)
-
-        // Move down to UK
         modal.HandleKey(MakeKey(ConsoleKey.DownArrow))
         modal.HandleKey(MakeKey(ConsoleKey.Enter))
-
         Assert.True(modal.IsComplete)
         Assert.False(modal.WasCancelled)
         Assert.Equal("uk", modal.Result)
@@ -60,6 +84,25 @@ type SignInFlowTests class {
     }
 
     @Fact
+    func ExternalLogin_Accepts_Valid_Url() {
+        var modal = ExternalLoginModal(Uri("https://audible.com/login?code=abc"))
+        Assert.False(modal.IsComplete)
+        TypeString(modal, "https://localhost/callback?code=x")
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.True(modal.IsComplete)
+        Assert.False(modal.WasCancelled)
+        Assert.Equal("https://localhost/callback?code=x", modal.Result!!.ToString())
+    }
+
+    @Fact
+    func ExternalLogin_Rejects_Invalid_Url() {
+        var modal = ExternalLoginModal(Uri("https://audible.com/login"))
+        TypeString(modal, "not-a-url")
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.False(modal.IsComplete)
+    }
+
+    @Fact
     func ExternalLogin_Escape_Cancels() {
         var modal = ExternalLoginModal(Uri("https://audible.com/login"))
         modal.HandleKey(MakeKey(ConsoleKey.Escape))
@@ -68,28 +111,79 @@ type SignInFlowTests class {
     }
 
     @Fact
-    func ExternalLogin_Rejects_Empty_Enter() {
-        // Empty submit stays open
-        var modal = ExternalLoginModal(Uri("https://audible.com/login"))
+    func ChallengeModal_Accepts_Text() {
+        var modal = ChallengeModal() { Title = "MFA", Instructions = "Enter code:" }
+        TypeStringOnChallenge(modal, "123456")
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.True(modal.IsComplete)
+        Assert.Equal("123456", modal.Result)
+    }
+
+    @Fact
+    func ChallengeModal_Approval_Requires_Only_Enter() {
+        var modal = ChallengeModal() { Title = "Approval", Instructions = "Approve on device.", ApprovalOnly = true }
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.True(modal.IsComplete)
+        Assert.Equal("", modal.Result)
+    }
+
+    @Fact
+    func CredentialsModal_Submits_Username_And_Password() {
+        var modal = CredentialsModal("us")
+        TypeStringOnCreds(modal, "alice@example.com")
+        modal.HandleKey(ConsoleKeyInfo(char(9), ConsoleKey.Tab, false, false, false))
+        TypeStringOnCreds(modal, "hunter2")
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.True(modal.IsComplete)
+        Assert.False(modal.WasCancelled)
+        Assert.NotNull(modal.Result)
+        Assert.Equal("alice@example.com", modal.Result!!.Username)
+        Assert.Equal("hunter2", modal.Result!!.Password)
+    }
+
+    @Fact
+    func CredentialsModal_Requires_Email_And_Password() {
+        var modal = CredentialsModal()
+        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+        Assert.False(modal.IsComplete)
+        TypeStringOnCreds(modal, "alice@example.com")
         modal.HandleKey(MakeKey(ConsoleKey.Enter))
         Assert.False(modal.IsComplete)
     }
 
     @Fact
-    func ChallengeModal_Accepts_Text() {
-        // Note: Title and Instructions are required init-only but G# doesn't
-        // enforce 'required'; HandleKey logic doesn't use them so test is valid.
-        var modal = ChallengeModal()
-        // Type each character individually (string iteration garbles chars)
-        modal.HandleKey(ConsoleKeyInfo('1', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(ConsoleKeyInfo('2', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(ConsoleKeyInfo('3', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(ConsoleKeyInfo('4', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(ConsoleKeyInfo('5', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(ConsoleKeyInfo('6', ConsoleKey.NoName, false, false, false))
-        modal.HandleKey(MakeKey(ConsoleKey.Enter))
+    func CredentialsModal_Escape_Cancels() {
+        var modal = CredentialsModal()
+        modal.HandleKey(MakeKey(ConsoleKey.Escape))
         Assert.True(modal.IsComplete)
-        Assert.Equal("123456", modal.Result)
+        Assert.True(modal.WasCancelled)
+        Assert.Null(modal.Result)
+    }
+
+    @Fact
+    func TuiCallbackBroker_MFA_Posts_And_Completes() {
+        var broker = TuiCallbackBroker()
+        var mfaTask = broker.SolveMfaAsync(MfaChallenge(), CancellationToken.None)
+        Assert.True(broker.HasPending)
+        var request ModalRequest? = nil
+        Assert.True(broker.TryDequeue(&request))
+        Assert.NotNull(request)
+        request!!.Completion.TrySetResult("123456")
+        var result = mfaTask.GetAwaiter().GetResult()
+        Assert.Equal("123456", result)
+    }
+
+    @Fact
+    func TuiCallbackBroker_ExternalLogin_Posts_And_Completes() {
+        var broker = TuiCallbackBroker()
+        var uri = Uri("https://audible.com/login")
+        var loginTask = broker.CompleteExternalLoginAsync(ExternalLoginChallenge(uri), CancellationToken.None)
+        var request ModalRequest? = nil
+        Assert.True(broker.TryDequeue(&request))
+        Assert.NotNull(request)
+        request!!.Completion.TrySetResult("https://localhost/callback?code=abc")
+        var result = loginTask.GetAwaiter().GetResult()
+        Assert.Equal("https://localhost/callback?code=abc", result.ToString())
     }
 
     @Fact
@@ -99,7 +193,6 @@ type SignInFlowTests class {
         var uniqueCount = 0
         var first = ""
         var second = ""
-
         var i = 0
         for i < 12 {
             var glyph = spinner.Glyph
@@ -116,8 +209,85 @@ type SignInFlowTests class {
             spinner.Tick()
             i = i + 1
         }
-
         Assert.True(allSingleWidth)
         Assert.True(uniqueCount > 1)
+    }
+
+    @Fact
+    func PulseSpinner_UseAscii_Renders_Static_Asterisk() {
+        var spinner = PulseSpinner() { UseAscii = true }
+        var i = 0
+        for i < 5 {
+            Assert.Equal("*", spinner.Glyph)
+            spinner.Tick()
+            i = i + 1
+        }
+    }
+
+    @Fact
+    func SignInFlow_Start_Sets_State() {
+        var state = AppShellState()
+        var broker = TuiCallbackBroker()
+        let auth IAuthService = SIFakeAuthService()
+        let lib ILibraryService = SIFakeLibraryService()
+        var flow = SignInFlow(auth, lib, broker, state)
+        Assert.False(flow.IsRunning)
+        flow.Start(CliRegion.Us, AuthCredentials("alice@example.com", "secret"))
+        Assert.True(flow.IsRunning)
+    }
+}
+
+type SIFakeAuthService class : IAuthService {
+    func ListSessionsAsync(ct CancellationToken) Task[IReadOnlyList[AuthSession]] {
+        var list List[AuthSession] = List[AuthSession]()
+        let r IReadOnlyList[AuthSession] = list
+        return Task.FromResult(r)
+    }
+
+    func GetActiveAsync(ct CancellationToken) Task[AuthSession?] {
+        let n AuthSession? = nil
+        return Task.FromResult(n)
+    }
+
+    func LoginAsync(region CliRegion, broker IAuthCallbackBroker, preAmazonUsername bool, ct CancellationToken) Task[AuthSession] {
+        return Task.FromResult(AuthSession() { ProfileAlias = "test", Region = region, AccountId = "acct-1" })
+    }
+
+    func LoginWithCredentialsAsync(region CliRegion, broker IAuthCallbackBroker, credentials AuthCredentials, preAmazonUsername bool, ct CancellationToken) Task[AuthSession] {
+        return Task.FromResult(AuthSession() { ProfileAlias = "test", Region = region, AccountId = "acct-1" })
+    }
+
+    func LogoutAsync(profileAlias string, ct CancellationToken) Task {
+        return Task.CompletedTask
+    }
+
+    func RefreshAsync(profileAlias string, ct CancellationToken) Task[AuthSession] {
+        throw NotImplementedException()
+        return Task.FromResult(AuthSession())
+    }
+}
+
+type SIFakeLibraryService class : ILibraryService {
+    func ListAsync(filter LibraryFilter?, ct CancellationToken) Task[IReadOnlyList[LibraryItem]] {
+        var list List[LibraryItem] = List[LibraryItem]()
+        let r IReadOnlyList[LibraryItem] = list
+        return Task.FromResult(r)
+    }
+
+    func GetAsync(asin string, ct CancellationToken) Task[LibraryItem?] {
+        let n LibraryItem? = nil
+        return Task.FromResult(n)
+    }
+
+    func SyncAsync(profileAlias string, ct CancellationToken) Task[int32] {
+        return Task.FromResult(5)
+    }
+
+    func EnsureFreshAsync(ct CancellationToken) Task {
+        return Task.CompletedTask
+    }
+
+    func RefreshAsync(ct CancellationToken) Task {
+        return Task.CompletedTask
     }
 }

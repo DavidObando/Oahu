@@ -1,22 +1,13 @@
 // G# port of Tui/CtrlCStateTests.cs.
 //
-// Tests the progressive Ctrl+C state machine: first press shows prompt,
-// second press within window exits, timeout resets, active job cancels, etc.
-//
-// NOTE: G# closures capture value types by value; we use a reference-type
-// holder class for the mutable clock so the lambda sees updates.
+// Tests the progressive Ctrl+C state machine.
+// (0.1.459: closures now capture value-type locals by reference per gsharp#523.)
 
 package Oahu.Cli.Tests.Experiment.Tui
 
 import System
 import Oahu.Cli.Tui.Shell
 import Xunit
-
-// Helper: reference-type holder so closures see updated DateTimeOffset.
-type ClockHolder class {
-    Value DateTimeOffset
-    init() {}
-}
 
 type CtrlCStateTests class {
     @Fact
@@ -43,22 +34,19 @@ type CtrlCStateTests class {
 
     @Fact
     func Second_Press_Within_Window_Exits() {
-        var clock = ClockHolder()
-        clock.Value = DateTimeOffset.UtcNow
-        var state = CtrlCState(func() DateTimeOffset { return clock.Value })
+        var now = DateTimeOffset.UtcNow
+        var state = CtrlCState(func() DateTimeOffset { return now })
         Assert.Equal(CtrlCAction.PromptToExit, state.OnPress())
-        // Advance 1 second - well within the default 2s window.
-        clock.Value = clock.Value.AddSeconds(1.0)
+        now = now.AddSeconds(1.0)
         Assert.Equal(CtrlCAction.Exit, state.OnPress())
     }
 
     @Fact
     func Second_Press_After_Window_Reprompts() {
-        var clock = ClockHolder()
-        clock.Value = DateTimeOffset.UtcNow
-        var state = CtrlCState(func() DateTimeOffset { return clock.Value })
+        var now = DateTimeOffset.UtcNow
+        var state = CtrlCState(func() DateTimeOffset { return now })
         Assert.Equal(CtrlCAction.PromptToExit, state.OnPress())
-        clock.Value = clock.Value.AddSeconds(5.0)
+        now = now.AddSeconds(5.0)
         Assert.Equal(CtrlCAction.PromptToExit, state.OnPress())
     }
 
