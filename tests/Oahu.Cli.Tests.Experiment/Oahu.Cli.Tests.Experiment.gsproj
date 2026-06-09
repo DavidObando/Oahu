@@ -1,4 +1,4 @@
-<Project Sdk="Gsharp.NET.Sdk/0.1.509">
+<Project Sdk="Gsharp.NET.Sdk/0.1.514">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -13,6 +13,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Spectre.Console.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
