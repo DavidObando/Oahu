@@ -1,9 +1,11 @@
-// G# port of Tui/HomeScreenTests.cs — IMPROVED for 0.1.459.
+// G# port of Tui/HomeScreenTests.cs — IMPROVED for 0.1.509.
+//
+// Added: R_Key_Triggers_Cache_Busting_Refresh_And_Invalidates_Library (async returning user class — now fixed).
 //
 // WORKAROUNDS:
-// - gsharp#573: ActiveModal getter-only interface property → use `prop` accessor.
-// - gsharp#502: async R_Key test → dropped.
-// - OnActivatedAsync is a DIM method → cast to ITabScreen to call it.
+// - gsharp#572: DIM on concrete → cast to ITabScreen for OnActivatedAsync.
+// - gsharp#573: ActiveModal prop → use `prop` accessor.
+// - Async tests → .GetAwaiter().GetResult() where needed.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -44,6 +46,11 @@ type HomeScreenTests class : IDisposable {
     func ActivateScreen(screen HomeScreen, nav IAppShellNavigator) {
         let ts ITabScreen = screen
         ts.OnActivatedAsync(nav)
+    }
+
+    func ActivateScreenAsync(screen HomeScreen, nav IAppShellNavigator) Task? {
+        let ts ITabScreen = screen
+        return ts.OnActivatedAsync(nav)
     }
 
     @Fact
@@ -159,6 +166,61 @@ type HomeScreenTests class : IDisposable {
         screen.Render(80, 20)
         screen.HandleKey(SimpleKey('s', ConsoleKey.S))
         Assert.IsType[RegionPickerModal](nav.LastModal)
+    }
+
+    @Fact
+    func R_Key_Triggers_Cache_Busting_Refresh_And_Invalidates_Library() {
+        var state = AppShellState()
+        state.Profile = "alice"
+        state.Region = "us"
+        var lib = HSCountingLibraryService()
+        var screen = HomeScreen(state, func() IAuthService { return HSFakeAuthService() }, func() ILibraryService { return lib })
+        var nav = HSRecordingNavigator()
+        var activation = ActivateScreenAsync(screen, nav)
+        if activation != nil {
+            activation!!.GetAwaiter().GetResult()
+        }
+
+        var initialGeneration = state.LibraryGeneration
+
+        var consumed = screen.HandleKey(SimpleKey('r', ConsoleKey.R))
+        Assert.True(consumed)
+
+        // BeginRefresh runs on the thread pool and is tracked by the navigator.
+        var refreshTask = nav.LastTrackedLoad
+        Assert.NotNull(refreshTask)
+        refreshTask!!.GetAwaiter().GetResult()
+
+        Assert.True(lib.RefreshCallCount >= 1)
+        Assert.True(state.LibraryGeneration > initialGeneration)
+    }
+}
+
+type HSCountingLibraryService class : ILibraryService {
+    RefreshCallCount int32 = 0
+
+    func ListAsync(filter LibraryFilter?, ct CancellationToken) Task[IReadOnlyList[LibraryItem]] {
+        var list List[LibraryItem] = List[LibraryItem]()
+        let result IReadOnlyList[LibraryItem] = list
+        return Task.FromResult(result)
+    }
+
+    func GetAsync(asin string, ct CancellationToken) Task[LibraryItem?] {
+        let n LibraryItem? = nil
+        return Task.FromResult(n)
+    }
+
+    func SyncAsync(profileAlias string, ct CancellationToken) Task[int32] {
+        return Task.FromResult(0)
+    }
+
+    func EnsureFreshAsync(ct CancellationToken) Task {
+        return Task.CompletedTask
+    }
+
+    func RefreshAsync(ct CancellationToken) Task {
+        Interlocked.Increment(&RefreshCallCount)
+        return Task.CompletedTask
     }
 }
 

@@ -306,4 +306,29 @@ type LibraryScreenTests class {
         Assert.Equal(2, screen.Items.Count)
         Theme.Reset()
     }
+
+    @Fact
+    func Q_Skips_Duplicates_And_Reports_In_Toast() {
+        var queue = InMemoryQueueService()
+        queue.AddAsync(QueueEntry() { Asin = "A1", Title = "Alpha" }, CancellationToken.None).GetAwaiter().GetResult()
+
+        var items = List[LibraryItem]()
+        items.Add(MakeItem("A1", "Alpha"))
+        items.Add(MakeItem("A2", "Beta"))
+        var screen = CreateScreenWithQueue(items, queue)
+        var nav = NullNav()
+        ActivateScreen(screen, nav)
+        screen.Reload()
+
+        screen.HandleKey(Key('a', ConsoleKey.A))
+        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)))
+        Thread.Sleep(200)
+
+        var entries = queue.ListAsync(CancellationToken.None).GetAwaiter().GetResult()
+        Assert.Equal(2, entries.Count)
+        Assert.NotNull(nav.LastToast)
+        Assert.Contains("Enqueued 1", nav.LastToast)
+        Assert.Contains("1 already in queue", nav.LastToast)
+        Theme.Reset()
+    }
 }

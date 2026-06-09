@@ -1,13 +1,13 @@
-// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.459.
+// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.509.
 //
-// Covers: RegionPickerModal, ExternalLoginModal (char-by-char via .ToCharArray()),
-// ChallengeModal (incl. ApprovalOnly), CredentialsModal, PulseSpinner (incl. UseAscii),
-// TuiCallbackBroker (sync), SignInFlow state.
+// Added: AppShell_Modal_Receives_Keys, AppShell_Modal_Esc_Cancels_With_Completion_Flag
+// (use AnsiConsole.Create() instead of TestConsole; only need Dispatch/ShowModal/ActiveModal).
 //
 // WORKAROUNDS:
 // - gsharp#537: `for c in string` → .ToCharArray().
 // - gsharp#502: async tests → .GetAwaiter().GetResult().
 // - GS9002: out params → pass by reference with `&`.
+// - Spectre.Console.Testing TestConsole → AnsiConsole.Create() for modal dispatch tests.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -55,6 +55,10 @@ type SignInFlowTests class : IDisposable {
         for c in s.ToCharArray() {
             modal.HandleKey(ConsoleKeyInfo(c, ConsoleKey.NoName, false, false, false))
         }
+    }
+
+    func MakeConsole() IAnsiConsole {
+        return AnsiConsole.Create(AnsiConsoleSettings())
     }
 
     @Fact
@@ -234,6 +238,36 @@ type SignInFlowTests class : IDisposable {
         Assert.False(flow.IsRunning)
         flow.Start(CliRegion.Us, AuthCredentials("alice@example.com", "secret"))
         Assert.True(flow.IsRunning)
+    }
+
+    @Fact
+    func AppShell_Modal_Receives_Keys() {
+        var shell = AppShell(MakeConsole(), AppShellOptions())
+        var modal = RegionPickerModal()
+        shell.ShowModal(modal)
+        Assert.NotNull(shell.ActiveModal)
+
+        // Keys go to modal
+        shell.Dispatch(MakeKey(ConsoleKey.DownArrow))
+        shell.Dispatch(MakeKey(ConsoleKey.Enter))
+        Assert.True(modal.IsComplete)
+        Assert.Equal("uk", modal.Result)
+
+        // After completion the shell auto-dismisses
+        Assert.Null(shell.ActiveModal)
+    }
+
+    @Fact
+    func AppShell_Modal_Esc_Cancels_With_Completion_Flag() {
+        var shell = AppShell(MakeConsole(), AppShellOptions())
+        var modal = RegionPickerModal()
+        shell.ShowModal(modal)
+
+        shell.Dispatch(MakeKey(ConsoleKey.Escape))
+
+        Assert.True(modal.IsComplete)
+        Assert.True(modal.WasCancelled)
+        Assert.Null(shell.ActiveModal)
     }
 }
 

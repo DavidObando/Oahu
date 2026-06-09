@@ -1,20 +1,18 @@
-// G# port of Tui/AppShellTests.cs — IMPROVED for 0.1.459.
+// G# port of Tui/AppShellTests.cs — IMPROVED for 0.1.509.
 //
-// Covers: number-key tab switching, Tab/ShiftTab cycling, Ctrl+C single/double,
-// Shift+Q quit, plain Q passthrough, L toggles logs (with buffer), L without
-// buffer, Logs Esc closes overlay, Screen capturing input suppresses global L/numbers,
-// Plain Q reaches active screen when capturing.
+// Added: enum == comparison (no more int32 cast workaround).
 //
-// DROPPED:
-// - KeyReader_EOF/Run tests: AppShell.IKeyReader has DIM TryReadKey with `out`
-//   param — gsharp#572 (DIMs don't dispatch) + out-param interface impl
-//   means we can't implement IKeyReader from G#.
+// DROPPED (still blocked):
+// - KeyReader_EOF/Run tests: AppShell.IKeyReader has nullable struct return (ConsoleKeyInfo?)
+//   + out param in TryReadKey. G# can't implement interface with these signatures (GS0187).
+//   IKeyReader is a nested interface in AppShell → #569 fixed construction but not
+//   nullable-value-type return impl.
 //
 // WORKAROUNDS:
 // - AppShellOptions init-only → object initializer.
 // - ITabScreen impl with IRenderable Render → Markup("").
 // - gsharp#570: IEnumerable<KVP> → List[T].
-// - gsharp#573: ActiveModal property on interface → use `prop` accessor.
+// - enum ==: NOW WORKS directly (gsharp#574 fixed).
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -214,10 +212,10 @@ type ASCapturingScreen class : ITabScreen {
     }
 
     func HandleKey(key ConsoleKeyInfo) bool {
-        if int32(key.Key) == int32(ConsoleKey.L) {
+        if key.Key == ConsoleKey.L {
             ReceivedL = true
         }
-        if int32(key.Key) == int32(ConsoleKey.Q) {
+        if key.Key == ConsoleKey.Q {
             ReceivedQ = true
         }
         return Capturing
