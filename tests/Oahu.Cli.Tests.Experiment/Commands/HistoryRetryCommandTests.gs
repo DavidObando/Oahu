@@ -1,15 +1,17 @@
-// G# port of Commands/HistoryRetryCommandTests.cs — PARTIAL for 0.1.459.
-// Init-only properties on JobRecord now work via object-initializer syntax.
+// G# port of Commands/HistoryRetryCommandTests.cs.
+// Recovers nullable-enum Quality roundtrip via manual IAsyncEnumerable enumerator
+// (blocking with .GetAwaiter().GetResult()).
 //
-// LIMITATIONS:
-// - Setting Quality (DownloadQuality?) to non-null triggers GS9998 ICE.
-//   Quality round-trip test reduced to verifying null default.
-// - JsonlHistoryStore also triggers GS9998 (IAsyncEnumerable generic).
-// - Retry_UnknownId needs CommandLine Parse/InvokeAsync (extension methods).
+// NOTE: Retry_UnknownId still requires Func<ILoggerFactory> + interface upcast to
+// ILoggerFactory which the current G# binding can't express cleanly; left to a later pass.
 
 package Oahu.Cli.Tests.Experiment.Commands
 
 import System
+import System.IO
+import System.Text.RegularExpressions
+import System.Threading
+import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Models
 import Xunit
 
@@ -57,5 +59,77 @@ type HistoryRetryCommandTests class {
             ProfileAlias = "myprofile"
         }
         Assert.Equal("myprofile", rec.ProfileAlias)
+    }
+
+    @Fact
+    func JobRecord_Quality_Roundtrips_Through_JsonlHistoryStore() {
+        var path = Path.Combine(Path.GetTempPath(), "oahu-cli-retry-" + Guid.NewGuid().ToString("N") + ".jsonl")
+        try {
+            var store = JsonlHistoryStore(path)
+            var rec = JobRecord() {
+                Id = "abc123",
+                Asin = "B0001",
+                Title = "Hail Mary",
+                TerminalPhase = JobPhase.Completed,
+                StartedAt = DateTimeOffset.UtcNow.AddMinutes(float64(-1)),
+                CompletedAt = DateTimeOffset.UtcNow,
+                ProfileAlias = "default",
+                Quality = DownloadQuality.Extreme
+            }
+            store.Append(rec)
+
+            var list = readAll(store)
+            Assert.Single(list)
+            let read = list[0]
+            Assert.True(read.Quality.HasValue)
+            Assert.Equal(DownloadQuality.Extreme, read.Quality.Value)
+            Assert.Equal("abc123", read.Id)
+        } finally {
+            if File.Exists(path) {
+                File.Delete(path)
+            }
+        }
+    }
+
+    @Fact
+    func JobRecord_Without_Quality_Deserializes_As_Null() {
+        var path = Path.Combine(Path.GetTempPath(), "oahu-cli-retry-" + Guid.NewGuid().ToString("N") + ".jsonl")
+        try {
+            var store = JsonlHistoryStore(path)
+            store.Append(JobRecord() {
+                Id = "old1",
+                Asin = "B0",
+                Title = "T",
+                TerminalPhase = JobPhase.Completed,
+                StartedAt = DateTimeOffset.Parse("2025-01-01T00:00:00Z"),
+                CompletedAt = DateTimeOffset.Parse("2025-01-01T00:01:00Z")
+            })
+            var raw = File.ReadAllText(path)
+            raw = Regex.Replace(raw, ",\\s*\"quality\"\\s*:\\s*null", "")
+            File.WriteAllText(path, raw)
+
+            var list = readAll(store)
+            Assert.Single(list)
+            Assert.Null(list[0].Quality)
+        } finally {
+            if File.Exists(path) {
+                File.Delete(path)
+            }
+        }
+    }
+
+    func readAll(store JsonlHistoryStore) List[JobRecord] {
+        var list = List[JobRecord]()
+        let en = store.ReadAllAsync(CancellationToken.None).GetAsyncEnumerator(CancellationToken.None)
+        try {
+            var hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+            for hasMore {
+                list.Add(en.Current)
+                hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+            }
+        } finally {
+            en.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        }
+        return list
     }
 }

@@ -1,20 +1,84 @@
-// G# port of App/FakeServicesTests.cs (PARTIAL).
+// G# port of App/FakeServicesTests.cs.
 //
-// Only FakeAuthServiceTests are ported. FakeLibraryServiceTests are blocked:
-// LibraryItem and LibraryFilter use C# `init` setters which throw
-// MissingMethodException at runtime when called from G# compiled IL
-// (gsc emits regular set_ calls that fail the modreq check).
-//
-// NOTE (G# 0.1.431, gsharp#502): async func not usable; Tasks blocked with .Result/.Wait().
-// NOTE (G# 0.1.431, gsharp#504): ExpiresAt is DateTimeOffset?; nullable comparison
-// skipped.
+// Recovery (0.1.516): FakeLibraryServiceTests now work — init-only property
+// MissingMethodException + slice↔array fixed. Full suite ported.
 
 package Oahu.Cli.Tests.Experiment.App
 
+import System
+import System.Collections.Generic
 import System.Threading
 import Oahu.Cli.App.Auth
+import Oahu.Cli.App.Library
 import Oahu.Cli.App.Models
 import Xunit
+
+type FakeLibraryServiceTests class {
+    func Seed() FakeLibraryService {
+        var list = List[LibraryItem]()
+        list.Add(LibraryItem() {
+            Asin = "A1", Title = "Project Hail Mary",
+            Authors = []string{"Andy Weir"},
+            Series = "Standalone", IsAvailable = true
+        })
+        list.Add(LibraryItem() {
+            Asin = "A2", Title = "The Way of Kings",
+            Authors = []string{"Brandon Sanderson"},
+            Series = "Stormlight", IsAvailable = true
+        })
+        list.Add(LibraryItem() {
+            Asin = "A3", Title = "Words of Radiance",
+            Authors = []string{"Brandon Sanderson"},
+            Series = "Stormlight", IsAvailable = false
+        })
+        let seq IEnumerable[LibraryItem] = list
+        return FakeLibraryService(seq)
+    }
+
+    @Fact
+    func List_All_Returns_Available_By_Default() {
+        let svc = Seed()
+        let items = svc.ListAsync(nil, CancellationToken.None).Result
+        Assert.Equal(2, items.Count)
+        for i in items {
+            Assert.NotEqual("A3", i.Asin)
+        }
+    }
+
+    @Fact
+    func List_With_Search_Filters_Title_Case_Insensitive() {
+        let svc = Seed()
+        let filter = LibraryFilter() { Search = "kings" }
+        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        Assert.Single(items)
+        Assert.Equal("A2", items[0].Asin)
+    }
+
+    @Fact
+    func List_With_Author_Filter() {
+        let svc = Seed()
+        let filter = LibraryFilter() { Author = "sanderson" }
+        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        Assert.Single(items)
+    }
+
+    @Fact
+    func List_With_AvailableOnly_False_Includes_Unavailable() {
+        let svc = Seed()
+        let filter = LibraryFilter() { AvailableOnly = false }
+        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        Assert.Equal(3, items.Count)
+    }
+
+    @Fact
+    func Get_By_Asin_Case_Insensitive() {
+        let svc = Seed()
+        let item = svc.GetAsync("a1", CancellationToken.None).Result
+        Assert.NotNull(item)
+        let unwrapped = item!!
+        Assert.Equal("Project Hail Mary", unwrapped.Title)
+    }
+}
 
 type FakeAuthServiceTests class {
     @Fact
@@ -25,7 +89,6 @@ type FakeAuthServiceTests class {
 
         var active = svc.GetActiveAsync().Result
         Assert.NotNull(active)
-        // LIMITATION (gsharp#518): active!!.ProfileAlias doesn't parse; split.
         let unwrapped = active!!
         Assert.Equal(s.ProfileAlias, unwrapped.ProfileAlias)
     }
@@ -45,8 +108,7 @@ type FakeAuthServiceTests class {
         var s = svc.LoginAsync(CliRegion.Uk, NonInteractiveCallbackBroker()).Result
         Thread.Sleep(10)
         var refreshed = svc.RefreshAsync(s.ProfileAlias).Result
-        // LIMITATION (gsharp#504): ExpiresAt is DateTimeOffset?; cannot compare
-        // nullable values safely. Assert that refresh completed without error.
         Assert.NotNull(refreshed)
+        Assert.True(refreshed.ExpiresAt!! > s.ExpiresAt!!)
     }
 }

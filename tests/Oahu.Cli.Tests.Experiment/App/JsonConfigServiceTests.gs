@@ -1,13 +1,9 @@
 // G# port of App/JsonConfigServiceTests.cs.
 //
 // Tests the JSON config service: load-from-missing returns default, save then
-// load round-trips, no .tmp leftover, overwrite is atomic.
-//
-// LIMITATION: OahuConfig is a C# record with init-only properties. Cannot
-// construct modified instances in G# (gsharp init-only limitation). Tests are
-// restricted to using OahuConfig.Default only. The "round trips all fields"
-// and "overwrites atomically with different values" tests are weakened — they
-// verify the save→load mechanic with the default instance only.
+// load round-trips, no .tmp leftover, overwrite is atomic. With init-only
+// properties now consumable from G#, the round-trip tests use non-default
+// values for every field — matching the C# version field-for-field.
 
 package Oahu.Cli.Tests.Experiment.App
 
@@ -43,21 +39,32 @@ type JsonConfigServiceTests class {
     }
 
     @Fact
-    func Save_Then_Load_Round_Trips_Default() {
+    func Save_Then_Load_Round_Trips_All_Fields() {
         defer cleanup()
         var svc = JsonConfigService(tempFile)
-        svc.SaveAsync(OahuConfig.Default).Wait()
+        var cfg = OahuConfig() {
+            DownloadDirectory = "/tmp/x",
+            DefaultQuality = DownloadQuality.Extreme,
+            MaxParallelJobs = 4,
+            KeepEncryptedFiles = true,
+            MultiPartDownload = true,
+            ExportToAax = true,
+            ExportDirectory = "/tmp/aax",
+            DefaultProfileAlias = "main",
+            AllowEncryptedFileCredentials = true,
+        }
+        svc.SaveAsync(cfg).Wait()
 
-        var fresh = JsonConfigService(tempFile)
-        var reloaded = fresh.LoadAsync().Result
-        Assert.Equal[OahuConfig](OahuConfig.Default, reloaded)
+        var reloaded = JsonConfigService(tempFile).LoadAsync().Result
+        Assert.Equal[OahuConfig](cfg, reloaded)
     }
 
     @Fact
     func Save_Leaves_No_Tmp_File_Behind() {
         defer cleanup()
         var svc = JsonConfigService(tempFile)
-        svc.SaveAsync(OahuConfig.Default).Wait()
+        var cfg = OahuConfig() { MaxParallelJobs = 7 }
+        svc.SaveAsync(cfg).Wait()
         Assert.True(File.Exists(tempFile))
         Assert.False(File.Exists(tempFile + ".tmp"))
     }
@@ -66,11 +73,11 @@ type JsonConfigServiceTests class {
     func Save_Overwrites_Existing_File_Atomically() {
         defer cleanup()
         var svc = JsonConfigService(tempFile)
-        // Save twice to exercise the overwrite path.
-        svc.SaveAsync(OahuConfig.Default).Wait()
-        svc.SaveAsync(OahuConfig.Default).Wait()
+        svc.SaveAsync(OahuConfig() { MaxParallelJobs = 1 }).Wait()
+        svc.SaveAsync(OahuConfig() { MaxParallelJobs = 9 }).Wait()
         var reloaded = svc.LoadAsync().Result
-        Assert.Equal[OahuConfig](OahuConfig.Default, reloaded)
+        Assert.Equal(9, reloaded.MaxParallelJobs)
         Assert.False(File.Exists(tempFile + ".tmp"))
     }
 }
+

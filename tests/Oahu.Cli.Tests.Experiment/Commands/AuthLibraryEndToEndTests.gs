@@ -1,15 +1,13 @@
-// G# port of Commands/AuthLibraryEndToEndTests.cs — for 0.1.509.
-// The RunCmd helper now compiles cleanly thanks to gsharp#570 (slice→IReadOnlyList).
-//
-// LIMITATIONS:
-// - LibraryUnread_FiltersByMissingHistory skipped: needs IJobService impl with
-//   IAsyncEnumerable (ReadHistoryAsync).
+// G# port of Commands/AuthLibraryEndToEndTests.cs.
+// All 10 tests recovered: gsharp#641 fixed unblocks async-yield-on-iface-impl,
+// so we can implement IJobService directly for LibraryUnread_FiltersByMissingHistory.
 
 package Oahu.Cli.Tests.Experiment.Commands
 
 import System
 import System.Collections.Generic
 import System.IO
+import System.Linq
 import System.Threading
 import System.Threading.Tasks
 import Microsoft.Extensions.Logging
@@ -150,8 +148,30 @@ type AuthLibraryEndToEndTests class : IDisposable {
         Assert.Contains("Sign-in", result.Stderr)
     }
 
-    // LibraryUnread_FiltersByMissingHistory skipped: implementing IJobService
-    // in G# requires async sequence for ReadHistoryAsync (IAsyncEnumerable return).
+    @Fact
+    func LibraryUnread_FiltersByMissingHistory() {
+        let lib = FakeLibraryService([]LibraryItem{
+            LibraryItem() { Asin = "AREAD", Title = "Read Book" },
+            LibraryItem() { Asin = "AUNREAD", Title = "Unread Book" },
+        })
+        CliServiceFactory.LibraryServiceFactory = func() ILibraryService { return lib }
+
+        let fakeJobs = E2EFakeJobService()
+        fakeJobs.SeedHistory(JobRecord() {
+            Id = "j1",
+            Asin = "AREAD",
+            Title = "Read Book",
+            TerminalPhase = JobPhase.Completed,
+            StartedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
+        })
+        CliServiceFactory.JobServiceFactory = func() IJobService { return fakeJobs }
+
+        let result = RunCmd([]string{"library", "list", "--unread", "--json"})
+        Assert.Equal(0, result.Exit)
+        Assert.Contains("AUNREAD", result.Stdout)
+        Assert.DoesNotContain("AREAD\"", result.Stdout)
+    }
 
     func RunCmd(args []string) E2EAuthCmdResult {
         return RunCmdWithStdin(nil, args)
@@ -224,5 +244,59 @@ type E2ERecordingFakeAuthService class : IAuthService {
 
     func RefreshAsync(profileAlias string, cancellationToken CancellationToken) Task[AuthSession] {
         return getInner().RefreshAsync(profileAlias, cancellationToken)
+    }
+}
+
+type E2EFakeJobService class : IJobService {
+    active List[JobSnapshot] = List[JobSnapshot]()
+    history List[JobRecord] = List[JobRecord]()
+
+    func SeedHistory(r JobRecord) {
+        history.Add(r)
+    }
+
+    func SubmitAsync(request JobRequest, cancellationToken CancellationToken) Task {
+        return Task.CompletedTask
+    }
+
+    async func ObserveAll(cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
+        await Task.CompletedTask
+        let empty = List[JobUpdate]()
+        for u in empty {
+            yield u
+        }
+    }
+
+    async func ObserveAsync(jobId string, cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
+        await Task.CompletedTask
+        let empty = List[JobUpdate]()
+        for u in empty {
+            yield u
+        }
+    }
+
+    func Cancel(jobId string) bool {
+        return false
+    }
+
+    func GetSnapshot(jobId string) JobSnapshot? {
+        for s in active {
+            if s.JobId == jobId {
+                return s
+            }
+        }
+        let dummy List[JobSnapshot] = List[JobSnapshot]()
+        return dummy.FirstOrDefault()
+    }
+
+    func ListActive() IReadOnlyList[JobSnapshot] {
+        return active
+    }
+
+    async func ReadHistoryAsync(cancellationToken CancellationToken) IAsyncEnumerable[JobRecord] {
+        for r in history {
+            yield r
+        }
+        await Task.CompletedTask
     }
 }

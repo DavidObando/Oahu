@@ -1,23 +1,18 @@
-// G# port of App/CoreAuthServiceTests.cs (PARTIAL).
+// G# port of App/CoreAuthServiceTests.cs.
 //
-// Contains CoreAuthRegionMappingTests (region enum mapping round-trips).
-//
-// LIMITATION: CallbackBridgeTests require (1) implementing IAuthCallbackBroker
-// in G# (fails with GS0157: cannot find type for external interfaces) and
-// (2) invoking delegate-typed struct fields from Oahu.Core.Callbacks (fails
-// with GS0159: cannot find function for delegate field invocation). Both are
-// G# 0.1.431 binder limitations. Skipped entirely.
-//
-// LIMITATION: Enum.GetValues[T]() returns corrupt values beyond the defined
-// enum members in G# 0.1.431, causing All_Cli_Regions_Round_Trip to throw.
-// Skipped; the Theory with all 11 InlineData rows already covers the same ground.
+// Recovery (0.1.516): added All_Cli_Regions_Round_Trip and the four
+// CallbackBridge tests (broker-implementation + invoking Func/Action fields
+// on Oahu.Core.Callbacks now bind correctly).
 
 package Oahu.Cli.Tests.Experiment.App
 
 import System
+import System.Threading
+import System.Threading.Tasks
 import Oahu.Cli.App.Auth
 import Oahu.Cli.App.Models
 import Oahu.CommonTypes
+import Oahu.Core
 import Xunit
 
 type CoreAuthRegionMappingTests class {
@@ -36,5 +31,121 @@ type CoreAuthRegionMappingTests class {
     func Region_Maps_Both_Directions(cli CliRegion, core ERegion) {
         Assert.Equal(core, CoreAuthService.ToCoreRegion(cli))
         Assert.Equal(cli, CoreAuthService.ToCliRegion(core))
+    }
+
+    @Fact
+    func All_Cli_Regions_Round_Trip() {
+        let values = Enum.GetValues[CliRegion]()
+        for r in values {
+            let roundTripped = CoreAuthService.ToCliRegion(CoreAuthService.ToCoreRegion(r))
+            Assert.Equal(r, roundTripped)
+        }
+    }
+}
+
+type CBRecordingBroker class : IAuthCallbackBroker {
+    prop CaptchaAnswer string? { get; set; }
+    prop MfaAnswer string { get; set; }
+    prop CvfAnswer string { get; set; }
+    prop ExternalLoginAnswer Uri { get; set; }
+    prop ThrowNonInteractive bool { get; set; }
+
+    prop MfaCalls int32 { get; set; }
+    prop LastExternalLoginUri Uri? { get; set; }
+
+    func init() {
+        MfaAnswer = "000000"
+        CvfAnswer = "0000"
+        ExternalLoginAnswer = Uri("https://example.org/")
+        ThrowNonInteractive = false
+        MfaCalls = 0
+        CaptchaAnswer = nil
+        LastExternalLoginUri = nil
+    }
+
+    func SolveCaptchaAsync(challenge CaptchaChallenge, cancellationToken CancellationToken) Task[string] {
+        if ThrowNonInteractive {
+            return Task.FromException[string](NonInteractiveCallbackException("captcha"))
+        }
+        var answer = ""
+        if CaptchaAnswer != nil {
+            answer = CaptchaAnswer!!
+        }
+        return Task.FromResult(answer)
+    }
+
+    func SolveMfaAsync(challenge MfaChallenge, cancellationToken CancellationToken) Task[string] {
+        MfaCalls = MfaCalls + 1
+        if ThrowNonInteractive {
+            return Task.FromException[string](NonInteractiveCallbackException("mfa"))
+        }
+        return Task.FromResult(MfaAnswer)
+    }
+
+    func SolveCvfAsync(challenge CvfChallenge, cancellationToken CancellationToken) Task[string] {
+        return Task.FromResult(CvfAnswer)
+    }
+
+    func ConfirmApprovalAsync(challenge ApprovalChallenge, cancellationToken CancellationToken) Task {
+        return Task.CompletedTask
+    }
+
+    func CompleteExternalLoginAsync(challenge ExternalLoginChallenge, cancellationToken CancellationToken) Task[Uri] {
+        LastExternalLoginUri = challenge.LoginUri
+        return Task.FromResult(ExternalLoginAnswer)
+    }
+}
+
+type CallbackBridgeTests class {
+    @Fact
+    func Bridge_Forwards_Mfa_Through_Broker() {
+        var bb = CBRecordingBroker() { MfaAnswer = "987654" }
+        let broker IAuthCallbackBroker = bb
+        let callbacks = CallbackBridge.ToCoreCallbacks(broker, CancellationToken.None)
+
+        let mfa = callbacks.MfaCallback
+        let code = Task.Run[string](func() string { return mfa() }).Result
+        Assert.Equal("987654", code)
+        Assert.Equal(1, bb.MfaCalls)
+    }
+
+    @Fact
+    func Bridge_Forwards_External_Login_Uri() {
+        let loginUri = Uri("https://amazon.example/login")
+        let redirect = Uri("https://audible.example/maplanding?code=xyz")
+        var bb = CBRecordingBroker() { ExternalLoginAnswer = redirect }
+        let broker IAuthCallbackBroker = bb
+        let callbacks = CallbackBridge.ToCoreCallbacks(broker, CancellationToken.None)
+
+        let ext = callbacks.ExternalLoginCallback
+        let result = Task.Run[Uri](func() Uri { return ext(loginUri) }).Result
+        Assert.Equal(redirect, result)
+        Assert.Equal(loginUri, bb.LastExternalLoginUri)
+    }
+
+    @Fact
+    func Bridge_Always_Confirms_Deregister_Of_Previous_Device() {
+        var bb = CBRecordingBroker()
+        let broker IAuthCallbackBroker = bb
+        let callbacks = CallbackBridge.ToCoreCallbacks(broker, CancellationToken.None)
+
+        let deregister = callbacks.DeregisterDeviceConfirmCallback
+        let key = ProfileKeyEx(uint32(0), ERegion.Us, "name", "acct", "device")
+        let confirmed = deregister(key)
+        Assert.True(confirmed)
+    }
+
+    @Fact
+    func Bridge_Propagates_NonInteractive_Exception() {
+        var bb = CBRecordingBroker() { ThrowNonInteractive = true }
+        let broker IAuthCallbackBroker = bb
+        let callbacks = CallbackBridge.ToCoreCallbacks(broker, CancellationToken.None)
+
+        let mfa = callbacks.MfaCallback
+        let agg = Assert.Throws[AggregateException](func() {
+            let ignored = Task.Run[string](func() string { return mfa() }).Result
+        })
+        let ex = Assert.IsType[NonInteractiveCallbackException](agg.InnerException)
+        Assert.Equal("mfa", ex.Kind)
     }
 }

@@ -1,13 +1,20 @@
-// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.509.
+// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.516.
 //
 // Added: AppShell_Modal_Receives_Keys, AppShell_Modal_Esc_Cancels_With_Completion_Flag
 // (use AnsiConsole.Create() instead of TestConsole; only need Dispatch/ShowModal/ActiveModal).
+// Added: AppShell_CtrlC_Dismisses_Modal (uses Spectre.Console.Testing.TestConsole; now usable).
+// Strengthened: SignInFlow_Start_Sets_State now also asserts state.ActivityVerb.
+//
+// STILL DROPPED:
+// - AppShell_Mutable_State_Reflects_In_Header requires implementing AppShell.IKeyReader,
+//   which is blocked by the same G# compiler bug (RefKind-not-considered in CLR signature
+//   matching) documented in AppShellTests.gs. The interface's DIM `TryReadKey(int, out
+//   ConsoleKeyInfo)` cannot be re-implemented in G#.
 //
 // WORKAROUNDS:
 // - gsharp#537: `for c in string` → .ToCharArray().
 // - gsharp#502: async tests → .GetAwaiter().GetResult().
 // - GS9002: out params → pass by reference with `&`.
-// - Spectre.Console.Testing TestConsole → AnsiConsole.Create() for modal dispatch tests.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -24,6 +31,7 @@ import Oahu.Cli.Tui.Themes
 import Oahu.Cli.Tui.Widgets
 import Spectre.Console
 import Spectre.Console.Rendering
+import Spectre.Console.Testing
 import Xunit
 
 type SignInFlowTests class : IDisposable {
@@ -238,6 +246,7 @@ type SignInFlowTests class : IDisposable {
         Assert.False(flow.IsRunning)
         flow.Start(CliRegion.Us, AuthCredentials("alice@example.com", "secret"))
         Assert.True(flow.IsRunning)
+        Assert.Equal("signing in…", state.ActivityVerb)
     }
 
     @Fact
@@ -267,6 +276,22 @@ type SignInFlowTests class : IDisposable {
 
         Assert.True(modal.IsComplete)
         Assert.True(modal.WasCancelled)
+        Assert.Null(shell.ActiveModal)
+    }
+
+    @Fact
+    func AppShell_CtrlC_Dismisses_Modal() {
+        var console = TestConsole()
+        console.Profile.Width = 80
+        console.Profile.Height = 30
+        let ac IAnsiConsole = console
+        var shell = AppShell(ac, AppShellOptions())
+        let m IModal = RegionPickerModal()
+        shell.ShowModal(m)
+        Assert.NotNull(shell.ActiveModal)
+
+        var action = shell.Dispatch(ConsoleKeyInfo(char(3), ConsoleKey.C, false, false, true))
+        Assert.Equal(ShellAction.Continue, action)
         Assert.Null(shell.ActiveModal)
     }
 }

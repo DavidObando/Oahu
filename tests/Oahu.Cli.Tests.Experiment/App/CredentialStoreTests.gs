@@ -1,12 +1,7 @@
 // G# port of App/CredentialStoreTests.cs.
 //
-// Covers CredentialStoreFactory platform detection and UnsupportedCredentialStore
-// throw behaviour. WindowsDpapi_Round_Trip is skipped on non-Windows.
-//
-// NOTE (G# 0.1.431, gsharp#502): async func not usable; Tasks blocked with .Result/.Wait().
-// LIMITATION: G# cannot bind .Result on Task[string?] (nullable type param).
-// UnsupportedCredentialStore throws synchronously so .Result is not needed.
-// WindowsDpapi_Round_Trip skipped: cannot call .Result on Task[string?].
+// Covers CredentialStoreFactory platform detection, UnsupportedCredentialStore
+// throw behaviour, and (on Windows) the DPAPI round trip.
 
 package Oahu.Cli.Tests.Experiment.App
 
@@ -58,5 +53,32 @@ type CredentialStoreTests class {
         Assert.Throws[CredentialStoreUnavailableException](func() {
             store.ListAccountsAsync()
         })
+    }
+
+    @Fact
+    func WindowsDpapi_Round_Trip() {
+        if !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) {
+            return
+        }
+        var id = Guid.NewGuid().ToString("N")
+        var tempPath = Path.Combine(Path.GetTempPath(), "oahu-cli-creds-" + id)
+        Directory.CreateDirectory(tempPath)
+        try {
+            let path = Path.Combine(tempPath, "creds.dpapi")
+            let store = WindowsDpapiCredentialStore(path)
+            store.SetAsync("alice", "s3cret").Wait()
+            let got = store.GetAsync("alice").GetAwaiter().GetResult()
+            Assert.Equal("s3cret", got)
+            Assert.True(store.DeleteAsync("alice").Result)
+            let after = store.GetAsync("alice").GetAwaiter().GetResult()
+            Assert.Null(after)
+            Assert.False(File.Exists(path + ".tmp"))
+        } finally {
+            try {
+                Directory.Delete(tempPath, true)
+            } catch (e Exception) {
+                // best-effort cleanup
+            }
+        }
     }
 }

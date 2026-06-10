@@ -1,25 +1,39 @@
-// G# port of Commands/QueueAndHistoryCommandTests.cs (FAILED — no tests portable).
-//
-// Both tests require constructing QueueEntry and JobRecord which have
-// required init-only properties (Asin, Title, Id, TerminalPhase, StartedAt,
-// CompletedAt). G# 0.1.431 cannot set init-only properties: object-initializer
-// syntax T() { Prop = v } doesn't parse, and post-construction assignment
-// compiles but throws MissingMethodException at runtime.
-//
-// Additionally, HistoryCommand.ToDictionary output includes nullable field
-// "quality" from JobRecord.Quality (DownloadQuality?) which cannot be
-// constructed or asserted on due to gsharp#504/gsharp#517.
+// G# port of Commands/QueueAndHistoryCommandTests.cs.
+// Both tests recovered: init-only props on QueueEntry/JobRecord work in 0.1.516.
 
 package Oahu.Cli.Tests.Experiment.Commands
 
+import System
+import Oahu.Cli.App.Models
+import Oahu.Cli.Commands
 import Xunit
 
 type QueueAndHistoryCommandTests class {
     @Fact
-    func Placeholder_DocumentsBlockingLimitations() {
-        // All real tests blocked by init-only property limitation.
-        // QueueEntry requires: Asin (required init), Title (required init)
-        // JobRecord requires: Id, Asin, Title, TerminalPhase, StartedAt, CompletedAt (all required init)
-        Assert.True(true)
+    func QueueCommand_ToDictionary_HasStableKeys() {
+        let entry = QueueEntry() { Asin = "A1", Title = "Book" }
+        let dict = QueueCommand.ToDictionary(entry)
+        Assert.Equal("A1", dict["asin"])
+        Assert.Equal("Book", dict["title"])
+        Assert.Equal("High", dict["quality"])
+        Assert.True(dict.ContainsKey("addedAt"))
+        Assert.True(dict.ContainsKey("profileAlias"))
+    }
+
+    @Fact
+    func HistoryCommand_ToDictionary_MapsTerminalPhaseToStatusString() {
+        let rec = JobRecord() {
+            Id = "j1",
+            Asin = "A1",
+            Title = "Book",
+            TerminalPhase = JobPhase.Failed,
+            StartedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+            CompletedAt = DateTimeOffset.UtcNow,
+            ErrorMessage = "boom",
+        }
+        let dict = HistoryCommand.ToDictionary(rec)
+        Assert.Equal("j1", dict["id"])
+        Assert.Equal("Failed", dict["status"])
+        Assert.Equal("boom", dict["errorMessage"])
     }
 }

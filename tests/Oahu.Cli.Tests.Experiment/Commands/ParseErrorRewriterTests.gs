@@ -1,51 +1,62 @@
-// G# port of Commands/ParseErrorRewriterTests.cs (PARTIAL).
-//
-// The NoErrors, UnknownSubcommand, and UnknownSubcommand_NoCloseMatch tests
-// require RootCommandFactory.Create(() => new LoggerFactory()) which hits
-// the known limitation: cannot upcast concrete class to interface in lambda
-// returns (LoggerFactory → ILoggerFactory). They also need StringWriter → TextWriter.
-//
-// Only SuggestNearest_PicksClosestWithinThreshold is ported (static method with
-// basic types). The IReadOnlyList<string> parameter is tested with a List[string].
+// G# port of Commands/ParseErrorRewriterTests.cs.
+// All 4 @Fact + 1 @Theory (with 3 InlineData) tests recovered.
 
 package Oahu.Cli.Tests.Experiment.Commands
 
+import System.CommandLine
 import System.Collections.Generic
+import System.IO
+import Microsoft.Extensions.Logging
+import Microsoft.Extensions.Logging.Abstractions
 import Oahu.Cli.Commands
 import Xunit
 
 type ParseErrorRewriterTests class {
-    @Fact
-    func SuggestNearest_Kitten_FindsExactMatch() {
-        var candidates = List[string]()
-        candidates.Add("kitchen")
-        candidates.Add("kitten")
-        candidates.Add("mitten")
-        var result = ParseErrorRewriter.SuggestNearest("kitten", candidates)
-        Assert.Equal("kitten", result)
+    func BuildRoot() RootCommand {
+        return RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
     }
 
     @Fact
-    func SuggestNearest_Docter_FindsDoctor() {
-        var candidates = List[string]()
-        candidates.Add("doctor")
-        candidates.Add("queue")
-        candidates.Add("config")
-        var result = ParseErrorRewriter.SuggestNearest("docter", candidates)
-        Assert.Equal("doctor", result)
+    func NoErrors_ReturnsNull() {
+        let root = BuildRoot()
+        let pr = root.Parse([]string{"doctor", "--skip-network", "--json"})
+        let sw = StringWriter()
+        Assert.Null(ParseErrorRewriter.RewriteIfNeeded(pr, sw))
+        Assert.Empty(sw.ToString())
     }
 
     @Fact
-    func SuggestNearest_NoCloseMatch_ReturnsNull() {
-        var candidates = List[string]()
-        candidates.Add("doctor")
-        candidates.Add("config")
-        var result = ParseErrorRewriter.SuggestNearest("zzzzzzz", candidates)
-        Assert.Null(result)
+    func UnknownSubcommand_AppendsHelpHintAndSuggestion() {
+        let root = BuildRoot()
+        let pr = root.Parse([]string{"doctorr"})
+        let sw = StringWriter()
+        let code = ParseErrorRewriter.RewriteIfNeeded(pr, sw)
+        Assert.Equal(2, code!!)
+        let output = sw.ToString()
+        Assert.Contains("Did you mean: oahu-cli doctor", output)
+        Assert.Contains(ParseErrorRewriter.HelpHint, output)
     }
 
     @Fact
-    func HelpHint_HasExpectedValue() {
-        Assert.Equal("Try 'oahu-cli --help' for more information.", ParseErrorRewriter.HelpHint)
+    func UnknownSubcommand_NoCloseMatch_OmitsSuggestion() {
+        let root = BuildRoot()
+        let pr = root.Parse([]string{"xyzzy"})
+        let sw = StringWriter()
+        let code = ParseErrorRewriter.RewriteIfNeeded(pr, sw)
+        Assert.Equal(2, code!!)
+        Assert.DoesNotContain("Did you mean", sw.ToString())
+        Assert.Contains(ParseErrorRewriter.HelpHint, sw.ToString())
+    }
+
+    @Theory
+    @InlineData("kitten", []string{"kitchen", "kitten", "mitten"}, "kitten")
+    @InlineData("docter", []string{"doctor", "queue", "config"}, "doctor")
+    @InlineData("zzzzzzz", []string{"doctor", "config"}, nil)
+    func SuggestNearest_PicksClosestWithinThreshold(input string, candidates []string, expected string?) {
+        let list = List[string]()
+        for c in candidates {
+            list.Add(c)
+        }
+        Assert.Equal(expected, ParseErrorRewriter.SuggestNearest(input, list))
     }
 }

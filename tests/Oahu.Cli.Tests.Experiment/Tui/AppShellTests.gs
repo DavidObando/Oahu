@@ -1,18 +1,31 @@
-// G# port of Tui/AppShellTests.cs — IMPROVED for 0.1.509.
+// G# port of Tui/AppShellTests.cs — IMPROVED for 0.1.516.
 //
 // Added: enum == comparison (no more int32 cast workaround).
 //
-// DROPPED (still blocked):
-// - KeyReader_EOF/Run tests: AppShell.IKeyReader has nullable struct return (ConsoleKeyInfo?)
-//   + out param in TryReadKey. G# can't implement interface with these signatures (GS0187).
-//   IKeyReader is a nested interface in AppShell → #569 fixed construction but not
-//   nullable-value-type return impl.
+// STILL DROPPED:
+// - 3 IKeyReader tests (KeyReader_EOF_Returns_Cleanly, Run_Returns_Success_When_Ctrl_C_Exits_Idle_Shell,
+//   Run_Honours_Shift_Q_As_Clean_Quit). #638 fixed `ConsoleKeyInfo? ReadKey()` impl, but
+//   AppShell.IKeyReader also has a DIM `TryReadKey(int, out ConsoleKeyInfo)`. G#'s
+//   VerifyClrInterfaceImplementations walks ALL interface methods (not only abstract ones),
+//   so DIM members must be re-implemented; and the matcher compares parameter `Type` directly
+//   without considering `RefKind`, so a G# `out key ConsoleKeyInfo` parameter (Type =
+//   `ConsoleKeyInfo`) never matches the C# CLR signature (`ConsoleKeyInfo&` byref). Both bugs
+//   together make IKeyReader unimplementable from G#. See repro snippet below.
 //
 // WORKAROUNDS:
 // - AppShellOptions init-only → object initializer.
 // - ITabScreen impl with IRenderable Render → Markup("").
 // - gsharp#570: IEnumerable<KVP> → List[T].
 // - enum ==: NOW WORKS directly (gsharp#574 fixed).
+//
+// Minimal repro for the IKeyReader block (compile error GS0187):
+//   type R class : AppShell.IKeyReader {
+//       func ReadKey() ConsoleKeyInfo? { let n ConsoleKeyInfo? = nil; return n }
+//       func TryReadKey(t int32, out k ConsoleKeyInfo) bool { k = ConsoleKeyInfo(); return false }
+//   }
+//   // → GS0187: class 'R' does not implement TryReadKey(Int32, ConsoleKeyInfo&)
+//   // Root cause: HasMatchingMethodForClrSignature compares parameter Type
+//   //   (= ConsoleKeyInfo) against ParameterInfo.ParameterType (= ConsoleKeyInfo&) ignoring RefKind.
 
 package Oahu.Cli.Tests.Experiment.Tui
 

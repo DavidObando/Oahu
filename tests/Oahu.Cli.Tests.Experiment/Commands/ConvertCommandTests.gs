@@ -1,7 +1,6 @@
-// G# port of Commands/ConvertCommandTests.cs — PARTIAL for 0.1.509.
-// CapturingExecutor (IJobExecutor with async yield) triggers GS9998 ICE.
-// Using FakeJobExecutor instead; tests that assert on captured Requests are skipped.
-// gsharp#570 (slice→IReadOnlyList) unblocks RunCmd.
+// G# port of Commands/ConvertCommandTests.cs.
+// All 6 tests recovered: gsharp#641 fixed unblocks async-yield-on-iface-impl,
+// so CapturingExecutor (IJobExecutor with async-yield) compiles.
 
 package Oahu.Cli.Tests.Experiment.Commands
 
@@ -17,6 +16,21 @@ import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Models
 import Oahu.Cli.Commands
 import Xunit
+
+type CapturingExecutor class : IJobExecutor {
+    Requests List[JobRequest]
+
+    init() {
+        Requests = List[JobRequest]()
+    }
+
+    async func ExecuteAsync(request JobRequest, cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
+        Requests.Add(request)
+        yield JobUpdate() { JobId = request.Id, Phase = JobPhase.Licensing }
+        await Task.Yield()
+        yield JobUpdate() { JobId = request.Id, Phase = JobPhase.Completed }
+    }
+}
 
 @Collection("EnvVarSerial")
 type ConvertCommandTests class : IDisposable {
@@ -34,56 +48,81 @@ type ConvertCommandTests class : IDisposable {
         CliServiceFactory.Reset()
     }
 
-    func UseScheduler() {
-        var exec = FakeJobExecutor(TimeSpan.FromMilliseconds(1))
-        var sched = JobScheduler(exec)
+    func UseCapturing() CapturingExecutor {
+        let exec = CapturingExecutor()
+        let execIface = exec as IJobExecutor
+        let sched = JobScheduler(execIface)
         toDispose.Add(sched)
         CliServiceFactory.JobServiceFactory = func() IJobService { return sched }
+        return exec
     }
 
     @Fact
     func NoArgs_ExitsTwo() {
-        UseScheduler()
-        var result = ConvertRunCmd([]string{"convert"})
+        UseCapturing()
+        let result = RunCmd([]string{"convert"})
         Assert.Equal(2, result.Exit)
     }
 
     @Fact
-    func SingleAsin_ExitsZero_EmitsSummary() {
-        UseScheduler()
-        var result = ConvertRunCmd([]string{"convert", "B00ASIN1", "--json"})
+    func SingleAsin_SetsExportToAax_True() {
+        let exec = UseCapturing()
+        let result = RunCmd([]string{"convert", "B00ASIN1", "--json"})
         Assert.Equal(0, result.Exit)
+        Assert.Single(exec.Requests)
+        Assert.True(exec.Requests[0].ExportToAax)
+        Assert.Equal("B00ASIN1", exec.Requests[0].Asin)
         Assert.Contains("\"resource\": \"download-summary\"", result.Stdout)
     }
 
     @Fact
+    func OutputDir_Is_Forwarded() {
+        let exec = UseCapturing()
+        let result = RunCmd([]string{"convert", "B00ASIN1", "--output-dir", "/tmp/out", "--json"})
+        Assert.Equal(0, result.Exit)
+        Assert.Equal("/tmp/out", exec.Requests[0].OutputDir)
+    }
+
+    @Fact
+    func DownloadCommand_ExportFlag_Aax_SetsExportToAax() {
+        let exec = UseCapturing()
+        let result = RunCmd([]string{"download", "B00ASIN1", "--export", "aax", "--output-dir", "/tmp/d", "--json"})
+        Assert.Equal(0, result.Exit)
+        Assert.True(exec.Requests[0].ExportToAax)
+        Assert.Equal("/tmp/d", exec.Requests[0].OutputDir)
+    }
+
+    @Fact
     func DownloadCommand_ExportFlag_Invalid_ExitsTwo() {
-        UseScheduler()
-        var result = ConvertRunCmd([]string{"download", "B00ASIN1", "--export", "wav"})
+        UseCapturing()
+        let result = RunCmd([]string{"download", "B00ASIN1", "--export", "wav"})
         Assert.Equal(2, result.Exit)
         Assert.Contains("--export", result.Stderr)
     }
 
-    // Tests that assert on CapturingExecutor.Requests (SingleAsin_SetsExportToAax_True,
-    // OutputDir_Is_Forwarded, DownloadCommand_ExportFlag_Aax_SetsExportToAax,
-    // DownloadCommand_NoExportFlag_DefaultsFalse) are SKIPPED because CapturingExecutor
-    // (async yield implementing IJobExecutor) triggers GS9998 ICE.
+    @Fact
+    func DownloadCommand_NoExportFlag_DefaultsFalse() {
+        let exec = UseCapturing()
+        let result = RunCmd([]string{"download", "B00ASIN1", "--json"})
+        Assert.Equal(0, result.Exit)
+        Assert.False(exec.Requests[0].ExportToAax)
+    }
 
-    func ConvertRunCmd(args []string) E2ECmdResult {
-        var origOut = Console.Out
-        var origErr = Console.Error
-        var origCliOut = CliEnvironment.Out
-        var origCliErr = CliEnvironment.Error
-        var sw = StringWriter()
-        var ew = StringWriter()
+    func RunCmd(args []string) E2ECmdResult {
+        let origOut = Console.Out
+        let origErr = Console.Error
+        let origCliOut = CliEnvironment.Out
+        let origCliErr = CliEnvironment.Error
+        let sw = StringWriter()
+        let ew = StringWriter()
         Console.SetOut(sw)
         Console.SetError(ew)
         CliEnvironment.Out = sw
         CliEnvironment.Error = ew
         try {
-            var root = RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
-            var parse = root.Parse(args)
-            var exit = parse.InvokeAsync().Result
+            let root = RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
+            let parse = root.Parse(args)
+            let exit = parse.InvokeAsync().Result
             return E2ECmdResult(exit, sw.ToString(), ew.ToString())
         } finally {
             Console.SetOut(origOut)

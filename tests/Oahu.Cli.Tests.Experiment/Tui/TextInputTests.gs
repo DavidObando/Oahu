@@ -1,7 +1,7 @@
-// G# port of Tui/TextInputTests.cs — FULL for 0.1.459.
+// G# port of Tui/TextInputTests.cs — IMPROVED for 0.1.516.
 //
-// All 9 tests ported. Init-only properties (MaxLength, Label, Masked)
-// now set via object initializer syntax.
+// Recovered: 3 tests now use `TextInput() { Text = "..." }` object initializer
+// instead of post-construction `input.Text = "..."`, mirroring the C# original.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -25,8 +25,7 @@ type TextInputTests class {
 
     @Fact
     func Backspace_Deletes_Before_Cursor() {
-        var input = TextInput()
-        input.Text = "abc"
+        var input = TextInput() { Text = "abc" }
         input.HandleKey(Key(char(8), ConsoleKey.Backspace))
         Assert.Equal("ab", input.Text)
         Assert.Equal(2, input.Cursor)
@@ -34,8 +33,7 @@ type TextInputTests class {
 
     @Fact
     func Delete_Removes_At_Cursor() {
-        var input = TextInput()
-        input.Text = "abc"
+        var input = TextInput() { Text = "abc" }
         input.HandleKey(Key(char(0), ConsoleKey.Home))
         Assert.Equal(0, input.Cursor)
         input.HandleKey(Key(char(0), ConsoleKey.Delete))
@@ -44,8 +42,7 @@ type TextInputTests class {
 
     @Fact
     func Left_Right_Move_Cursor() {
-        var input = TextInput()
-        input.Text = "ab"
+        var input = TextInput() { Text = "ab" }
         Assert.Equal(2, input.Cursor)
         input.HandleKey(Key(char(0), ConsoleKey.LeftArrow))
         Assert.Equal(1, input.Cursor)
@@ -55,8 +52,7 @@ type TextInputTests class {
 
     @Fact
     func Home_End_Jump() {
-        var input = TextInput()
-        input.Text = "hello"
+        var input = TextInput() { Text = "hello" }
         input.HandleKey(Key(char(0), ConsoleKey.Home))
         Assert.Equal(0, input.Cursor)
         input.HandleKey(Key(char(0), ConsoleKey.End))
@@ -84,16 +80,14 @@ type TextInputTests class {
 
     @Fact
     func Render_Returns_Renderable() {
-        var input = TextInput() { Label = "Name:" }
-        input.Text = "test"
+        var input = TextInput() { Label = "Name:", Text = "test" }
         var r = input.Render()
         Assert.NotNull(r)
     }
 
     @Fact
     func Masked_Mode_Hides_Text() {
-        var input = TextInput() { Masked = true }
-        input.Text = "secret"
+        var input = TextInput() { Masked = true, Text = "secret" }
         var r = input.Render()
         Assert.NotNull(r)
     }

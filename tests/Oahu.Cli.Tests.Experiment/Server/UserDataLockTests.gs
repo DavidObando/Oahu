@@ -1,13 +1,10 @@
-// G# port of Server/UserDataLockTests.cs (PARTIAL).
-//
-// LIMITATION: Lock_Records_Pid_And_Cleans_Up_On_Dispose requires FileShare bitwise OR
-// (GS0129: Binary operator '|' not defined for enum types) — skipped.
-// LIMITATION: Acquire_Then_Second_Acquire_Throws_On_Windows is Windows-only; early-returns
-// on non-Windows.
+// G# port of Server/UserDataLockTests.cs.
+// Bitwise OR on enums works in 0.1.516, so Lock_Records_Pid test is recovered.
 
 package Oahu.Cli.Tests.Experiment.Server
 
 import System
+import System.Globalization
 import System.IO
 import System.Runtime.InteropServices
 import Oahu.Cli.Server.Hosting
@@ -34,16 +31,21 @@ type UserDataLockTests class {
         Assert.True(threw)
     }
 
-    // SKIPPED: Lock_Records_Pid_And_Cleans_Up_On_Dispose — requires FileShare.ReadWrite | FileShare.Delete
-    // which uses bitwise OR on enum (GS0129).
-
     @Fact
-    func Lock_Cleans_Up_On_Dispose() {
+    func Lock_Records_Pid_And_Cleans_Up_On_Dispose() {
         var path = Path.Combine(Path.GetTempPath(), "oahu-lock-" + Guid.NewGuid().ToString("N"))
-        var lk = UserDataLock(path)
-        lk.Acquire()
-        Assert.True(File.Exists(path))
-        lk.Dispose()
+        let first = UserDataLock(path)
+        try {
+            first.Acquire()
+            Assert.True(File.Exists(path))
+
+            using let fs = FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)
+            using let sr = StreamReader(fs)
+            let pid = sr.ReadToEnd().Trim()
+            Assert.Equal(Environment.ProcessId.ToString(CultureInfo.InvariantCulture), pid)
+        } finally {
+            first.Dispose()
+        }
         Assert.False(File.Exists(path))
     }
 

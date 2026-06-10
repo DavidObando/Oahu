@@ -1,11 +1,11 @@
-// G# port of Tui/Widgets/SortableTableTests.cs.
+// G# port of Tui/Widgets/SortableTableTests.cs — IMPROVED for 0.1.516.
 //
 // Tests SortableTable: column-count validation, sort ascending/descending,
 // toggle-sort reversal, out-of-range exception, Build output, and Clear.
 //
+// Added: Direct Assert.Equal / Assert.Null on int? SortColumn (gsharp#504/#517 fixed).
+//
 // LIMITATIONS:
-// - SortColumn is int? — asserting on Nullable<T> triggers InvalidProgramException
-//   (gsharp#504/#517). Asserted indirectly via SortAscending and RowCount.
 // - table.Columns.Count doesn't bind (IReadOnlyList member, known limitation).
 //   Workaround: Enumerable.Count.
 // - Constructor takes IEnumerable<string>: pass List[string].
@@ -40,7 +40,7 @@ type SortableTableTests class {
         t.AddRow("alice", "20")
         t.AddRow("Bob", "25")
         t.Sort(0, true)
-        // LIMITATION: Assert.Equal(0, t.SortColumn) triggers InvalidProgramException (int?)
+        Assert.Equal(0, t.SortColumn)
         Assert.True(t.SortAscending)
         var asc = t.Build()
         Assert.Equal(3, asc.Rows.Count)
@@ -94,6 +94,6 @@ type SortableTableTests class {
         t.Sort(0, true)
         t.Clear()
         Assert.Equal(0, t.RowCount)
-        // LIMITATION: Assert.Null(t.SortColumn) — int? nullable (gsharp#504/#517)
+        Assert.Null(t.SortColumn)
     }
 }

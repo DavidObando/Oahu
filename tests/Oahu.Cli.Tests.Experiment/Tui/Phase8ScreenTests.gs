@@ -1,14 +1,16 @@
-// G# port of Tui/Phase8ScreenTests.cs — IMPROVED for 0.1.509.
+// G# port of Tui/Phase8ScreenTests.cs — IMPROVED for 0.1.516.
 //
 // Ports: QueueScreen (OnActivated_Loads_Entries, ShiftDown, X_Removes, Enter_Submits),
 // JobsScreen (Seeds, Cancel, Terminal_Clear, Terminal_Progress),
 // HistoryScreen (OnActivated_Loads_Records_Newest_First, R_Resubmits).
 //
+// Added: AppShellLifecycleTests (Switching_Tabs_Calls_OnDeactivated_And_OnActivated,
+//        ShowToast_Sets_Toast_Message) — Spectre.Console.Testing.TestConsole now usable.
+//
 // WORKAROUNDS:
 // - gsharp#572: DIM dispatch on concrete → cast to ITabScreen before calling OnActivatedAsync/OnActivated.
 // - gsharp#537: `for c in string` → .ToCharArray().
 // - IAsyncEnumerable-returning IJobService → use real JobScheduler(FakeJobExecutor) for scheduler-dependent tests.
-// - AppShellLifecycleTests (Spectre.Console.Testing TestConsole) → STILL BLOCKED.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
@@ -25,6 +27,9 @@ import Oahu.Cli.Tui.Auth
 import Oahu.Cli.Tui.Screens
 import Oahu.Cli.Tui.Shell
 import Oahu.Cli.Tui.Themes
+import Spectre.Console
+import Spectre.Console.Rendering
+import Spectre.Console.Testing
 import Xunit
 
 type P8Navigator class : IAppShellNavigator {
@@ -392,5 +397,98 @@ type Phase8ScreenTests class {
             File.Delete(histPath)
         }
         Theme.Reset()
+    }
+}
+
+@Collection("EnvVarSerial")
+type AppShellLifecycleTests class : IDisposable {
+    init() {
+        Theme.Reset()
+    }
+
+    func Dispose() {
+        Theme.Reset()
+    }
+
+    @Fact
+    func Switching_Tabs_Calls_OnDeactivated_And_OnActivated() {
+        var t1 = LifecycleTabScreen() { TabTitle = "One", TabNumberKey = '1' }
+        var t2 = LifecycleTabScreen() { TabTitle = "Two", TabNumberKey = '2' }
+        var console = TestConsole()
+        console.EmitAnsiSequences = false
+        let ac IAnsiConsole = console
+        var tabs = List[ITabScreen]()
+        let i1 ITabScreen = t1
+        let i2 ITabScreen = t2
+        tabs.Add(i1)
+        tabs.Add(i2)
+        let roTabs IReadOnlyList[ITabScreen] = tabs
+        var shell = AppShell(ac, AppShellOptions() { Tabs = roTabs })
+
+        shell.SwitchToTab('2')
+        Assert.Equal(1, t1.DeactivatedCount)
+        Assert.Equal(1, t2.ActivatedCount)
+
+        shell.SwitchToTab('1')
+        Assert.Equal(1, t2.DeactivatedCount)
+        Assert.Equal(1, t1.ActivatedCount)
+    }
+
+    @Fact
+    func ShowToast_Sets_Toast_Message() {
+        var console = TestConsole()
+        console.EmitAnsiSequences = false
+        let ac IAnsiConsole = console
+        var t = LifecycleTabScreen() { TabTitle = "One", TabNumberKey = '1' }
+        var tabs = List[ITabScreen]()
+        let i1 ITabScreen = t
+        tabs.Add(i1)
+        let roTabs IReadOnlyList[ITabScreen] = tabs
+        var shell = AppShell(ac, AppShellOptions() { Tabs = roTabs })
+        // No throw, no public surface — just exercise the call path.
+        shell.ShowToast("hello")
+    }
+}
+
+type LifecycleTabScreen class : ITabScreen {
+    TabTitle string = "Tab"
+    TabNumberKey char = '1'
+    ActivatedCount int32 = 0
+    DeactivatedCount int32 = 0
+    ShutdownCount int32 = 0
+
+    prop Title string { get { return TabTitle } }
+    prop NumberKey char { get { return TabNumberKey } }
+    prop NeedsTimedRefresh bool { get { return false } }
+    prop Hints IEnumerable[KeyValuePair[string, string?]] {
+        get {
+            var list = List[KeyValuePair[string, string?]]()
+            return list
+        }
+    }
+
+    func Render(width int32, height int32) IRenderable {
+        return Markup(TabTitle)
+    }
+
+    func HandleKey(key ConsoleKeyInfo) bool {
+        return false
+    }
+
+    func OnActivated(navigator IAppShellNavigator) {
+        ActivatedCount = ActivatedCount + 1
+    }
+
+    func OnActivatedAsync(navigator IAppShellNavigator) Task? {
+        OnActivated(navigator)
+        return nil
+    }
+
+    func OnDeactivated() {
+        DeactivatedCount = DeactivatedCount + 1
+    }
+
+    func OnShutdown() {
+        ShutdownCount = ShutdownCount + 1
     }
 }
