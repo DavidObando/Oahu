@@ -283,8 +283,8 @@ type E2EFakeJobService class : IJobService {
                 return s
             }
         }
-        let dummy List[JobSnapshot] = List[JobSnapshot]()
-        return dummy.FirstOrDefault()
+        let none JobSnapshot? = nil
+        return none
     }
 
     func ListActive() IReadOnlyList[JobSnapshot] {

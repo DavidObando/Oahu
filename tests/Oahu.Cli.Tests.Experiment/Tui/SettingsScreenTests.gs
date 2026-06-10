@@ -139,7 +139,7 @@ type SettingsScreenTests class {
         }
 
         var seen = HashSet[string]()
-        var totalCount = Enumerable.Count(Theme.Available)
+        var totalCount = Theme.Available.Count()
         var k = 0
         for k < totalCount + 1 {
             screen.HandleKey(MakeKey(' ', ConsoleKey.Spacebar))

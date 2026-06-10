@@ -50,8 +50,7 @@ type ConvertCommandTests class : IDisposable {
 
     func UseCapturing() CapturingExecutor {
         let exec = CapturingExecutor()
-        let execIface = exec as IJobExecutor
-        let sched = JobScheduler(execIface)
+        let sched = JobScheduler(exec)
         toDispose.Add(sched)
         CliServiceFactory.JobServiceFactory = func() IJobService { return sched }
         return exec

@@ -5,7 +5,7 @@
 //
 // LIMITATIONS:
 // - Assert.Equal on IReadOnlyList<string> vs string[]: use indexed assertions.
-// - .Count on IReadOnlyList doesn't bind: use Enumerable.Count.
+// - .Count on IReadOnlyList doesn't bind: use Linq .Count() extension.
 // - SetContent with IEnumerable<string>: pass List[string] which implements it.
 
 package Oahu.Cli.Tests.Experiment.Tui.Widgets
@@ -31,7 +31,7 @@ type PagerTests class {
     func Initial_Visible_Is_First_Window() {
         var p = makePager(3, 10)
         var v = p.Visible()
-        Assert.Equal(3, Enumerable.Count(v))
+        Assert.Equal(3, v.Count())
         Assert.Equal("line-0", v[0])
         Assert.Equal("line-1", v[1])
         Assert.Equal("line-2", v[2])
@@ -94,7 +94,7 @@ type PagerTests class {
         var p = Pager()
         p.ViewportHeight = 5
         var v = p.Visible()
-        Assert.Equal(0, Enumerable.Count(v))
+        Assert.Equal(0, v.Count())
         Assert.True(p.AtTop)
         Assert.True(p.AtBottom)
     }

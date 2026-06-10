@@ -7,7 +7,7 @@
 //
 // LIMITATIONS:
 // - table.Columns.Count doesn't bind (IReadOnlyList member, known limitation).
-//   Workaround: Enumerable.Count.
+//   Workaround: Linq .Count() extension.
 // - Constructor takes IEnumerable<string>: pass List[string].
 
 package Oahu.Cli.Tests.Experiment.Tui.Widgets
@@ -82,7 +82,7 @@ type SortableTableTests class {
         t.AddRow("a")
         t.Sort(0, true)
         var table = t.Build()
-        Assert.Equal(1, Enumerable.Count(table.Columns))
+        Assert.Equal(1, table.Columns.Count())
     }
 
     @Fact

@@ -109,8 +109,7 @@ type Phase8ScreenTests class {
         var screen = QueueScreen(func() IQueueService { return queue }, func() IJobService { return sched })
         var nav = P8Navigator()
 
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -134,8 +133,7 @@ type Phase8ScreenTests class {
         var screen = QueueScreen(func() IQueueService { return queue }, func() IJobService { return sched })
         var nav = P8Navigator()
 
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -170,8 +168,7 @@ type Phase8ScreenTests class {
         var screen = QueueScreen(func() IQueueService { return queue }, func() IJobService { return sched })
         var nav = P8Navigator()
 
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -199,8 +196,7 @@ type Phase8ScreenTests class {
         var screen = QueueScreen(func() IQueueService { return queue }, func() IJobService { return sched })
         var nav = P8Navigator()
 
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -249,10 +245,9 @@ type Phase8ScreenTests class {
         var sched = JobScheduler(executor)
         var screen = JobsScreen(func() IJobService { return sched })
         var nav = P8Navigator()
-        let ts ITabScreen = screen
-        ActivateTabScreen(ts, nav)
+        ActivateTabScreen(screen, nav)
         Assert.Equal(AppShell.TerminalProgressClearSequence, screen.GetTerminalProgressSequence())
-        DeactivateTabScreen(ts)
+        DeactivateTabScreen(screen)
         sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
         Theme.Reset()
     }
@@ -272,8 +267,7 @@ type Phase8ScreenTests class {
 
         var screen = JobsScreen(func() IJobService { return sched })
         var nav = P8Navigator()
-        let ts ITabScreen = screen
-        ActivateTabScreen(ts, nav)
+        ActivateTabScreen(screen, nav)
 
         // Should have at least 1 active snapshot
         Assert.True(screen.Snapshots.Count >= 1)
@@ -282,7 +276,7 @@ type Phase8ScreenTests class {
         var seq = screen.GetTerminalProgressSequence()
         Assert.StartsWith("\u001b]9;4;1;", seq)
 
-        DeactivateTabScreen(ts)
+        DeactivateTabScreen(screen)
         sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
         Theme.Reset()
     }
@@ -298,8 +292,7 @@ type Phase8ScreenTests class {
 
         var screen = JobsScreen(func() IJobService { return sched })
         var nav = P8Navigator()
-        let ts ITabScreen = screen
-        ActivateTabScreen(ts, nav)
+        ActivateTabScreen(screen, nav)
 
         // Verify we have an active job
         Assert.True(screen.Snapshots.Count >= 1)
@@ -310,7 +303,7 @@ type Phase8ScreenTests class {
         // Wait for cancellation to propagate
         Task.Delay(100).GetAwaiter().GetResult()
 
-        DeactivateTabScreen(ts)
+        DeactivateTabScreen(screen)
         sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
         Theme.Reset()
     }
@@ -347,8 +340,7 @@ type Phase8ScreenTests class {
 
         var screen = HistoryScreen(func() IJobService { return sched })
         var nav = P8Navigator()
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -378,8 +370,7 @@ type Phase8ScreenTests class {
 
         var screen = HistoryScreen(func() IJobService { return sched })
         var nav = P8Navigator()
-        let ts ITabScreen = screen
-        var task = ActivateTabScreen(ts, nav)
+        var task = ActivateTabScreen(screen, nav)
         if task != nil {
             task!!.GetAwaiter().GetResult()
         }
@@ -418,10 +409,8 @@ type AppShellLifecycleTests class : IDisposable {
         console.EmitAnsiSequences = false
         let ac IAnsiConsole = console
         var tabs = List[ITabScreen]()
-        let i1 ITabScreen = t1
-        let i2 ITabScreen = t2
-        tabs.Add(i1)
-        tabs.Add(i2)
+        tabs.Add(t1)
+        tabs.Add(t2)
         let roTabs IReadOnlyList[ITabScreen] = tabs
         var shell = AppShell(ac, AppShellOptions() { Tabs = roTabs })
 
@@ -441,8 +430,7 @@ type AppShellLifecycleTests class : IDisposable {
         let ac IAnsiConsole = console
         var t = LifecycleTabScreen() { TabTitle = "One", TabNumberKey = '1' }
         var tabs = List[ITabScreen]()
-        let i1 ITabScreen = t
-        tabs.Add(i1)
+        tabs.Add(t)
         let roTabs IReadOnlyList[ITabScreen] = tabs
         var shell = AppShell(ac, AppShellOptions() { Tabs = roTabs })
         // No throw, no public surface — just exercise the call path.

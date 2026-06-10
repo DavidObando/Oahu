@@ -6,7 +6,7 @@
 // - IDisposable (IDisposable interface impl on test class) not possible (GS0157).
 //   Reset is called explicitly in each test instead.
 // - `for t in Theme.Available` causes MSB4181 (iteration over IReadOnlyList<Theme>
-//   from CLR). Workaround: use indexed access or Enumerable.Count.
+//   from CLR). Workaround: use indexed access or Linq .Count() extension.
 // - Assert.Equal with ignoreCase named param: use ToLowerInvariant() comparison instead.
 // - SemanticColor.Value returns a Color struct; equality works directly.
 
@@ -61,7 +61,7 @@ type ThemeTests class {
     func Available_Includes_All_Three_Builtins() {
         // for-in on IReadOnlyList<Theme> causes MSB4181; verify via Use() which searches Available.
         var list = Theme.Available
-        var count = Enumerable.Count(list)
+        var count = list.Count()
         Assert.True(count >= 3)
         // Verify each builtin is reachable
         Theme.Use("Default")

@@ -27,7 +27,7 @@ type LogRingBufferTests class {
         logger.LogError("three")
 
         var snap = buf.Snapshot()
-        Assert.Equal(3, Enumerable.Count(snap))
+        Assert.Equal(3, snap.Count())
         Assert.Equal("one", snap[0].Message)
         Assert.Equal("two", snap[1].Message)
         Assert.Equal("three", snap[2].Message)
@@ -42,7 +42,7 @@ type LogRingBufferTests class {
         logger.LogInformation("three")
 
         var snap = buf.Snapshot()
-        Assert.Equal(2, Enumerable.Count(snap))
+        Assert.Equal(2, snap.Count())
         Assert.Equal("two", snap[0].Message)
         Assert.Equal("three", snap[1].Message)
     }
@@ -56,7 +56,7 @@ type LogRingBufferTests class {
         logger.LogError("yes2")
 
         var snap = buf.Snapshot()
-        Assert.Equal(2, Enumerable.Count(snap))
+        Assert.Equal(2, snap.Count())
         Assert.Equal("yes", snap[0].Message)
         Assert.Equal("yes2", snap[1].Message)
     }
@@ -80,7 +80,7 @@ type LogRingBufferTests class {
         logger.LogWarning("Hello")
 
         var snap = buf.Snapshot()
-        Assert.Equal(1, Enumerable.Count(snap))
+        Assert.Equal(1, snap.Count())
         var line = snap[0].FormatLine()
         Assert.Contains("WRN", line)
         Assert.Contains("Cat", line)

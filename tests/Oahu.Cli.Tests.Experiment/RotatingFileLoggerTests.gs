@@ -5,7 +5,7 @@
 //
 // WORKAROUNDS:
 //   - CLR string[] not indexable in G# (known limitation). Use Assert.Single()
-//     to extract the single element, or Enumerable.First().
+//     to extract the single element, or Linq .First() extension.
 
 package Oahu.Cli.Tests.Experiment
 
@@ -50,7 +50,7 @@ type RotatingFileLoggerProviderTests class {
             provider.Dispose()
 
             var files = Directory.GetFiles(dir)
-            var file = Enumerable.First(files)
+            var file = files.First()
             var contents = File.ReadAllText(file)
             Assert.DoesNotContain("info", contents)
             Assert.Contains("err", contents)

@@ -32,10 +32,10 @@ type OutputWriterTests class {
         w.WriteResource("config-value", data)
 
         let node = JsonNode.Parse(sw.ToString())!!
-        Assert.Equal("1", node["_schemaVersion"]!!.ToString())
-        Assert.Equal("config-value", node["resource"]!!.ToString())
-        Assert.Equal("max-parallel-jobs", node["key"]!!.ToString())
-        Assert.Equal("5", node["value"]!!.ToString())
+        Assert.Equal("1", string(node["_schemaVersion"]))
+        Assert.Equal("config-value", string(node["resource"]))
+        Assert.Equal("max-parallel-jobs", string(node["key"]))
+        Assert.Equal(5, int32(node["value"]))
     }
 
     @Fact
@@ -60,11 +60,11 @@ type OutputWriterTests class {
         w.WriteCollection("queue", rows, cols)
 
         let node = JsonNode.Parse(sw.ToString())!!
-        Assert.Equal("queue", node["resource"]!!.ToString())
-        Assert.Equal("2", node["count"]!!.ToString())
+        Assert.Equal("queue", string(node["resource"]))
+        Assert.Equal(2, int32(node["count"]))
         let items = node["items"]!! as JsonArray
         Assert.Equal(2, items!!.Count)
-        Assert.Equal("A2", items!![1]!!["asin"]!!.ToString())
+        Assert.Equal("A2", string(items!![1]!!["asin"]))
     }
 
     @Fact
@@ -85,12 +85,9 @@ type OutputWriterTests class {
         w.WriteCollection("t", rows, cols)
 
         let text = sw.ToString().TrimEnd('\r', '\n')
-        let lines = List[string]()
-        for s in text.Split('\n') {
-            lines.Add(s.TrimEnd('\r'))
-        }
-        Assert.Equal("A\tB", lines[0])
-        Assert.Equal("x\ty", lines[1])
+        let lines = text.Split('\n')
+        Assert.Equal("A\tB", lines[0].TrimEnd('\r'))
+        Assert.Equal("x\ty", lines[1].TrimEnd('\r'))
     }
 
     @Fact

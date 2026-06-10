@@ -62,7 +62,7 @@ type HistoryRetryCommandTests class {
     }
 
     @Fact
-    func JobRecord_Quality_Roundtrips_Through_JsonlHistoryStore() {
+    async func JobRecord_Quality_Roundtrips_Through_JsonlHistoryStore() {
         var path = Path.Combine(Path.GetTempPath(), "oahu-cli-retry-" + Guid.NewGuid().ToString("N") + ".jsonl")
         try {
             var store = JsonlHistoryStore(path)
@@ -78,7 +78,7 @@ type HistoryRetryCommandTests class {
             }
             store.Append(rec)
 
-            var list = readAll(store)
+            var list = await readAll(store)
             Assert.Single(list)
             let read = list[0]
             Assert.True(read.Quality.HasValue)
@@ -92,7 +92,7 @@ type HistoryRetryCommandTests class {
     }
 
     @Fact
-    func JobRecord_Without_Quality_Deserializes_As_Null() {
+    async func JobRecord_Without_Quality_Deserializes_As_Null() {
         var path = Path.Combine(Path.GetTempPath(), "oahu-cli-retry-" + Guid.NewGuid().ToString("N") + ".jsonl")
         try {
             var store = JsonlHistoryStore(path)
@@ -108,7 +108,7 @@ type HistoryRetryCommandTests class {
             raw = Regex.Replace(raw, ",\\s*\"quality\"\\s*:\\s*null", "")
             File.WriteAllText(path, raw)
 
-            var list = readAll(store)
+            var list = await readAll(store)
             Assert.Single(list)
             Assert.Null(list[0].Quality)
         } finally {
@@ -118,17 +118,10 @@ type HistoryRetryCommandTests class {
         }
     }
 
-    func readAll(store JsonlHistoryStore) List[JobRecord] {
+    async func readAll(store JsonlHistoryStore) List[JobRecord] {
         var list = List[JobRecord]()
-        let en = store.ReadAllAsync(CancellationToken.None).GetAsyncEnumerator(CancellationToken.None)
-        try {
-            var hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
-            for hasMore {
-                list.Add(en.Current)
-                hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
-            }
-        } finally {
-            en.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await for rec in store.ReadAllAsync(CancellationToken.None) {
+            list.Add(rec)
         }
         return list
     }

@@ -1,7 +1,4 @@
 // G# port of src/Oahu.Cli.App/Library/{ILibraryService.cs,FakeLibraryService.cs}.
-// Workarounds applied (against G# 0.1.516):
-//   * gsharp#666 — LINQ instance-syntax extensions on IEnumerable<CLR-ref> fail,
-//     so we use `Enumerable.Where[LibraryItem](src, pred)` static form.
 
 package Oahu.Cli.App.Experiment.Library
 
@@ -40,36 +37,36 @@ type FakeLibraryService class : ILibraryService {
 
         var q IEnumerable[LibraryItem] = items
         if f.AvailableOnly {
-            q = Enumerable.Where[LibraryItem](q, func(i LibraryItem) bool { return i.IsAvailable })
+            q = q.Where(func(i LibraryItem) bool { return i.IsAvailable })
         }
         if !String.IsNullOrWhiteSpace(f.Search) {
             let search = f.Search!!
-            q = Enumerable.Where[LibraryItem](q, func(i LibraryItem) bool {
+            q = q.Where(func(i LibraryItem) bool {
                 return i.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
             })
         }
         if !String.IsNullOrWhiteSpace(f.Author) {
             let author = f.Author!!
-            q = Enumerable.Where[LibraryItem](q, func(i LibraryItem) bool {
-                return Enumerable.Any[string](i.Authors, func(a string) bool {
+            q = q.Where(func(i LibraryItem) bool {
+                return i.Authors.Any(func(a string) bool {
                     return a.Contains(author, StringComparison.OrdinalIgnoreCase)
                 })
             })
         }
         if !String.IsNullOrWhiteSpace(f.Series) {
             let series = f.Series!!
-            q = Enumerable.Where[LibraryItem](q, func(i LibraryItem) bool {
+            q = q.Where(func(i LibraryItem) bool {
                 return String.Equals(i.Series, series, StringComparison.OrdinalIgnoreCase)
             })
         }
-        let arr = Enumerable.ToArray[LibraryItem](q)
+        let arr = q.ToArray()
         return Task.FromResult[IReadOnlyList[LibraryItem]](arr)
     }
 
     func GetAsync(asin string, cancellationToken CancellationToken) Task[LibraryItem?] {
         ArgumentException.ThrowIfNullOrWhiteSpace(asin)
         cancellationToken.ThrowIfCancellationRequested()
-        let match = Enumerable.FirstOrDefault[LibraryItem](items, func(i LibraryItem) bool {
+        let match = items.FirstOrDefault(func(i LibraryItem) bool {
             return String.Equals(i.Asin, asin, StringComparison.OrdinalIgnoreCase)
         })
         return Task.FromResult[LibraryItem?](match)

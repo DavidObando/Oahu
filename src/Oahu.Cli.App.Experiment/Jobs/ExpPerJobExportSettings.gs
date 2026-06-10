@@ -13,9 +13,8 @@ type ExpPerJobExportSettings class : IExportSettings {
 
     prop ExportToAax Nullable[bool] {
         get {
-            let o = ExportToAaxOverride
-            if o.HasValue {
-                return o
+            if ExportToAaxOverride.HasValue {
+                return ExportToAaxOverride
             }
             return Inner.ExportToAax
         }
@@ -23,9 +22,8 @@ type ExpPerJobExportSettings class : IExportSettings {
 
     prop ExportDirectory string {
         get {
-            let o = ExportDirectoryOverride
-            if o != nil {
-                return o!!
+            if ExportDirectoryOverride != nil {
+                return ExportDirectoryOverride!!
             }
             return Inner.ExportDirectory
         }

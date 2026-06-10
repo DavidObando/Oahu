@@ -16,13 +16,9 @@ import Oahu.Cli.App.Experiment.Jobs
 type ExpFakeJobExecutorTests class {
     async func collect(exec IJobExecutor, req JobRequest) List[JobUpdate] {
         var list = List[JobUpdate]()
-        let en = exec.ExecuteAsync(req, CancellationToken.None).GetAsyncEnumerator(CancellationToken.None)
-        var hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
-        for hasMore {
-            list.Add(en.Current)
-            hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+        await for u in exec.ExecuteAsync(req, CancellationToken.None) {
+            list.Add(u)
         }
-        en.DisposeAsync().AsTask().GetAwaiter().GetResult()
         return list
     }
 

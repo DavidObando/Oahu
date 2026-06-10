@@ -1,36 +1,19 @@
-// G# port of Tui/AppShellTests.cs — IMPROVED for 0.1.516.
+// G# port of Tui/AppShellTests.cs.
 //
-// Added: enum == comparison (no more int32 cast workaround).
-//
-// STILL DROPPED:
-// - 3 IKeyReader tests (KeyReader_EOF_Returns_Cleanly, Run_Returns_Success_When_Ctrl_C_Exits_Idle_Shell,
-//   Run_Honours_Shift_Q_As_Clean_Quit). #638 fixed `ConsoleKeyInfo? ReadKey()` impl, but
-//   AppShell.IKeyReader also has a DIM `TryReadKey(int, out ConsoleKeyInfo)`. G#'s
-//   VerifyClrInterfaceImplementations walks ALL interface methods (not only abstract ones),
-//   so DIM members must be re-implemented; and the matcher compares parameter `Type` directly
-//   without considering `RefKind`, so a G# `out key ConsoleKeyInfo` parameter (Type =
-//   `ConsoleKeyInfo`) never matches the C# CLR signature (`ConsoleKeyInfo&` byref). Both bugs
-//   together make IKeyReader unimplementable from G#. See repro snippet below.
+// Recovered on 0.1.534: 3 IKeyReader tests (KeyReader_EOF_Returns_Cleanly,
+// Run_Returns_Success_When_Ctrl_C_Exits_Idle_Shell, Run_Honours_Shift_Q_As_Clean_Quit)
+// — gsharp#659 fixed DIM + out interface impl.
 //
 // WORKAROUNDS:
 // - AppShellOptions init-only → object initializer.
 // - ITabScreen impl with IRenderable Render → Markup("").
 // - gsharp#570: IEnumerable<KVP> → List[T].
-// - enum ==: NOW WORKS directly (gsharp#574 fixed).
-//
-// Minimal repro for the IKeyReader block (compile error GS0187):
-//   type R class : AppShell.IKeyReader {
-//       func ReadKey() ConsoleKeyInfo? { let n ConsoleKeyInfo? = nil; return n }
-//       func TryReadKey(t int32, out k ConsoleKeyInfo) bool { k = ConsoleKeyInfo(); return false }
-//   }
-//   // → GS0187: class 'R' does not implement TryReadKey(Int32, ConsoleKeyInfo&)
-//   // Root cause: HasMatchingMethodForClrSignature compares parameter Type
-//   //   (= ConsoleKeyInfo) against ParameterInfo.ParameterType (= ConsoleKeyInfo&) ignoring RefKind.
 
 package Oahu.Cli.Tests.Experiment.Tui
 
 import System
 import System.Collections.Generic
+import System.Threading.Tasks
 import Oahu.Cli.Tui.Logging
 import Oahu.Cli.Tui.Shell
 import Oahu.Cli.Tui.Themes
@@ -159,8 +142,7 @@ type AppShellTests class : IDisposable {
         var capScreen = ASCapturingScreen()
         capScreen.Capturing = true
         var tabs = List[ITabScreen]()
-        let iface ITabScreen = capScreen
-        tabs.Add(iface)
+        tabs.Add(capScreen)
         var shell = NewShellWithTabs(tabs)
         var action = shell.Dispatch(K('q', ConsoleKey.Q, false, false, false))
         Assert.Equal(ShellAction.Continue, action)
@@ -173,8 +155,7 @@ type AppShellTests class : IDisposable {
         var capScreen = ASCapturingScreen()
         capScreen.Capturing = true
         var tabs = List[ITabScreen]()
-        let iface ITabScreen = capScreen
-        tabs.Add(iface)
+        tabs.Add(capScreen)
         var shell = NewShellWithTabsAndBuffer(tabs, buf)
         shell.Dispatch(K('l', ConsoleKey.L, false, false, false))
         Assert.False(shell.LogsOpen)
@@ -193,13 +174,41 @@ type AppShellTests class : IDisposable {
         placeholder.TabTitle = "Other"
         placeholder.TabNumberKey = '2'
         var tabs = List[ITabScreen]()
-        let iface1 ITabScreen = capScreen
-        let iface2 ITabScreen = placeholder
-        tabs.Add(iface1)
-        tabs.Add(iface2)
+        tabs.Add(capScreen)
+        tabs.Add(placeholder)
         var shell = NewShellWithTabs(tabs)
         shell.Dispatch(K('2', ConsoleKey.D2, false, false, false))
         Assert.Equal(0, shell.ActiveTab)
+    }
+
+    @Fact
+    func KeyReader_EOF_Returns_Cleanly() {
+        var shell = NewShell()
+        var reader = ScriptedReader()
+        let r AppShell.IKeyReader = reader
+        Assert.Equal(0, shell.Run(r))
+    }
+
+    @Fact
+    func Run_Returns_Success_When_Ctrl_C_Exits_Idle_Shell() {
+        // Cooperative Ctrl+C-quit from an idle shell is a clean exit (0),
+        // not SIGINT (130). 130 is reserved for the runtime force-exit
+        // fallback in CliEnvironment.
+        var shell = NewShell()
+        var reader = ScriptedReader()
+        reader.Push(K(char(3), ConsoleKey.C, false, false, true))
+        reader.Push(K(char(3), ConsoleKey.C, false, false, true))
+        let r AppShell.IKeyReader = reader
+        Assert.Equal(0, shell.Run(r))
+    }
+
+    @Fact
+    func Run_Honours_Shift_Q_As_Clean_Quit() {
+        var shell = NewShell()
+        var reader = ScriptedReader()
+        reader.Push(K('Q', ConsoleKey.Q, true, false, false))
+        let r AppShell.IKeyReader = reader
+        Assert.Equal(0, shell.Run(r))
     }
 }
 
@@ -245,5 +254,22 @@ type ASCapturingScreen class : ITabScreen {
     }
 
     func OnShutdown() {
+    }
+}
+
+type ScriptedReader class : AppShell.IKeyReader {
+    queue Queue[ConsoleKeyInfo] = Queue[ConsoleKeyInfo]()
+
+    func Push(key ConsoleKeyInfo) {
+        queue.Enqueue(key)
+    }
+
+    func ReadKey() ConsoleKeyInfo? {
+        if queue.Count == 0 {
+            let none ConsoleKeyInfo? = nil
+            return none
+        }
+        let k ConsoleKeyInfo? = queue.Dequeue()
+        return k
     }
 }

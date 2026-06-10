@@ -1,15 +1,7 @@
-// G# port of Tui/SignInFlowTests.cs — IMPROVED for 0.1.516.
+// G# port of Tui/SignInFlowTests.cs.
 //
-// Added: AppShell_Modal_Receives_Keys, AppShell_Modal_Esc_Cancels_With_Completion_Flag
-// (use AnsiConsole.Create() instead of TestConsole; only need Dispatch/ShowModal/ActiveModal).
-// Added: AppShell_CtrlC_Dismisses_Modal (uses Spectre.Console.Testing.TestConsole; now usable).
-// Strengthened: SignInFlow_Start_Sets_State now also asserts state.ActivityVerb.
-//
-// STILL DROPPED:
-// - AppShell_Mutable_State_Reflects_In_Header requires implementing AppShell.IKeyReader,
-//   which is blocked by the same G# compiler bug (RefKind-not-considered in CLR signature
-//   matching) documented in AppShellTests.gs. The interface's DIM `TryReadKey(int, out
-//   ConsoleKeyInfo)` cannot be re-implemented in G#.
+// Recovered on 0.1.534: AppShell_Mutable_State_Reflects_In_Header
+// (gsharp#659 fixed DIM + out interface impl, IKeyReader now implementable).
 //
 // WORKAROUNDS:
 // - gsharp#537: `for c in string` → .ToCharArray().
@@ -293,6 +285,25 @@ type SignInFlowTests class : IDisposable {
         var action = shell.Dispatch(ConsoleKeyInfo(char(3), ConsoleKey.C, false, false, true))
         Assert.Equal(ShellAction.Continue, action)
         Assert.Null(shell.ActiveModal)
+    }
+
+    @Fact
+    func AppShell_Mutable_State_Reflects_In_Header() {
+        var state = AppShellState() { Profile = "bob", Region = "uk" }
+        var console = TestConsole()
+        console.Profile.Width = 80
+        console.Profile.Height = 30
+        console.EmitAnsiSequences = false
+        let ac IAnsiConsole = console
+        var shell = AppShell(ac, AppShellOptions() { State = state })
+
+        // Run with EOF to trigger render
+        var reader = ScriptedReader()
+        let r AppShell.IKeyReader = reader
+        shell.Run(r)
+
+        var output = console.Output
+        Assert.Contains("bob@uk", output)
     }
 }
 

@@ -1,8 +1,8 @@
 // G# port of src/Oahu.Cli.App/Jobs/JsonlHistoryStore.cs.
-// Append-only JSONL history store. Sync ReadAll/Delete only; the C# async
-// IAsyncEnumerable variant is omitted to dodge gsharp#655 iterator
-// field-capture risk. The field is named FilePath (not Path) to avoid
-// shadowing the System.IO.Path type at call sites.
+// Append-only JSONL history store. Sync ReadAll/Delete only; an async
+// IAsyncEnumerable variant could be added now that gsharp#655 is fixed.
+// The field is named FilePath (not Path) to avoid shadowing the System.IO.Path
+// type at call sites (gsharp#687 still open).
 
 package Oahu.Cli.App.Experiment.Jobs
 
@@ -130,12 +130,10 @@ type ExpJsonlHistoryStore class {
         var final = kept
         if keep.HasValue && kept.Count > keep.Value {
             let n = keep.Value
-            let sorted = Enumerable.OrderByDescending[JobRecord, DateTimeOffset](
-                kept, func(r JobRecord) DateTimeOffset { return r.CompletedAt })
-            let taken = Enumerable.Take[JobRecord](sorted, n)
-            let ascending = Enumerable.OrderBy[JobRecord, DateTimeOffset](
-                taken, func(r JobRecord) DateTimeOffset { return r.CompletedAt })
-            final = Enumerable.ToList[JobRecord](ascending)
+            let sorted = kept.OrderByDescending(func(r JobRecord) DateTimeOffset { return r.CompletedAt })
+            let taken = sorted.Take(n)
+            let ascending = taken.OrderBy(func(r JobRecord) DateTimeOffset { return r.CompletedAt })
+            final = ascending.ToList()
         }
 
         let l = writeLock

@@ -1,8 +1,6 @@
 // G# port of src/Oahu.Cli.App/Jobs/FakeJobExecutor.cs.
 // Implements C# IJobExecutor (returns IAsyncEnumerable[JobUpdate]).
-// Uses G# async iterator (`async func ... IAsyncEnumerable[T] { yield ... }`)
-// with the field-capture workaround from gsharp#655 — hoist fields into locals
-// before any `yield`.
+// Uses G# async iterator (`async func ... IAsyncEnumerable[T] { yield ... }`).
 
 package Oahu.Cli.App.Experiment.Jobs
 
@@ -18,26 +16,24 @@ type ExpFakeJobExecutor class : IJobExecutor {
     FailAtDecrypt bool = false
 
     async func ExecuteAsync(request JobRequest, ct CancellationToken) IAsyncEnumerable[JobUpdate] {
-        let delay = DelayPerPhase
-        let failDecrypt = FailAtDecrypt
         let id = request.Id
 
         yield JobUpdate() { JobId = id, Phase = JobPhase.Licensing, Message = "Requesting license" }
-        await Task.Delay(delay, ct)
+        await Task.Delay(DelayPerPhase, ct)
 
         yield JobUpdate() { JobId = id, Phase = JobPhase.Downloading, Progress = 0.0f }
-        await Task.Delay(delay, ct)
+        await Task.Delay(DelayPerPhase, ct)
         yield JobUpdate() { JobId = id, Phase = JobPhase.Downloading, Progress = 1.0f }
 
-        if failDecrypt {
+        if FailAtDecrypt {
             yield JobUpdate() { JobId = id, Phase = JobPhase.Failed, Message = "Decrypt simulated failure" }
         } else {
             yield JobUpdate() { JobId = id, Phase = JobPhase.Decrypting, Progress = 0.0f }
-            await Task.Delay(delay, ct)
+            await Task.Delay(DelayPerPhase, ct)
             yield JobUpdate() { JobId = id, Phase = JobPhase.Decrypting, Progress = 1.0f }
 
             yield JobUpdate() { JobId = id, Phase = JobPhase.Exporting }
-            await Task.Delay(delay, ct)
+            await Task.Delay(DelayPerPhase, ct)
 
             yield JobUpdate() { JobId = id, Phase = JobPhase.Completed }
         }

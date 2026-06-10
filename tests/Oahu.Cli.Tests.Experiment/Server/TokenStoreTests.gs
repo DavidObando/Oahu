@@ -86,8 +86,8 @@ type TokenStoreTests class {
     @InlineData("abc", "abc", true)
     @InlineData("abc", "abd", false)
     @InlineData("a", "ab", false)
-    // SKIPPED: @InlineData(null, "abc", false) — GS0125: 'null' not allowed in attribute argument.
-    func Equal_Constant_Time_Compare(a string, b string, expected bool) {
+    @InlineData(nil, "abc", false)
+    func Equal_Constant_Time_Compare(a string?, b string?, expected bool) {
         Assert.Equal(expected, TokenStore.Equal(a, b))
     }
 }
