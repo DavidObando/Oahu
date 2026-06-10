@@ -95,3 +95,6 @@ lcov.info
 *.Publish.xml
 
 *.lscache
+
+# G# experimental project XML doc artifacts
+src/Oahu.Cli.App.Experiment/.xml
