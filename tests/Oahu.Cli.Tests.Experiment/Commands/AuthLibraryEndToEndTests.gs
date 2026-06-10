@@ -261,17 +261,15 @@ type E2EFakeJobService class : IJobService {
 
     async func ObserveAll(cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
         await Task.CompletedTask
-        let empty = List[JobUpdate]()
-        for u in empty {
-            yield u
+        if false {
+            yield JobUpdate()
         }
     }
 
     async func ObserveAsync(jobId string, cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
         await Task.CompletedTask
-        let empty = List[JobUpdate]()
-        for u in empty {
-            yield u
+        if false {
+            yield JobUpdate()
         }
     }
 
