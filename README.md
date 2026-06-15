@@ -1,7 +1,8 @@
 # Oahu
 A standalone Audible downloader and decrypter
 
-[![GitHub All Releases](https://img.shields.io/github/downloads/DavidObando/Oahu/total)](https://github.com/DavidObando/Oahu/releases) [![GitHub](https://img.shields.io/github/license/DavidObando/Oahu)](https://github.com/DavidObando/Oahu/blob/main/LICENSE) [![](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](http://microsoft.com/windows) [![](https://img.shields.io/badge/language-C%23-blue)](http://csharp.net/) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/DavidObando/Oahu)](https://github.com/DavidObando/Oahu/releases/latest)
+[![Build Clients (main)](https://github.com/DavidObando/Oahu/actions/workflows/build-clients.yml/badge.svg?branch=main)](https://github.com/DavidObando/Oahu/actions/workflows/build-clients.yml) [![Build Clients (PR)](https://github.com/DavidObando/Oahu/actions/workflows/build-clients.yml/badge.svg?event=pull_request)](https://github.com/DavidObando/Oahu/actions/workflows/build-clients.yml?query=event%3Apull_request)
+[Releases](https://github.com/DavidObando/Oahu/releases) · [Latest release](https://github.com/DavidObando/Oahu/releases/latest) · [License](https://github.com/DavidObando/Oahu/blob/main/LICENSE) · Platform: Windows / macOS / Linux · Language: C#
 
 ![](src/Oahu.App/Resources/audio.png?raw=true)
 
