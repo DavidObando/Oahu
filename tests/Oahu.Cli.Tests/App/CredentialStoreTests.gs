@@ -11,74 +11,64 @@ import System.Runtime.InteropServices
 import Oahu.Cli.App.Credentials
 import Xunit
 
+class TempDir : IDisposable {
+    prop Path string { get; private set; }
+
+    init() {
+        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "oahu-cli-creds-${Guid.NewGuid():N}")
+        Directory.CreateDirectory(Path)
+    }
+
+    func Dispose() {
+        try {
+            Directory.Delete(Path, recursive: true)
+        } catch (e Exception) {
+            // best-effort cleanup
+        }
+    }
+}
+
 class CredentialStoreTests {
     @Fact
     func Factory_Returns_Platform_Appropriate_Store() {
-        var id = Guid.NewGuid().ToString("N")
-        var tempPath = Path.Combine(Path.GetTempPath(), "oahu-cli-creds-" + id)
-        Directory.CreateDirectory(tempPath)
-        try {
-            var store = CredentialStoreFactory.Create(tempPath)
-            if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) {
-                Assert.Equal("dpapi", store.Provider)
-            } else if RuntimeInformation.IsOSPlatform(OSPlatform.OSX) {
-                Assert.Equal("keychain", store.Provider)
-            } else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux) {
-                Assert.Equal("secret-tool", store.Provider)
-            }
-        } finally {
-            try {
-                Directory.Delete(tempPath, true)
-            } catch (e Exception) {
-                // best-effort cleanup
-            }
+        using let tempDir = TempDir()
+        var store = CredentialStoreFactory.Create(tempDir.Path)
+        if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) {
+            Assert.Equal("dpapi", store.Provider)
+        } else if RuntimeInformation.IsOSPlatform(OSPlatform.OSX) {
+            Assert.Equal("keychain", store.Provider)
+        } else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux) {
+            Assert.Equal("secret-tool", store.Provider)
         }
     }
 
     @Fact
-    func Unsupported_Store_Always_Throws_With_Reason() {
+    async func Unsupported_Store_Always_Throws_With_Reason() {
         var store = UnsupportedCredentialStore("test reason")
         Assert.Equal("unsupported", store.Provider)
-        // UnsupportedCredentialStore throws synchronously before returning a Task.
-        var ex = Assert.Throws[CredentialStoreUnavailableException](func() {
-            store.GetAsync("acct")
-        })
+        var ex = await Assert.ThrowsAsync[CredentialStoreUnavailableException](
+            () -> store.GetAsync("acct"))
         Assert.Contains("test reason", ex.Message)
-        Assert.Throws[CredentialStoreUnavailableException](func() {
-            store.SetAsync("acct", "x")
-        })
-        Assert.Throws[CredentialStoreUnavailableException](func() {
-            store.DeleteAsync("acct")
-        })
-        Assert.Throws[CredentialStoreUnavailableException](func() {
-            store.ListAccountsAsync()
-        })
+        await Assert.ThrowsAsync[CredentialStoreUnavailableException](
+            () -> store.SetAsync("acct", "x"))
+        await Assert.ThrowsAsync[CredentialStoreUnavailableException](
+            () -> store.DeleteAsync("acct"))
+        await Assert.ThrowsAsync[CredentialStoreUnavailableException](
+            () -> store.ListAccountsAsync())
     }
 
     @Fact
-    func WindowsDpapi_Round_Trip() {
+    async func WindowsDpapi_Round_Trip() {
         if !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) {
             return
         }
-        var id = Guid.NewGuid().ToString("N")
-        var tempPath = Path.Combine(Path.GetTempPath(), "oahu-cli-creds-" + id)
-        Directory.CreateDirectory(tempPath)
-        try {
-            let path = Path.Combine(tempPath, "creds.dpapi")
-            let store = WindowsDpapiCredentialStore(path)
-            store.SetAsync("alice", "s3cret").Wait()
-            let got = store.GetAsync("alice").GetAwaiter().GetResult()
-            Assert.Equal("s3cret", got)
-            Assert.True(store.DeleteAsync("alice").Result)
-            let after = store.GetAsync("alice").GetAwaiter().GetResult()
-            Assert.Null(after)
-            Assert.False(File.Exists(path + ".tmp"))
-        } finally {
-            try {
-                Directory.Delete(tempPath, true)
-            } catch (e Exception) {
-                // best-effort cleanup
-            }
-        }
+        using let tempDir = TempDir()
+        let path = Path.Combine(tempDir.Path, "creds.dpapi")
+        let store = WindowsDpapiCredentialStore(path)
+        await store.SetAsync("alice", "s3cret")
+        Assert.Equal("s3cret", await store.GetAsync("alice"))
+        Assert.True(await store.DeleteAsync("alice"))
+        Assert.Null(await store.GetAsync("alice"))
+        Assert.False(File.Exists(path + ".tmp"))
     }
 }
