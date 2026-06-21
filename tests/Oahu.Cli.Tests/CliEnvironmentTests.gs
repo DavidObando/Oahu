@@ -1,19 +1,17 @@
-// G# port of CliEnvironmentTests.cs.
-//
-// Covers CliEnvironment.Initialise idempotency and RegisterRestore/RunRestore
-// cycle safety.
-
 package Oahu.Cli.Tests
 
 import System
 import Oahu.Cli
 import Xunit
 
+/// Covers CliEnvironment.Initialise idempotency and RegisterRestore/RunRestore
+/// cycle safety.
 class CliEnvironmentTests {
     @Fact
     func Initialise_IsIdempotent() {
         CliEnvironment.Initialise()
         CliEnvironment.Initialise()
+        // No throw, no duplicate exit-trap.
     }
 
     @Fact
@@ -50,6 +48,8 @@ class CliEnvironmentTests {
 
     @Fact
     func Initialise_EnablesVirtualTerminal_WithoutThrowing() {
+        // EnableWindowsVirtualTerminal is best-effort; on any platform
+        // (Windows, Linux, macOS, CI) Initialise must complete without error.
         CliEnvironment.Initialise()
     }
 }

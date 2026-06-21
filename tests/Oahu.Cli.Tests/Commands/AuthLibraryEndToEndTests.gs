@@ -21,9 +21,9 @@ import Oahu.Cli.Commands
 import Xunit
 
 class E2EAuthCmdResult {
-    prop Exit int32 { get; set; }
-    prop Stdout string { get; set; }
-    prop Stderr string { get; set; }
+    prop Exit int32
+    prop Stdout string
+    prop Stderr string
 
     init(exit int32, stdout string, stderr string) {
         Exit = exit
@@ -210,8 +210,8 @@ class AuthLibraryEndToEndTests : IDisposable {
 class E2ERecordingFakeAuthService : IAuthService {
     var inner FakeAuthService?
 
-    prop LastCreds AuthCredentials? { get; set; }
-    prop BrowserLoginInvoked bool { get; set; }
+    prop LastCreds AuthCredentials?
+    prop BrowserLoginInvoked bool
 
     func getInner() FakeAuthService {
         if inner == nil {

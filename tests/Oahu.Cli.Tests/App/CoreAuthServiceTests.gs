@@ -44,14 +44,14 @@ class CoreAuthRegionMappingTests {
 }
 
 class CBRecordingBroker : IAuthCallbackBroker {
-    prop CaptchaAnswer string? { get; set; }
-    prop MfaAnswer string { get; set; }
-    prop CvfAnswer string { get; set; }
-    prop ExternalLoginAnswer Uri { get; set; }
-    prop ThrowNonInteractive bool { get; set; }
+    prop CaptchaAnswer string?
+    prop MfaAnswer string
+    prop CvfAnswer string
+    prop ExternalLoginAnswer Uri
+    prop ThrowNonInteractive bool
 
-    prop MfaCalls int32 { get; set; }
-    prop LastExternalLoginUri Uri? { get; set; }
+    prop MfaCalls int32
+    prop LastExternalLoginUri Uri?
 
     func init() {
         MfaAnswer = "000000"

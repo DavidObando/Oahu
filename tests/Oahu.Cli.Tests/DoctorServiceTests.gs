@@ -1,10 +1,9 @@
-// G# port of DoctorServiceTests.cs.
-
 package Oahu.Cli.Tests
 
 import System
 import System.Collections.Generic
 import System.IO
+import System.Linq
 import System.Net.Http
 import System.Threading
 import Oahu.Cli.App.Doctor
@@ -12,33 +11,24 @@ import Xunit
 
 class DoctorServiceTests {
     @Fact
-    func RunAsync_WithSkipNetwork_DoesNotMakeHttpCalls() {
-        var svc = DoctorService(httpClientFactory: func() HttpClient {
+    async func RunAsync_WithSkipNetwork_DoesNotMakeHttpCalls() {
+        var svc = DoctorService(httpClientFactory: () -> {
             throw InvalidOperationException("HTTP must not be invoked when --skip-network is set")
         })
 
-        var report = svc.RunAsync(DoctorOptions() { SkipNetwork = true }, CancellationToken.None).Result
+        var report = await svc.RunAsync(DoctorOptions() { SkipNetwork = true }, CancellationToken.None)
 
-        var net DoctorCheck? = nil
-        for c in report.Checks {
-            if c.Id == "audible-api" {
-                net = c
-            }
-        }
-        Assert.NotNull(net)
-        Assert.Equal(DoctorSeverity.Ok, net!!.Severity)
+        let net = report.Checks.Single((c) -> c.Id == "audible-api")
+        Assert.Equal(DoctorSeverity.Ok, net.Severity)
         Assert.Contains("skipped", net!!.Message)
     }
 
     @Fact
-    func RunAsync_AlwaysIncludesCoreChecks() {
-        var svc = DoctorService()
-        var report = svc.RunAsync(DoctorOptions() { SkipNetwork = true }, CancellationToken.None).Result
+    async func RunAsync_AlwaysIncludesCoreChecks() {
+        let svc = DoctorService()
+        let report = await svc.RunAsync(DoctorOptions() { SkipNetwork = true }, CancellationToken.None)
 
-        var ids = HashSet[string]()
-        for c in report.Checks {
-            ids.Add(c.Id)
-        }
+        let ids = report.Checks.Select((c) -> c.Id).ToHashSet()
         Assert.Contains("output-dir", ids)
         Assert.Contains("user-data-dir", ids)
         Assert.Contains("library-cache", ids)
@@ -50,8 +40,15 @@ class DoctorServiceTests {
 
     @Fact
     func UserSettingsCheck_OkWhenDefaultsApplied() {
-        var check = DoctorService.CheckUserSettings()
+        // After SettingsDefaults.ApplyDefaults runs (via OahuUserSettings.Init,
+        // which SettingsManager triggers on load), DownloadDirectory must be a
+        // non-empty, writable path. Verifies the CLI gets the same default
+        // the GUI has always had.
+        let check = DoctorService.CheckUserSettings()
         Assert.Equal("user-settings", check.Id)
+        // The check may degrade to Warning when the test process can't load
+        // settings (no GUI shared dir on a CI runner), but never to Error
+        // for a fresh / empty config — the defaults should make it pass.
         Assert.NotEqual(DoctorSeverity.Error, check.Severity)
     }
 
@@ -66,9 +63,9 @@ class DoctorServiceTests {
 
     @Fact
     func OutputDirCheck_PassesForTempDir() {
-        var tmp = Path.Combine(Path.GetTempPath(), "oahu-cli-doctor-test-" + Guid.NewGuid().ToString())
+        let tmp = Path.Combine(Path.GetTempPath(), "oahu-cli-doctor-test-" + Guid.NewGuid().ToString())
         try {
-            var check = DoctorService.CheckOutputDirectoryWritable(tmp)
+            let check = DoctorService.CheckOutputDirectoryWritable(tmp)
             Assert.Equal(DoctorSeverity.Ok, check.Severity)
         } finally {
             if Directory.Exists(tmp) {
@@ -79,8 +76,8 @@ class DoctorServiceTests {
 
     @Fact
     func DiskFreeCheck_WarnsWhenBelowThreshold() {
-        var tmp = Path.GetTempPath()
-        var check = DoctorService.CheckDiskFree(tmp, Int64.MaxValue / int64(2))
+        let tmp = Path.GetTempPath()
+        let check = DoctorService.CheckDiskFree(tmp, Int64.MaxValue / int64(2))
         // We can't guarantee under which side this lands across runners; assert it doesn't throw and returns a known id.
         Assert.Equal("disk-free", check.Id)
         Assert.Contains("free on", check.Message)
@@ -88,12 +85,11 @@ class DoctorServiceTests {
 
     @Fact
     func Report_HasErrors_TrueWhenAnyErrorPresent() {
-        var checks = []DoctorCheck{
+        let r = DoctorReport([]DoctorCheck{
             DoctorCheck("a", "ok", DoctorSeverity.Ok, ".", nil),
             DoctorCheck("b", "warn", DoctorSeverity.Warning, ".", nil),
             DoctorCheck("c", "err", DoctorSeverity.Error, ".", nil),
-        }
-        var r = DoctorReport(checks)
+        })
         Assert.True(r.HasErrors)
         Assert.True(r.HasWarnings)
     }

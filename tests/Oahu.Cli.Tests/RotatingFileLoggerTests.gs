@@ -1,12 +1,3 @@
-// G# port of RotatingFileLoggerTests.cs.
-//
-// Covers RotatingFileLoggerProvider: writing to a daily file and
-// respecting minimum log level.
-//
-// WORKAROUNDS:
-//   - CLR string[] not indexable in G# (known limitation). Use Assert.Single()
-//     to extract the single element, or Linq .First() extension.
-
 package Oahu.Cli.Tests
 
 import System
@@ -16,20 +7,22 @@ import Microsoft.Extensions.Logging
 import Oahu.Cli.Logging
 import Xunit
 
+/// Covers RotatingFileLoggerProvider: writing to a daily file and
+/// respecting minimum log level.
 class RotatingFileLoggerProviderTests {
     @Fact
     func Log_WritesTodayFile() {
-        var dir = Path.Combine(Path.GetTempPath(), "oahu-cli-log-test-" + Guid.NewGuid().ToString())
+        let dir = Path.Combine(Path.GetTempPath(), "oahu-cli-log-test-${Guid.NewGuid():N}")
         try {
-            var provider = RotatingFileLoggerProvider(LogLevel.Debug, dir)
-            var logger = provider.CreateLogger("Test.Category")
+            let provider = RotatingFileLoggerProvider(LogLevel.Debug, dir)
+            let logger = provider.CreateLogger("Test.Category")
             logger.LogInformation("hello {Who}", "world")
             logger.LogWarning("warning")
             provider.Dispose()
 
-            var files = Directory.GetFiles(dir, "oahu-cli-*.log")
-            var file = Assert.Single(files)
-            var contents = File.ReadAllText(file)
+            let files = Directory.GetFiles(dir, "oahu-cli-*.log")
+            let file = Assert.Single(files)
+            let contents = File.ReadAllText(file)
             Assert.Contains("INF [Test.Category] hello world", contents)
             Assert.Contains("WRN [Test.Category] warning", contents)
         } finally {
@@ -41,17 +34,17 @@ class RotatingFileLoggerProviderTests {
 
     @Fact
     func Log_RespectsMinimumLevel() {
-        var dir = Path.Combine(Path.GetTempPath(), "oahu-cli-log-test-" + Guid.NewGuid().ToString())
+        let dir = Path.Combine(Path.GetTempPath(), "oahu-cli-log-test-${Guid.NewGuid():N}")
         try {
-            var provider = RotatingFileLoggerProvider(LogLevel.Warning, dir)
-            var logger = provider.CreateLogger("X")
+            let provider = RotatingFileLoggerProvider(LogLevel.Warning, dir)
+            let logger = provider.CreateLogger("X")
             logger.LogInformation("info")
             logger.LogError("err")
             provider.Dispose()
 
-            var files = Directory.GetFiles(dir)
-            var file = files.First()
-            var contents = File.ReadAllText(file)
+            let files = Directory.GetFiles(dir)
+            let file = files.First()
+            let contents = File.ReadAllText(file)
             Assert.DoesNotContain("info", contents)
             Assert.Contains("err", contents)
         } finally {

@@ -19,11 +19,28 @@ import Oahu.Cli
 import Oahu.Cli.Commands
 import Xunit
 
+private class NullLoggerFactoryImpl : ILoggerFactory {
+    func AddProvider(provider ILoggerProvider) {
+    }
+
+    func CreateLogger(categoryName string) ILogger {
+        return NullLogger.Instance
+    }
+
+    func Dispose() {
+    }
+}
+
+func NullFactory() ILoggerFactory {
+    return NullLoggerFactoryImpl()
+}
+
+@Collection("EnvVarSerial")
 class RootCommandTests {
     @Fact
     func Create_RegistersDoctorAndTuiSubcommands() {
-        let root = RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
-        var names = List[string]()
+        let root = RootCommandFactory.Create(NullFactory)
+        let names = List[string]()
         for c in root.Subcommands {
             names.Add(c.Name)
         }
@@ -33,8 +50,8 @@ class RootCommandTests {
 
     @Fact
     func Create_ExposesGlobalOptions() {
-        let root = RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
-        var names = List[string]()
+        let root = RootCommandFactory.Create(NullFactory)
+        let names = List[string]()
         for o in root.Options {
             names.Add(o.Name)
         }
@@ -48,7 +65,7 @@ class RootCommandTests {
     }
 
     @Fact
-    func DoctorCommand_RunsAndReturnsZeroOnHealthyEnv() {
+    async func DoctorCommand_RunsAndReturnsZeroOnHealthyEnv() {
         using let sw = StringWriter()
         CliEnvironment.Initialise()
         let prevOut = CliEnvironment.Out
@@ -56,9 +73,8 @@ class RootCommandTests {
         CliEnvironment.Out = sw
         CliEnvironment.Error = sw
         try {
-            let root = RootCommandFactory.Create(func() ILoggerFactory { return NullLoggerFactory.Instance })
-            let parse = root.Parse([]string{"doctor", "--skip-network", "--json"})
-            let rc = parse.InvokeAsync().GetAwaiter().GetResult()
+            let root = RootCommandFactory.Create(NullFactory)
+            let rc = await root.Parse([]string{"doctor", "--skip-network", "--json"}).InvokeAsync()
             Assert.Equal(0, rc)
             Assert.Contains("\"_schemaVersion\":1", sw.ToString())
         } finally {
@@ -70,8 +86,16 @@ class RootCommandTests {
     @Fact
     func Tui_ReturnsExitCode2WhenNotATty() {
         // The test runner does not provide a TTY, so CanEnterTui should be false.
-        CliEnvironment.Initialise()
-        var rc = TuiCommand.Run()
-        Assert.Equal(2, rc)
+        using let sw = StringWriter()
+        let prevErr = CliEnvironment.Error
+        CliEnvironment.Error = sw
+        try {
+            CliEnvironment.Initialise()
+            let rc = TuiCommand.Run()
+            Assert.Equal(2, rc)
+        }
+        finally {
+            CliEnvironment.Error = prevErr
+        }
     }
 }
