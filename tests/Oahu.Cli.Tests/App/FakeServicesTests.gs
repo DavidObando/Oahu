@@ -15,30 +15,36 @@ import Xunit
 
 class FakeLibraryServiceTests {
     func Seed() FakeLibraryService {
-        var list = List[LibraryItem]()
-        list.Add(LibraryItem() {
-            Asin = "A1", Title = "Project Hail Mary",
-            Authors = []string{"Andy Weir"},
-            Series = "Standalone", IsAvailable = true
-        })
-        list.Add(LibraryItem() {
-            Asin = "A2", Title = "The Way of Kings",
-            Authors = []string{"Brandon Sanderson"},
-            Series = "Stormlight", IsAvailable = true
-        })
-        list.Add(LibraryItem() {
-            Asin = "A3", Title = "Words of Radiance",
-            Authors = []string{"Brandon Sanderson"},
-            Series = "Stormlight", IsAvailable = false
-        })
-        let seq IEnumerable[LibraryItem] = list
-        return FakeLibraryService(seq)
+        return FakeLibraryService(
+            [3]LibraryItem {
+                LibraryItem() {
+                    Asin = "A1",
+                    Title = "Project Hail Mary",
+                    Authors = []string{"Andy Weir"},
+                    Series = "Standalone",
+                    IsAvailable = true
+                },
+                LibraryItem() {
+                    Asin = "A2",
+                    Title = "The Way of Kings",
+                    Authors = []string{"Brandon Sanderson"},
+                    Series = "Stormlight",
+                    IsAvailable = true
+                },
+                LibraryItem() {
+                    Asin = "A3",
+                    Title = "Words of Radiance",
+                    Authors = []string{"Brandon Sanderson"},
+                    Series = "Stormlight",
+                    IsAvailable = false
+                }
+            })
     }
 
     @Fact
-    func List_All_Returns_Available_By_Default() {
+    async func List_All_Returns_Available_By_Default() {
         let svc = Seed()
-        let items = svc.ListAsync(nil, CancellationToken.None).Result
+        let items = await svc.ListAsync()
         Assert.Equal(2, items.Count)
         for i in items {
             Assert.NotEqual("A3", i.Asin)
@@ -46,37 +52,33 @@ class FakeLibraryServiceTests {
     }
 
     @Fact
-    func List_With_Search_Filters_Title_Case_Insensitive() {
+    async func List_With_Search_Filters_Title_Case_Insensitive() {
         let svc = Seed()
-        let filter = LibraryFilter() { Search = "kings" }
-        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        let items = await svc.ListAsync(LibraryFilter() { Search = "kings" })
         Assert.Single(items)
         Assert.Equal("A2", items[0].Asin)
     }
 
     @Fact
-    func List_With_Author_Filter() {
+    async func List_With_Author_Filter() {
         let svc = Seed()
-        let filter = LibraryFilter() { Author = "sanderson" }
-        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        let items = await svc.ListAsync(LibraryFilter() { Author = "sanderson" })
         Assert.Single(items)
     }
 
     @Fact
-    func List_With_AvailableOnly_False_Includes_Unavailable() {
+    async func List_With_AvailableOnly_False_Includes_Unavailable() {
         let svc = Seed()
-        let filter = LibraryFilter() { AvailableOnly = false }
-        let items = svc.ListAsync(filter, CancellationToken.None).Result
+        let items = await svc.ListAsync(LibraryFilter() { AvailableOnly = false })
         Assert.Equal(3, items.Count)
     }
 
     @Fact
-    func Get_By_Asin_Case_Insensitive() {
+    async func Get_By_Asin_Case_Insensitive() {
         let svc = Seed()
-        let item = svc.GetAsync("a1", CancellationToken.None).Result
+        let item = await svc.GetAsync("a1")
         Assert.NotNull(item)
-        let unwrapped = item!!
-        Assert.Equal("Project Hail Mary", unwrapped.Title)
+        Assert.Equal("Project Hail Mary", item.Title)
     }
 }
 

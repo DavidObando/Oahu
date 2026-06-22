@@ -36,59 +36,6 @@ class CoreAuthRegionMappingTests {
     }
 }
 
-class CBRecordingBroker : IAuthCallbackBroker {
-    prop CaptchaAnswer string?
-    prop MfaAnswer string
-    prop CvfAnswer string
-    prop ExternalLoginAnswer Uri
-    prop ThrowNonInteractive bool
-
-    prop MfaCalls int32
-    prop LastExternalLoginUri Uri?
-
-    init() {
-        MfaAnswer = "000000"
-        CvfAnswer = "0000"
-        ExternalLoginAnswer = Uri("https://example.org/")
-        ThrowNonInteractive = false
-        MfaCalls = 0
-        CaptchaAnswer = nil
-        LastExternalLoginUri = nil
-    }
-
-    func SolveCaptchaAsync(challenge CaptchaChallenge, cancellationToken CancellationToken) Task[string] {
-        return if ThrowNonInteractive {
-            Task.FromException[string](NonInteractiveCallbackException("captcha"))
-        } else if CaptchaAnswer != nil {
-            Task.FromResult(CaptchaAnswer)
-        } else {
-            Task.FromResult(String.Empty)
-        }
-    }
-
-    func SolveMfaAsync(challenge MfaChallenge, cancellationToken CancellationToken) Task[string] {
-        MfaCalls++
-        return if ThrowNonInteractive {
-            Task.FromException[string](NonInteractiveCallbackException("mfa"))
-        } else {
-            Task.FromResult(MfaAnswer)
-        }
-    }
-
-    func SolveCvfAsync(challenge CvfChallenge, cancellationToken CancellationToken) Task[string] {
-        return Task.FromResult(CvfAnswer)
-    }
-
-    func ConfirmApprovalAsync(challenge ApprovalChallenge, cancellationToken CancellationToken) Task {
-        return Task.CompletedTask
-    }
-
-    func CompleteExternalLoginAsync(challenge ExternalLoginChallenge, cancellationToken CancellationToken) Task[Uri] {
-        LastExternalLoginUri = challenge.LoginUri
-        return Task.FromResult(ExternalLoginAnswer)
-    }
-}
-
 class CallbackBridgeTests {
     @Fact
     async func Bridge_Forwards_Mfa_Through_Broker() {
@@ -135,5 +82,58 @@ class CallbackBridgeTests {
             () -> Task.Run(() -> callbacks.MfaCallback())
         )
         Assert.Equal("mfa", ex.Kind)
+    }
+
+    private class CBRecordingBroker : IAuthCallbackBroker {
+        prop CaptchaAnswer string?
+        prop MfaAnswer string
+        prop CvfAnswer string
+        prop ExternalLoginAnswer Uri
+        prop ThrowNonInteractive bool
+
+        prop MfaCalls int32
+        prop LastExternalLoginUri Uri?
+
+        init() {
+            MfaAnswer = "000000"
+            CvfAnswer = "0000"
+            ExternalLoginAnswer = Uri("https://example.org/")
+            ThrowNonInteractive = false
+            MfaCalls = 0
+            CaptchaAnswer = nil
+            LastExternalLoginUri = nil
+        }
+
+        func SolveCaptchaAsync(challenge CaptchaChallenge, cancellationToken CancellationToken) Task[string] {
+            return if ThrowNonInteractive {
+                Task.FromException[string](NonInteractiveCallbackException("captcha"))
+            } else if CaptchaAnswer != nil {
+                Task.FromResult(CaptchaAnswer)
+            } else {
+                Task.FromResult(String.Empty)
+            }
+        }
+
+        func SolveMfaAsync(challenge MfaChallenge, cancellationToken CancellationToken) Task[string] {
+            MfaCalls++
+            return if ThrowNonInteractive {
+                Task.FromException[string](NonInteractiveCallbackException("mfa"))
+            } else {
+                Task.FromResult(MfaAnswer)
+            }
+        }
+
+        func SolveCvfAsync(challenge CvfChallenge, cancellationToken CancellationToken) Task[string] {
+            return Task.FromResult(CvfAnswer)
+        }
+
+        func ConfirmApprovalAsync(challenge ApprovalChallenge, cancellationToken CancellationToken) Task {
+            return Task.CompletedTask
+        }
+
+        func CompleteExternalLoginAsync(challenge ExternalLoginChallenge, cancellationToken CancellationToken) Task[Uri] {
+            LastExternalLoginUri = challenge.LoginUri
+            return Task.FromResult(ExternalLoginAnswer)
+        }
     }
 }

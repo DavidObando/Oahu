@@ -11,23 +11,6 @@ import System.Runtime.InteropServices
 import Oahu.Cli.App.Credentials
 import Xunit
 
-class TempDir : IDisposable {
-    prop Path string { get; private set; }
-
-    init() {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "oahu-cli-creds-${Guid.NewGuid():N}")
-        Directory.CreateDirectory(Path)
-    }
-
-    func Dispose() {
-        try {
-            Directory.Delete(Path, recursive: true)
-        } catch (e Exception) {
-            // best-effort cleanup
-        }
-    }
-}
-
 class CredentialStoreTests {
     @Fact
     func Factory_Returns_Platform_Appropriate_Store() {
@@ -70,5 +53,22 @@ class CredentialStoreTests {
         Assert.True(await store.DeleteAsync("alice"))
         Assert.Null(await store.GetAsync("alice"))
         Assert.False(File.Exists(path + ".tmp"))
+    }
+
+    class TempDir : IDisposable {
+        prop Path string { get; private set; }
+
+        init() {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "oahu-cli-creds-${Guid.NewGuid():N}")
+            Directory.CreateDirectory(Path)
+        }
+
+        func Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true)
+            } catch (e Exception) {
+                // best-effort cleanup
+            }
+        }
     }
 }
