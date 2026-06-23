@@ -84,32 +84,31 @@ class FakeLibraryServiceTests {
 
 class FakeAuthServiceTests {
     @Fact
-    func Login_Then_GetActive_Returns_Session() {
-        var svc = FakeAuthService()
-        var s = svc.LoginAsync(CliRegion.Us, NonInteractiveCallbackBroker()).Result
+    async func Login_Then_GetActive_Returns_Session() {
+        let svc = FakeAuthService()
+        let s = await svc.LoginAsync(CliRegion.Us, NonInteractiveCallbackBroker())
         Assert.Equal(CliRegion.Us, s.Region)
 
-        var active = svc.GetActiveAsync().Result
+        let active = await svc.GetActiveAsync()
         Assert.NotNull(active)
-        let unwrapped = active!!
-        Assert.Equal(s.ProfileAlias, unwrapped.ProfileAlias)
+        Assert.Equal(s.ProfileAlias, active.ProfileAlias)
     }
 
     @Fact
-    func Logout_Removes_Session() {
-        var svc = FakeAuthService()
-        var s = svc.LoginAsync(CliRegion.De, NonInteractiveCallbackBroker()).Result
-        svc.LogoutAsync(s.ProfileAlias).Wait()
-        Assert.Empty(svc.ListSessionsAsync().Result)
-        Assert.Null(svc.GetActiveAsync().Result)
+    async func Logout_Removes_Session() {
+        let svc = FakeAuthService()
+        let s = await svc.LoginAsync(CliRegion.De, NonInteractiveCallbackBroker())
+        await svc.LogoutAsync(s.ProfileAlias)
+        Assert.Empty( await svc.ListSessionsAsync())
+        Assert.Null(await svc.GetActiveAsync())
     }
 
     @Fact
-    func Refresh_Updates_ExpiresAt() {
-        var svc = FakeAuthService()
-        var s = svc.LoginAsync(CliRegion.Uk, NonInteractiveCallbackBroker()).Result
-        Thread.Sleep(10)
-        var refreshed = svc.RefreshAsync(s.ProfileAlias).Result
+    async func Refresh_Updates_ExpiresAt() {
+        let svc = FakeAuthService()
+        let s = await svc.LoginAsync(CliRegion.Uk, NonInteractiveCallbackBroker())
+        await Task.Delay(10)
+        let refreshed = await svc.RefreshAsync(s.ProfileAlias)
         Assert.NotNull(refreshed)
         Assert.True(refreshed.ExpiresAt!! > s.ExpiresAt!!)
     }

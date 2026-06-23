@@ -1,4 +1,4 @@
-<Project Sdk="Gsharp.NET.Sdk/0.2.87">
+<Project Sdk="Gsharp.NET.Sdk/0.2.97">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>

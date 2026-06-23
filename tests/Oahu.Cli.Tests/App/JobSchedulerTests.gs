@@ -1,9 +1,3 @@
-// G# port of App/JobSchedulerTests.cs.
-//
-// Recovery (0.1.516): added the 4 C# tests (Submit/Observe, History,
-// Cancel-records-Canceled, Bounded-concurrency) using the manual async
-// enumerator workaround for IAsyncEnumerable[T].
-
 package Oahu.Cli.Tests.App
 
 import System
@@ -15,9 +9,75 @@ import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Models
 import Xunit
 
-class JobSchedulerTests {
+class JobSchedulerTests : IDisposable {
+    private var tempHistory string
+
+    init() {
+        tempHistory = Path.Combine(Path.GetTempPath(), "oahu-cli-history-${Guid.NewGuid():n}.jsonl")
+    }
+
+    func Dispose() {
+        if File.Exists(tempHistory) {
+            File.Delete(tempHistory)
+        }
+    }
+
+    shared {
+        private func Req(title string = "Book") JobRequest {
+            return JobRequest() { Asin = "B${Guid.NewGuid():n}", Title = title }
+        }
+    }
+
     @Fact
-    func JobRequest_Has_Auto_Id() {
+    async func Submit_And_Observe_Reaches_Completed() {
+        await using let sched = JobScheduler(FakeJobExecutor())
+        let req = JobSchedulerTests.Req("Book")
+
+        // Subscribe BEFORE submitting so we don't miss the early updates.
+        let observed = List[JobUpdate]()
+        let observeCts = CancellationTokenSource(TimeSpan.FromSeconds(10.0))
+        let task = Task.Run(
+            async func() {
+                await for u in sched.ObserveAsync(req.Id, observeCts.Token) {
+                    observed.Add(u)
+                    if u.Phase == JobPhase.Completed || u.Phase == JobPhase.Failed || u.Phase == JobPhase.Canceled {
+                        // break. // <-- G# doesn't support `break` inside async-yield iterator body #937
+                        return
+                    }
+                }
+            })
+
+        // give the observer time to subscribe before we publish
+        await Task.Delay(50)
+        await sched.SubmitAsync(req)
+        await task
+
+        var sawLicensing = false
+        var sawDownloading = false
+        var sawDecrypting = false
+        var sawExporting = false
+        for u in observed {
+            if u.Phase == JobPhase.Licensing { sawLicensing = true }
+            if u.Phase == JobPhase.Downloading { sawDownloading = true }
+            if u.Phase == JobPhase.Decrypting { sawDecrypting = true }
+            if u.Phase == JobPhase.Exporting { sawExporting = true }
+        }
+        Assert.True(sawLicensing)
+        Assert.True(sawDownloading)
+        Assert.True(sawDecrypting)
+        Assert.True(sawExporting)
+        // Waiting on #932 to support `Contains` with lambda predicates, which would let us write:
+        // Assert.Contains(observed, (u) -> u.Phase == JobPhase.Licensing)
+        // Assert.Contains(observed, (u) -> u.Phase == JobPhase.Downloading)
+        // Assert.Contains(observed, (u) -> u.Phase == JobPhase.Decrypting)
+        // Assert.Contains(observed, (u) -> u.Phase == JobPhase.Exporting)
+        Assert.Equal(JobPhase.Completed, observed[observed.Count - 1].Phase)
+    }
+
+    @Fact
+    async func JobRequest_Has_Auto_Id() {
+        await using let sched = JobScheduler(FakeJobExecutor())
+        let req = Req()
         var req = JobRequest() { Asin = "B001", Title = "Test" }
         Assert.NotNull(req.Id)
         Assert.True(req.Id.Length > 0)
@@ -30,88 +90,76 @@ class JobSchedulerTests {
     }
 
     @Fact
-    func Scheduler_Accepts_Submit_And_Completes() {
+    async func Scheduler_Accepts_Submit_And_Completes() {
         var executor = FakeJobExecutor()
         var sched = JobScheduler(executor)
         var req = JobRequest() { Asin = "B002", Title = "Book" }
-        sched.SubmitAsync(req, CancellationToken.None).GetAwaiter().GetResult()
-        Task.Delay(500).GetAwaiter().GetResult()
+        await sched.SubmitAsync(req, CancellationToken.None)
+        await Task.Delay(500)
         var snap = sched.GetSnapshot(req.Id)
         Assert.Null(snap)
-        sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await sched.DisposeAsync()
     }
 
     @Fact
-    func Cancel_Returns_False_For_Unknown_Job() {
+    async func Cancel_Returns_False_For_Unknown_Job() {
         var executor = FakeJobExecutor()
         var sched = JobScheduler(executor)
         Assert.False(sched.Cancel("nonexistent-job-id"))
-        sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await sched.DisposeAsync()
     }
 
     @Fact
-    func ListActive_Initially_Empty() {
+    async func ListActive_Initially_Empty() {
         var executor = FakeJobExecutor()
         var sched = JobScheduler(executor)
         var active = sched.ListActive()
         Assert.Empty(active)
-        sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await sched.DisposeAsync()
     }
 
     @Fact
-    func Cancel_Active_Slow_Job() {
+    async func Cancel_Active_Slow_Job() {
         var delay = Nullable[TimeSpan](TimeSpan.FromSeconds(2.0))
         var slow = FakeJobExecutor(delay, false)
         var sched = JobScheduler(slow)
         var req = JobRequest() { Asin = "B003", Title = "Slow" }
 
-        sched.SubmitAsync(req, CancellationToken.None).GetAwaiter().GetResult()
-        Task.Delay(100).GetAwaiter().GetResult()
+        await sched.SubmitAsync(req, CancellationToken.None)
+        await Task.Delay(100)
 
         Assert.True(sched.Cancel(req.Id))
-        Task.Delay(200).GetAwaiter().GetResult()
-        sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await Task.Delay(200)
+        await sched.DisposeAsync()
     }
 
-    // --- Recovered tests (formerly dropped) ---
-
-    func tempHistory() string {
-        return Path.Combine(Path.GetTempPath(), "oahu-cli-history-${Guid.NewGuid().ToString("n")}.jsonl")
-    }
-
-    func cleanup(p string) {
-        if File.Exists(p) {
-            File.Delete(p)
-        }
-    }
-
-    func collectUpdates(sched JobScheduler, jobId string, timeoutSec int32) List[JobUpdate] {
+    async func collectUpdates(sched JobScheduler, jobId string, timeoutSec int32) List[JobUpdate] {
         let observed = List[JobUpdate]()
         let cts = CancellationTokenSource(TimeSpan.FromSeconds(float64(timeoutSec)))
         let en = sched.ObserveAsync(jobId, cts.Token).GetAsyncEnumerator(cts.Token)
-        var hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+        var hasMore = await en.MoveNextAsync()
         for hasMore {
             let u = en.Current
             observed.Add(u)
             if u.Phase == JobPhase.Completed || u.Phase == JobPhase.Failed || u.Phase == JobPhase.Canceled {
                 hasMore = false
             } else {
-                hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+                hasMore = await en.MoveNextAsync()
             }
         }
-        en.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await en.DisposeAsync()
         return observed
     }
 
-    func readRecords(history JsonlHistoryStore) List[JobRecord] {
+    async func readRecords(history JsonlHistoryStore) List[JobRecord] {
         let records = List[JobRecord]()
         let en = history.ReadAllAsync().GetAsyncEnumerator(CancellationToken.None)
-        var hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+        var hasMore = await en.MoveNextAsync()
         for hasMore {
             records.Add(en.Current)
-            hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
+            hasMore = await en.MoveNextAsync()
         }
-        en.DisposeAsync().AsTask().GetAwaiter().GetResult()
+        await en.DisposeAsync()
         return records
     }
 
@@ -143,76 +191,28 @@ class JobSchedulerTests {
     }
 
     @Fact
-    func Submit_And_Observe_Reaches_Completed() {
-        let sched = JobScheduler(FakeJobExecutor())
-        try {
-            let req = JobRequest() { Asin = "B${Guid.NewGuid().ToString("n")}", Title = "Book" }
-
-            // Subscribe BEFORE submitting so we don't miss the early updates.
-            let observed = List[JobUpdate]()
-            let cts = CancellationTokenSource(TimeSpan.FromSeconds(10.0))
-            let en = sched.ObserveAsync(req.Id, cts.Token).GetAsyncEnumerator(cts.Token)
-            let moveTask = en.MoveNextAsync().AsTask()
-
-            // Give observer a moment to subscribe, then submit.
-            Task.Delay(50).GetAwaiter().GetResult()
-            sched.SubmitAsync(req, CancellationToken.None).GetAwaiter().GetResult()
-
-            var hasMore = moveTask.GetAwaiter().GetResult()
-            for hasMore {
-                let u = en.Current
-                observed.Add(u)
-                if u.Phase == JobPhase.Completed || u.Phase == JobPhase.Failed || u.Phase == JobPhase.Canceled {
-                    hasMore = false
-                } else {
-                    hasMore = en.MoveNextAsync().AsTask().GetAwaiter().GetResult()
-                }
-            }
-            en.DisposeAsync().AsTask().GetAwaiter().GetResult()
-
-            var sawLicensing = false
-            var sawDownloading = false
-            var sawDecrypting = false
-            var sawExporting = false
-            for u in observed {
-                if u.Phase == JobPhase.Licensing { sawLicensing = true }
-                if u.Phase == JobPhase.Downloading { sawDownloading = true }
-                if u.Phase == JobPhase.Decrypting { sawDecrypting = true }
-                if u.Phase == JobPhase.Exporting { sawExporting = true }
-            }
-            Assert.True(sawLicensing)
-            Assert.True(sawDownloading)
-            Assert.True(sawDecrypting)
-            Assert.True(sawExporting)
-            Assert.Equal(JobPhase.Completed, observed[observed.Count - 1].Phase)
-        } finally {
-            sched.DisposeAsync().AsTask().GetAwaiter().GetResult()
-        }
-    }
-
-    @Fact
     func History_Receives_Terminal_Records() {
         let path = tempHistory()
         try {
             let history = JsonlHistoryStore(path)
             let sched1 = JobScheduler(FakeJobExecutor(), history)
             try {
-                let r1 = JobRequest() { Asin = "B${Guid.NewGuid().ToString("n")}", Title = "ok" }
-                sched1.SubmitAsync(r1, CancellationToken.None).GetAwaiter().GetResult()
+                let r1 = JobRequest() { Asin = "B${Guid.NewGuid():n}", Title = "ok" }
+                await sched1.SubmitAsync(r1, CancellationToken.None)
                 waitForFile(path, 1, 5)
             } finally {
-                sched1.DisposeAsync().AsTask().GetAwaiter().GetResult()
+                await sched1.DisposeAsync()
             }
 
             let delay = Nullable[TimeSpan]()
             let failExecutor = FakeJobExecutor(delay, true)
             let sched2 = JobScheduler(failExecutor, history)
             try {
-                let r2 = JobRequest() { Asin = "B${Guid.NewGuid().ToString("n")}", Title = "fail" }
-                sched2.SubmitAsync(r2, CancellationToken.None).GetAwaiter().GetResult()
+                let r2 = JobRequest() { Asin = "B${Guid.NewGuid():n}", Title = "fail" }
+                await sched2.SubmitAsync(r2, CancellationToken.None)
                 waitForFile(path, 2, 5)
             } finally {
-                sched2.DisposeAsync().AsTask().GetAwaiter().GetResult()
+                await sched2.DisposeAsync()
             }
 
             let records = readRecords(history)
