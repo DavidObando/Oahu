@@ -123,7 +123,7 @@ dotnet publish src/Oahu.App/Oahu.App.csproj \
 
 # Publish for Linux
 dotnet publish src/Oahu.App/Oahu.App.csproj \
-  -r linux-x64 -c Release --self-containe
+  -r linux-x64 -c Release --self-contained
 ```
 
 ### Build scripts
