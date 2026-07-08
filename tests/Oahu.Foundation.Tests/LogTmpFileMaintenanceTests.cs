@@ -44,7 +44,7 @@ public class LogTmpFileMaintenanceTests
     private static void WriteTodayFile(string path, int size)
     {
         File.WriteAllBytes(path, Enumerable.Repeat((byte)'y', size).ToArray());
-        File.SetLastWriteTime(path, DateTime.Now);
+        File.SetLastWriteTime(path, DateTime.Today.AddHours(12));
     }
 
     private static string RunCleanup(Action<string> seedFiles)
