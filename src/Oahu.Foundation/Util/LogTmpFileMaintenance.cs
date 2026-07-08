@@ -68,8 +68,8 @@ namespace Oahu.Common.Util
       int numFiles = (tmp.Stats?.NumFiles ?? 0) + (log.Stats?.NumFiles ?? 0);
       long totalSize = (tmp.Stats?.TotalSize ?? 0) + (log.Stats?.TotalSize ?? 0);
 
-      int removedFiles = tmp2?.NumFiles ?? 0 + log2?.NumFiles ?? 0 + tmp3?.NumFiles ?? 0 + log3?.NumFiles ?? 0;
-      long removedSize = (tmp2?.TotalSize ?? 0 + log2?.TotalSize ?? 0 + tmp3?.TotalSize ?? 0 + log3?.TotalSize ?? 0);
+      int removedFiles = (tmp2?.NumFiles ?? 0) + (log2?.NumFiles ?? 0) + (tmp3?.NumFiles ?? 0) + (log3?.NumFiles ?? 0);
+      long removedSize = (tmp2?.TotalSize ?? 0) + (log2?.TotalSize ?? 0) + (tmp3?.TotalSize ?? 0) + (log3?.TotalSize ?? 0);
 
       Logging.Log(2, this, () => $"before/after/removed: #files={numFiles}/{numFiles - removedFiles}/{removedFiles} " +
         $"size={totalSize / 1024}/{(totalSize - removedSize) / 1024}/{removedSize / 1024} kB");
