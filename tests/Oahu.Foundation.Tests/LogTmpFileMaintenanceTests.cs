@@ -38,7 +38,7 @@ public class LogTmpFileMaintenanceTests
     private static void WriteOldFile(string path, int size)
     {
         File.WriteAllBytes(path, Enumerable.Repeat((byte)'x', size).ToArray());
-        File.SetLastWriteTime(path, DateTime.Now.AddDays(-366));
+        File.SetLastWriteTime(path, DateTime.Today.AddDays(-366).AddHours(12));
     }
 
     private static void WriteTodayFile(string path, int size)
