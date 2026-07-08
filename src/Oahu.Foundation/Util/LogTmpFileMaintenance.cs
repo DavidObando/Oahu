@@ -86,6 +86,11 @@ namespace Oahu.Common.Util
         return null;
       }
 
+      if (fileInfos.Count == 0)
+      {
+        return default;
+      }
+
       bool exceeds = enforceByDate.HasValue || ExceedsThresholds(stats);
 
       if (!exceeds)
