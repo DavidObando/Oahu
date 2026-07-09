@@ -30,11 +30,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.Cli", "src\Oahu.Cli\Oa
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.Cli.Tests", "tests\Oahu.Cli.Tests\Oahu.Cli.Tests.gsproj", "{20C07546-5DE9-4538-9CDA-6E721676DB54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.Cli.Tests", "tests\Oahu.Cli.Tests\Oahu.Cli.Tests.csproj", "{20C07546-5DE9-4538-9CDA-6E721676DB54}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.SystemManagement", "src\Oahu.SystemManagement\Oahu.SystemManagement.csproj", "{5E632EAA-C831-4E2B-BD0C-A84A2E1950E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.Cli.E2E.Tests", "tests\Oahu.Cli.E2E.Tests\Oahu.Cli.E2E.Tests.gsproj", "{13281C69-EAF3-411B-9563-CA88145AB622}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oahu.Cli.E2E.Tests", "tests\Oahu.Cli.E2E.Tests\Oahu.Cli.E2E.Tests.csproj", "{13281C69-EAF3-411B-9563-CA88145AB622}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
 EndProject

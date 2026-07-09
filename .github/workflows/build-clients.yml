@@ -89,7 +89,7 @@ jobs:
         run: dotnet build Oahu.sln --configuration Release --no-restore
 
       - name: Test (oahu-cli)
-        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Create .app bundle, sign, and create DMG
         env:
@@ -170,7 +170,7 @@ jobs:
         run: dotnet build Oahu.sln --configuration Release --no-restore
 
       - name: Test (oahu-cli)
-        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish app
         run: |
@@ -221,7 +221,7 @@ jobs:
         run: dotnet build Oahu.sln --configuration Release --no-restore
 
       - name: Test (oahu-cli)
-        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish and package
         run: |
