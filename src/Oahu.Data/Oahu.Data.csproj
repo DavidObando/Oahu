@@ -13,7 +13,8 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-    <!-- Pin to patched version to address NU1903 (GHSA-37gx-xxp4-5rgx, GHSA-w3x6-4m5h-cxqf); pulled in transitively by EF Core. -->
+    <!-- Pin patched transitive dependencies pulled in by EF Core. -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
     <PackageReference Include="System.Security.Cryptography.Xml" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
       <PrivateAssets>all</PrivateAssets>
