@@ -214,6 +214,58 @@ namespace Oahu.Core
       }
     }
 
+    /// <summary>
+    /// Marks a title as no longer available in the given profile's library, after Audible denied a
+    /// license for entitlement reasons.
+    /// </summary>
+    /// <remarks>
+    /// A full resync reconciles the local library against the API and marks vanished titles removed,
+    /// but only when the user next runs one. Applying the same flag at the point of denial keeps the
+    /// title out of the default (available-only) listings straight away, so a book whose Amazon
+    /// Household sharing was withdrawn stops being offered as downloadable.
+    /// <para>
+    /// Conversion state is deliberately left untouched. The caller records
+    /// <see cref="EConversionState.LicenseDenied"/>, which is more informative than the generic
+    /// <see cref="EConversionState.Unknown"/> the sync path uses, and already-downloaded content
+    /// must keep its state either way.
+    /// </para>
+    /// </remarks>
+    /// <returns><c>true</c> if the title was newly marked unavailable.</returns>
+    public bool MarkBookUnavailable(string asin, ProfileId profileId)
+    {
+      if (asin.IsNullOrWhiteSpace())
+      {
+        return false;
+      }
+
+      using var logGuard = new LogGuard(3, this, () => $"asin = {asin}");
+      using var dbContext = new BookDbContextLazyLoad(DbDir);
+
+      // Filter by profile in memory: Conversion is a lazy-loaded navigation property.
+      var book = dbContext.Books
+        .Where(b => b.Asin == asin)
+        .ToList()
+        .FirstOrDefault(b => b.Conversion is not null
+          && b.Conversion.AccountId == profileId.AccountId
+          && b.Conversion.Region == profileId.Region);
+
+      if (book is null || (book.Deleted ?? false))
+      {
+        return false;
+      }
+
+      book.Deleted = true;
+      dbContext.SaveChanges();
+
+      lock (BookCache)
+      {
+        BookCache.Remove(profileId);
+      }
+
+      Log(1, this, () => $"marked unavailable: {book}");
+      return true;
+    }
+
     public bool RemoveAccountId(IProfileKey key)
     {
       using var logGuard = new LogGuard(3, this, () => $"id = {key.Id}");

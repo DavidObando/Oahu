@@ -27,6 +27,10 @@ namespace Oahu.Core
 
     // const string HTTP_AUTHORITY_AUDIBLE = @"https://api.audible.";
     const string ContentPath = "/1.0/content";
+
+    // Amazon's validationType for a rights check, as it appears in license_denial_reasons.
+    const string OwnershipValidationType = "Ownership";
+
     private int accountId;
     private string accountAlias;
 
@@ -210,7 +214,15 @@ namespace Oahu.Core
       {
         conversion.State = EConversionState.LicenseDenied;
         conversion.FailureReason = DescribeDenial(lic);
-        Log(1, this, () => $"{conversion}; {conversion.FailureReason}");
+
+        // Always log the unabridged Amazon detail; FailureReason may be a summary.
+        Log(1, this, () => $"{conversion}; {DescribeDenialVerbose(lic)}");
+
+        if (IsEntitlementDenial(lic))
+        {
+          BookLibrary.MarkBookUnavailable(conversion.Asin, new ProfileId(AccountId, Region));
+        }
+
         return false;
       }
 
@@ -593,7 +605,28 @@ namespace Oahu.Core
       return json;
     }
 
-    private static string DescribeDenial(Oahu.Audible.Json.ContentLicense license)
+    /// <summary>
+    /// True when Audible refused the license because the customer has no rights to the title, as
+    /// opposed to a transient or unrecognised failure. This is the signature of a title that left
+    /// the library: returned, or shared via Amazon Household / Family Library and then withdrawn.
+    /// </summary>
+    private static bool IsEntitlementDenial(Oahu.Audible.Json.ContentLicense license) =>
+      license.LicenseDenialReasons?.Any(r =>
+        string.Equals(r.ValidationType, OwnershipValidationType, StringComparison.OrdinalIgnoreCase))
+        ?? false;
+
+    /// <summary>
+    /// Short, actionable reason shown to the user. Entitlement denials get a plain explanation;
+    /// anything else keeps the raw Amazon detail, since the cause is not understood well enough to
+    /// summarise. The full detail is logged in both cases by <see cref="DescribeDenialVerbose"/>.
+    /// </summary>
+    private static string DescribeDenial(Oahu.Audible.Json.ContentLicense license) =>
+      IsEntitlementDenial(license)
+        ? "no longer available in your library — Audible reports no ownership rights for this title. "
+          + "It may have been returned, or shared access (Amazon Household / Family Library) withdrawn."
+        : DescribeDenialVerbose(license);
+
+    private static string DescribeDenialVerbose(Oahu.Audible.Json.ContentLicense license)
     {
       var sb = new StringBuilder();
       sb.Append("license not granted, status=").Append(license.StatusCode ?? "(none)");
