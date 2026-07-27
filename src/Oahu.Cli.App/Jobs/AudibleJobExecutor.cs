@@ -355,6 +355,7 @@ public sealed class AudibleJobExecutor : IJobExecutor
         private int downloadPermille;
         private int decryptPercent;
         private bool convertEnabled;
+        private bool licenseDenialDetailed;
 
         public ProgressTranslator(string jobId, ChannelWriter<JobUpdate> writer)
         {
@@ -483,10 +484,21 @@ public sealed class AudibleJobExecutor : IJobExecutor
                         }
                         break;
                     case EConversionState.LicenseDenied:
-                        if (current is not JobPhase.Failed)
+                        // A conversion reloaded from the database can still carry LicenseDenied from an
+                        // earlier attempt, so this fires once before the fresh license call completes and
+                        // again afterwards. Re-emit when the server's reason finally becomes available.
+                        string reason = conversion.FailureReason;
+                        bool haveReason = !string.IsNullOrWhiteSpace(reason);
+                        if (current is not JobPhase.Failed || (haveReason && !licenseDenialDetailed))
                         {
                             current = JobPhase.Failed;
-                            writer.TryWrite(new JobUpdate { JobId = jobId, Phase = JobPhase.Failed, Message = "License denied" });
+                            licenseDenialDetailed = haveReason;
+                            writer.TryWrite(new JobUpdate
+                            {
+                                JobId = jobId,
+                                Phase = JobPhase.Failed,
+                                Message = haveReason ? $"License denied: {reason}" : "License denied",
+                            });
                         }
                         break;
                     case EConversionState.DownloadError:

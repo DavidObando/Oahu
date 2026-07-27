@@ -177,6 +177,12 @@ namespace Oahu.Core
       Log(3, this, () => $"{conversion}; desired quality: {quality}");
       Oahu.Audible.Json.LicenseResponse licresp;
 
+      // A conversion reloaded from the database can still carry a terminal state (e.g.
+      // LicenseDenied) from an earlier attempt. Clear it before the request so observers do not
+      // report a stale failure for a license call that is still in flight.
+      conversion.FailureReason = null;
+      conversion.State = EConversionState.Download;
+
       // get license
       try
       {
@@ -185,15 +191,17 @@ namespace Oahu.Core
       catch (Exception exc)
       {
         conversion.State = EConversionState.LicenseDenied;
-        Log(3, this, () => $"{conversion}; {exc.Summary()}");
+        conversion.FailureReason = exc.Summary();
+        Log(1, this, () => $"{conversion}; {conversion.FailureReason}");
         return false;
       }
 
       var lic = licresp?.ContentLicense;
-      if (lic?.Voucher is null)
+      if (lic is null)
       {
         conversion.State = EConversionState.LicenseDenied;
-        Log(3, this, () => $"{conversion}; license decryption failed.");
+        conversion.FailureReason = "no content license in response";
+        Log(1, this, () => $"{conversion}; {conversion.FailureReason}.");
         return false;
       }
 
@@ -201,9 +209,20 @@ namespace Oahu.Core
       if (!succ || status != ELicenseStatusCode.Granted)
       {
         conversion.State = EConversionState.LicenseDenied;
-        Log(3, this, () => $"{conversion}; license not granted.");
+        conversion.FailureReason = DescribeDenial(lic);
+        Log(1, this, () => $"{conversion}; {conversion.FailureReason}");
         return false;
       }
+
+      if (lic.Voucher is null)
+      {
+        conversion.State = EConversionState.LicenseDenied;
+        conversion.FailureReason = "license decryption failed";
+        Log(1, this, () => $"{conversion}; {conversion.FailureReason}.");
+        return false;
+      }
+
+      conversion.FailureReason = null;
 
       // save license to DB, including chapters
       // update state
@@ -574,6 +593,24 @@ namespace Oahu.Core
       return json;
     }
 
+    private static string DescribeDenial(Oahu.Audible.Json.ContentLicense license)
+    {
+      var sb = new StringBuilder();
+      sb.Append("license not granted, status=").Append(license.StatusCode ?? "(none)");
+
+      if (!license.Message.IsNullOrWhiteSpace())
+      {
+        sb.Append("; ").Append(license.Message);
+      }
+
+      foreach (var reason in license.LicenseDenialReasons ?? Array.Empty<Oahu.Audible.Json.LicenseDenialReason>())
+      {
+        sb.Append($"; [{reason.ValidationType}/{reason.RejectionReason}] {reason.Message}");
+      }
+
+      return sb.ToString();
+    }
+
     private static async Task<long> CopyStreams(
       Conversion conversion,
       BufferedStream rdr,
@@ -675,6 +712,14 @@ namespace Oahu.Core
       // https://patchwork.ffmpeg.org/project/ffmpeg/patch/17559601585196510@sas2-2fa759678732.qloud-c.yandex.net/
       if (license is null)
       {
+        return;
+      }
+
+      // A denied license is still returned as HTTP 200, but without the encrypted voucher.
+      // Report why instead of failing later with an opaque exception.
+      if (string.IsNullOrEmpty(license.LicenseResponseText))
+      {
+        Log(1, this, () => $"asin={license.Asin}; {DescribeDenial(license)}");
         return;
       }
 

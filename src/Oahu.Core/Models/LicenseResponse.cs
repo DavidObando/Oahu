@@ -17,6 +17,18 @@ namespace Oahu.Audible.Json
     public ContentMetadata ContentMetadata { get; set; }
   }
 
+  public class LicenseDenialReason
+  {
+    [JsonPropertyName("message")]
+    public string Message { get; set; }
+
+    [JsonPropertyName("rejectionReason")]
+    public string RejectionReason { get; set; }
+
+    [JsonPropertyName("validationType")]
+    public string ValidationType { get; set; }
+  }
+
   public partial class ContentLicense
   {
     [JsonPropertyName("acr")]
@@ -30,6 +42,12 @@ namespace Oahu.Audible.Json
 
     [JsonPropertyName("drm_type")]
     public string DrmType { get; set; }
+
+    [JsonPropertyName("granted_right")]
+    public string GrantedRight { get; set; }
+
+    [JsonPropertyName("license_denial_reasons")]
+    public LicenseDenialReason[] LicenseDenialReasons { get; set; }
 
     [JsonPropertyName("license_id")]
     public string LicenseId { get; set; }

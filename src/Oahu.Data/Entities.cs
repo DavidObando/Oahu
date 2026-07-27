@@ -298,6 +298,13 @@ namespace Oahu.BooksDatabase
 
     public virtual Component Component { get; set; }
 
+    /// <summary>
+    /// Gets or sets the reason for the most recent failure, when the server supplied one.
+    /// Transient and diagnostic only; not persisted.
+    /// </summary>
+    [NotMapped]
+    public string FailureReason { get; set; }
+
     [NotMapped]
     public string Asin => BookMeta?.Asin;
 
