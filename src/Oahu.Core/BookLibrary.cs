@@ -225,6 +225,19 @@ namespace Oahu.Core
         return false;
       }
 
+      // Conversions reference Accounts.Id without a foreign key. Dropping the row while local
+      // content still refers to it orphans that content, and registering the same Audible account
+      // again allocates a fresh id, so the library would come back empty. Keep the id mapping and
+      // only drop the alias in that case.
+      bool hasLocalContent = dbContext.Conversions.Any(c => c.AccountId == account.Id);
+      if (hasLocalContent)
+      {
+        Log(3, this, () => $"id = {account.Id} retained, local library content still references it");
+        account.Alias = null;
+        dbContext.SaveChanges();
+        return true;
+      }
+
       dbContext.Accounts.Remove(account);
       dbContext.SaveChanges();
       return true;
@@ -1328,6 +1341,7 @@ namespace Oahu.Core
 
       var bcl = new BookCompositeLists(
         dbContext.Books.Select(b => b.Asin).ToList(),
+        dbContext.Accounts.Select(a => a.Id).ToList(),
         dbContext.Conversions.ToList(),
         dbContext.Components.ToList(),
         dbContext.Series.ToList(),
@@ -1482,13 +1496,16 @@ namespace Oahu.Core
     {
       if (bcl.BookAsins.Contains(product.Asin))
       {
+        var bk = bcl.Conversions
+          .FirstOrDefault(conv => string.Equals(conv.Book?.Asin, product.Asin))?.Book;
+
+        AdoptOrphanedBook(bcl, bk, profileId);
+
         if (!resync)
         {
           return true;
         }
 
-        var bk = bcl.Conversions
-          .FirstOrDefault(conv => string.Equals(conv.Book?.Asin, product.Asin))?.Book;
         if (!(bk?.Deleted ?? false))
         {
           return true;
@@ -1520,6 +1537,53 @@ namespace Oahu.Core
       else
       {
         return false;
+      }
+    }
+
+    /// <summary>
+    /// Re-binds a locally known book to the profile currently syncing, but only when the account
+    /// it is bound to no longer exists.
+    /// </summary>
+    /// <remarks>
+    /// Books and conversions reference <see cref="Account"/> rows by id without a foreign key.
+    /// Removing a profile drops the account row and leaves its conversions pointing at an id that
+    /// is gone; registering the same Audible account again allocates a new id, so the whole local
+    /// library becomes invisible. The product being processed here was returned by the current
+    /// profile's library, so adopting orphaned content is safe. Content owned by another account
+    /// that is still registered is left untouched.
+    /// </remarks>
+    private void AdoptOrphanedBook(BookCompositeLists bcl, Book book, ProfileId profileId)
+    {
+      var conversion = book?.Conversion;
+      if (conversion is null)
+      {
+        return;
+      }
+
+      if (conversion.AccountId == profileId.AccountId && conversion.Region == profileId.Region)
+      {
+        return;
+      }
+
+      if (bcl.KnownAccountIds.Contains(conversion.AccountId))
+      {
+        return;
+      }
+
+      Log(3, this, () => $"adopted from orphaned account {conversion.AccountId}: {book}");
+
+      conversion.AccountId = profileId.AccountId;
+      conversion.Region = profileId.Region;
+
+      foreach (var comp in book.Components)
+      {
+        if (comp.Conversion is null)
+        {
+          continue;
+        }
+
+        comp.Conversion.AccountId = profileId.AccountId;
+        comp.Conversion.Region = profileId.Region;
       }
     }
 

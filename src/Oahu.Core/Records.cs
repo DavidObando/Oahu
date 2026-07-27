@@ -66,6 +66,7 @@ namespace Oahu.Core
 
   record BookCompositeLists(
     List<string> BookAsins,
+    List<int> KnownAccountIds,
     List<Conversion> Conversions,
     List<Component> Components,
     List<Series> Series,
