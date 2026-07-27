@@ -159,9 +159,17 @@ public static class DownloadCommand
                 }
             }
 
-            var requests = await ResolveRequestsAsync(positional, fromQueue, allNew, limit, profile, quality, exportToAax, exportToM4b, noDecrypt, outputDir, ct).ConfigureAwait(false);
+            var resolved = await ResolveRequestsAsync(positional, fromQueue, allNew, limit, profile, quality, exportToAax, exportToM4b, noDecrypt, outputDir, globals.Force, ct).ConfigureAwait(false);
+            var requests = resolved.Requests;
             if (requests.Count == 0)
             {
+                if (resolved.SkippedUnavailable > 0)
+                {
+                    // The per-title reasons have already gone to stderr.
+                    CliEnvironment.Error.WriteLine(
+                        $"oahu-cli: nothing to download — {resolved.SkippedUnavailable} title(s) are no longer in your library.");
+                    return ExitCodes.GenericFailure;
+                }
                 if (fromQueue)
                 {
                     CliEnvironment.Error.WriteLine("oahu-cli: queue is empty.");
@@ -421,7 +429,10 @@ public static class DownloadCommand
         }
     }
 
-    private static Task<IReadOnlyList<JobRequest>> ResolveRequestsAsync(
+    /// <summary>Outcome of request resolution, including titles skipped as no longer owned.</summary>
+    private sealed record ResolvedRequests(IReadOnlyList<JobRequest> Requests, int SkippedUnavailable);
+
+    private static async Task<ResolvedRequests> ResolveRequestsAsync(
         string[] positional,
         bool fromQueue,
         bool allNew,
@@ -432,16 +443,21 @@ public static class DownloadCommand
         bool exportToM4b,
         bool noDecrypt,
         string? outputDir,
+        bool force,
         CancellationToken cancellationToken)
     {
         if (allNew)
         {
-            return ResolveAllNewAsync(limit, profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir, cancellationToken);
+            return new ResolvedRequests(
+                await ResolveAllNewAsync(limit, profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir, cancellationToken).ConfigureAwait(false),
+                0);
         }
 
         if (fromQueue)
         {
-            return ResolveFromQueueAsync(profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir, cancellationToken);
+            return new ResolvedRequests(
+                await ResolveFromQueueAsync(profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir, cancellationToken).ConfigureAwait(false),
+                0);
         }
 
         var inputs = ExpandStdin(positional)
@@ -450,12 +466,60 @@ public static class DownloadCommand
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        var known = await LookupLibraryAsync(cancellationToken).ConfigureAwait(false);
+
         var list = new List<JobRequest>(inputs.Length);
+        int skipped = 0;
         foreach (var asin in inputs)
         {
-            list.Add(BuildRequest(asin, asin, profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir));
+            known.TryGetValue(asin, out var item);
+
+            // A title that is no longer in the library can only end in a license denial, so say so
+            // up front rather than after a pointless round-trip to Audible. --force still tries,
+            // since the local cache can lag a title that was just re-shared or re-purchased.
+            if (item is not null && !item.IsAvailable && !force)
+            {
+                var label = string.IsNullOrEmpty(item.Title) ? asin : $"{asin} ({item.Title})";
+                CliEnvironment.Error.WriteLine(
+                    $"oahu-cli: {label} is no longer in your library — it may have been returned, or shared "
+                    + "access (Amazon Household / Family Library) withdrawn. Skipping; use --force to try anyway.");
+                skipped++;
+                continue;
+            }
+
+            var title = string.IsNullOrEmpty(item?.Title) ? asin : item!.Title;
+            list.Add(BuildRequest(asin, title, profileAlias, quality, exportToAax, exportToM4b, noDecrypt, outputDir));
         }
-        return Task.FromResult<IReadOnlyList<JobRequest>>(list);
+        return new ResolvedRequests(list, skipped);
+    }
+
+    /// <summary>
+    /// Indexes the local library by ASIN, including unavailable titles. Returns an empty map if the
+    /// library cannot be read: a lookup failure must never block an otherwise valid download.
+    /// </summary>
+    private static async Task<IReadOnlyDictionary<string, LibraryItem>> LookupLibraryAsync(
+        CancellationToken cancellationToken)
+    {
+        var byAsin = new Dictionary<string, LibraryItem>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var library = CliServiceFactory.LibraryServiceFactory();
+            var items = await library
+                .ListAsync(new LibraryFilter { AvailableOnly = false }, cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var item in items)
+            {
+                if (!string.IsNullOrEmpty(item.Asin))
+                {
+                    byAsin.TryAdd(item.Asin, item);
+                }
+            }
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+        }
+
+        return byAsin;
     }
 
     private static async Task<IReadOnlyList<JobRequest>> ResolveFromQueueAsync(
