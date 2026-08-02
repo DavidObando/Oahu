@@ -1,0 +1,2 @@
+# TokenStore.WriteNew uses stackalloc, which emits expected unverifiable localloc IL.
+Oahu.Cli.Server.Auth.TokenStore
