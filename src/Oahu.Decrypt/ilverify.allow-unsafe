@@ -1,6 +1,14 @@
 # cs2gs ilverify allow-unsafe marker (gsharp issue #1933 / #1985).
 #
-# These extension methods use `stackalloc` (Span<byte> over a localloc buffer).
+# These types use `stackalloc` (Span<byte> over a localloc buffer).
 # `localloc` is inherently unverifiable IL, and the C# compiler emits the same
-# instruction. cs2gs lowers the extension container to this package host type.
+# instruction. cs2gs lowers extension methods to the package host type.
 Oahu.Decrypt.Mpeg4.Util.<Program>
+Oahu.Decrypt.Mpeg4.Boxes.Stz2Box
+Oahu.Decrypt.Mpeg4.ID3.APICFrame
+Oahu.Decrypt.Mpeg4.ID3.FrameHeader
+Oahu.Decrypt.Mpeg4.ID3.Header
+Oahu.Decrypt.Mpeg4.ID3.Id3Header
+Oahu.Decrypt.Mpeg4.ID3.TXXXFrame
+Oahu.Decrypt.Mpeg4.Util.AesCtr
+Oahu.Decrypt.Mpeg4.Util.HelperExtensions
