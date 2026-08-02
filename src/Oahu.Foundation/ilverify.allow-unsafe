@@ -1,0 +1,10 @@
+# cs2gs ilverify allow-unsafe marker (gsharp issue #1933 / #1985).
+#
+# WinFileIO performs low-level unbuffered file I/O via raw unmanaged
+# pointers/native-int arithmetic (unsafe fixed-buffer pointer code). This is
+# inherently unverifiable IL -- the C# compiler emits the exact same
+# unverifiable instructions for the same source -- so ilverify legitimately
+# reports errors for these methods. This is expected-unverifiable, not a gsc
+# emit bug. Scope the allowance to just this type so a genuine unsafe-IL
+# regression elsewhere in Foundation still gates.
+Oahu.Aux.Win32.WinFileIO
