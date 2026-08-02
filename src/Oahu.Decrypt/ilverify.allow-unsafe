@@ -1,17 +1,6 @@
 # cs2gs ilverify allow-unsafe marker (gsharp issue #1933 / #1985).
 #
-# These types perform low-level binary/crypto parsing with `stackalloc`
-# (Span<byte> over a localloc buffer). `localloc` is inherently unverifiable
-# IL — the C# compiler emits the exact same unverifiable instruction for the
-# same source — so ilverify legitimately reports "Unverifiable" for their
-# methods. This is expected-unverifiable, not a gsc emit bug. Scope the
-# allowance to just these fixture types so a genuine unsafe-IL regression
-# elsewhere in the app still gates.
-Oahu.Decrypt.Mpeg4.Boxes.Stz2Box
-Oahu.Decrypt.Mpeg4.ID3.APICFrame
-Oahu.Decrypt.Mpeg4.ID3.FrameHeader
-Oahu.Decrypt.Mpeg4.ID3.Header
-Oahu.Decrypt.Mpeg4.ID3.Id3Header
-Oahu.Decrypt.Mpeg4.ID3.TXXXFrame
-Oahu.Decrypt.Mpeg4.Util.AesCtr
-Oahu.Decrypt.Mpeg4.Util.HelperExtensions
+# These extension methods use `stackalloc` (Span<byte> over a localloc buffer).
+# `localloc` is inherently unverifiable IL, and the C# compiler emits the same
+# instruction. cs2gs lowers the extension container to this package host type.
+Oahu.Decrypt.Mpeg4.Util.<Program>

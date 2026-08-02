@@ -220,7 +220,7 @@ namespace Oahu.Aux.Diagnostics
         sValue = primitveTypes.ToString(value);
         if (sValue is null && value.GetType().IsEnum)
         {
-          sValue = primitveTypes.ToString<Enum>(value);
+          sValue = primitveTypes.ToString<Enum>((Enum)value);
         }
 
         if (sValue is null)
