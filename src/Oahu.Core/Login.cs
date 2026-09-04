@@ -12,7 +12,7 @@ namespace Oahu.Core
 {
   class AudibleLogin
   {
-    public const string DeviceType = "A10KISP2GWF0E4";
+    public const string DeviceType = "A2CZJZGLK2JJVM";
 
     public ERegion Region { get; private set; }
 
@@ -47,21 +47,24 @@ namespace Oahu.Core
       CodeVerifierB64 = CreateCodeVerifier();
       CodeChallengeB64 = CreateSHA256CodeChallenge(CodeVerifierB64);
 
-      // return_to is always audible.{TLD} per AudibleApi's static analysis of Audible Android APK
-      string return_to = $"https://www.audible.{locale.Domain}/ap/maplanding";
+      // Sign-in and return_to both live on amazon.{TLD} for the iPhone client; the Android client
+      // used audible.{TLD}. The device type is baked into the OAuth client id, so these have to
+      // move together with AudibleLogin.DeviceType.
+      string return_to = $"https://www.amazon.{locale.Domain}/ap/maplanding";
       string cc = locale.CountryCode.ToString().ToLowerInvariant();
       string base_url, assoc_handle, page_id;
       if (withPreAmazonUsername)
       {
         base_url = $"https://www.audible.{locale.Domain}/ap/signin";
-        assoc_handle = $"amzn_audible_android_aui_lap_{cc}";
-        page_id = $"amzn_audible_android_privatepool_aui_v2_dark_{cc}";
+        return_to = $"https://www.audible.{locale.Domain}/ap/maplanding";
+        assoc_handle = $"amzn_audible_ios_lap_{cc}";
+        page_id = "amzn_audible_ios_privatepool";
       }
       else
       {
         base_url = $"https://www.amazon.{locale.Domain}/ap/signin";
-        assoc_handle = $"amzn_audible_android_aui_{cc}";
-        page_id = $"amzn_audible_android_aui_v2_dark_us{cc}";
+        assoc_handle = $"amzn_audible_ios_{cc}";
+        page_id = "amzn_audible_ios";
       }
 
       var oauthParams = new List<KeyValuePair<string, string>>()
@@ -83,6 +86,7 @@ namespace Oahu.Core
         new("openid.claimed_id", "http://specs.openid.net/auth/2.0/identifier_select"),
         new("openid.oa2.client_id", $"device:{ClientId}"),
         new("disableLoginPrepopulate", "1"),
+        new("forceMobileLayout", "true"),
         new("openid.ns", "http://specs.openid.net/auth/2.0"),
       };
 

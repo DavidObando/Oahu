@@ -23,13 +23,20 @@ namespace Oahu.Core
 {
   class AudibleApi : IAudibleApi
   {
-    const string UserAgent = "com.audible.playersdk.player/3.96.1 (Linux;Android 14) AndroidXMedia3/1.3.0";
+    // Kept consistent with the registered device type (AudibleLogin.DeviceType, an iPhone client):
+    // a User-Agent that contradicts the registration is a mismatch Audible's router can detect.
+    const string UserAgent = "Audible/3.56.2 (iPhone; iOS 15.0.0; Scale/3.00)";
 
     // const string HTTP_AUTHORITY_AUDIBLE = @"https://api.audible.";
     const string ContentPath = "/1.0/content";
 
     // Amazon's validationType for a rights check, as it appears in license_denial_reasons.
     const string OwnershipValidationType = "Ownership";
+
+    // Rejection reasons that mean "try again later" rather than "you lost access". Amazon reports
+    // these under OwnershipValidationType, so matching on validation type alone reads a temporary
+    // block as a permanent loss of rights.
+    static readonly string[] TransientRejectionReasons = { "CustomerThrottled" };
 
     private int accountId;
     private string accountAlias;
@@ -590,7 +597,7 @@ namespace Oahu.Core
     {
       string json = $@"{{
         ""consumption_type"": ""Download"",
-        ""supported_drm_types"": [""Adrm"", ""Mpeg""],
+        ""supported_drm_types"": [""Mpeg"", ""Adrm""],
         ""quality"": ""{quality}"",
         ""response_groups"": ""last_position_heard,pdf_url,content_reference,chapter_info""
       }}";
@@ -609,11 +616,26 @@ namespace Oahu.Core
     /// True when Audible refused the license because the customer has no rights to the title, as
     /// opposed to a transient or unrecognised failure. This is the signature of a title that left
     /// the library: returned, or shared via Amazon Household / Family Library and then withdrawn.
+    /// A single transient reason vetoes the whole response: while Amazon is throttling it may fail
+    /// to resolve the customer at all, and then every other validator reports against an identity
+    /// it never established — including ownership.
     /// </summary>
-    private static bool IsEntitlementDenial(Oahu.Audible.Json.ContentLicense license) =>
-      license.LicenseDenialReasons?.Any(r =>
-        string.Equals(r.ValidationType, OwnershipValidationType, StringComparison.OrdinalIgnoreCase))
-        ?? false;
+    private static bool IsEntitlementDenial(Oahu.Audible.Json.ContentLicense license)
+    {
+      var reasons = license.LicenseDenialReasons;
+      if (reasons is null)
+      {
+        return false;
+      }
+
+      if (reasons.Any(r => TransientRejectionReasons.Contains(r.RejectionReason, StringComparer.OrdinalIgnoreCase)))
+      {
+        return false;
+      }
+
+      return reasons.Any(r =>
+        string.Equals(r.ValidationType, OwnershipValidationType, StringComparison.OrdinalIgnoreCase));
+    }
 
     /// <summary>
     /// Short, actionable reason shown to the user. Entitlement denials get a plain explanation;
@@ -736,7 +758,21 @@ namespace Oahu.Core
 
       string jsonBody = BuildLicenseRequestBody(quality);
 
-      return await CallAudibleApiSignedForStringAsync(url, jsonBody);
+      return await CallAudibleApiSignedForStringAsync(url, jsonBody, AddLicenseRequestHeaders);
+    }
+
+    // ponytail: the ADP transport hints the official client sends alongside the adp-token
+    // signature. Cheap to send and they make the request look like the device it is signed as.
+    // X-Device-Type-Id must stay in sync with AudibleLogin.DeviceType, which is what this app
+    // actually registers as; sending another client's device type would create the very mismatch
+    // these headers exist to avoid.
+    private void AddLicenseRequestHeaders(HttpRequestMessage request)
+    {
+      request.Headers.TryAddWithoutValidation("X-Amzn-RequestId", Guid.NewGuid().ToString("N").ToUpperInvariant());
+      request.Headers.TryAddWithoutValidation("X-ADP-SW", "37801821");
+      request.Headers.TryAddWithoutValidation("X-ADP-Transport", "WIFI");
+      request.Headers.TryAddWithoutValidation("X-ADP-LTO", "120");
+      request.Headers.TryAddWithoutValidation("X-Device-Type-Id", AudibleLogin.DeviceType);
     }
 
     private void DecryptLicense(Oahu.Audible.Json.ContentLicense license)
@@ -787,19 +823,20 @@ namespace Oahu.Core
       license.Voucher = voucher;
     }
 
-    private async Task<string> CallAudibleApiSignedForStringAsync(string relUrl, string jsonBody = null)
+    private async Task<string> CallAudibleApiSignedForStringAsync(
+      string relUrl, string jsonBody = null, Action<HttpRequestMessage> decorate = null)
     {
-      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody);
+      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody, decorate);
       return await SendForStringAsync(request, HttpClientAudible);
     }
 
     private async Task<byte[]> CallAudibleApiSignedForBytesAsync(string relUrl, string jsonBody = null)
     {
-      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody);
+      HttpRequestMessage request = MakeSignedRequest(relUrl, jsonBody, null);
       return await SendForBytesAsync(request, HttpClientAudible);
     }
 
-    private HttpRequestMessage MakeSignedRequest(string relUrl, string jsonBody)
+    private HttpRequestMessage MakeSignedRequest(string relUrl, string jsonBody, Action<HttpRequestMessage> decorate = null)
     {
       Uri relUri = new Uri(relUrl, UriKind.Relative);
 
@@ -813,6 +850,10 @@ namespace Oahu.Core
         HttpContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
         request.Content = content;
       }
+
+      // Decorate before signing for tidiness only: the signature covers method, URL, timestamp and
+      // body, not headers, so extra headers cannot invalidate it.
+      decorate?.Invoke(request);
 
       SignRequest(request);
       return request;
