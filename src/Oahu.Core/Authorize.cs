@@ -15,16 +15,19 @@ namespace Oahu.Core
 {
   class Authorize
   {
-    internal const string OsVersion = @"google/sdk_gphone64_x86_64/emu64xa:14/UPB5.230623.003/10615560:userdebug/dev-keys";
-    internal const string OsVersionNumber = "34";
-    internal const string AppVersion = "2090253826";
-    internal const string AppVersionName = "25.38.26";
-    internal const string SoftwareVersion = "130050002";
-    internal const string AppName = "com.audible.application";
-    internal const string DeviceModel = "sdk_gphone64_x86_64";
-    internal const string OsFamily = "android";
-    internal const string Manufacturer = "Google";
-    internal const string DeviceProduct = "sdk_phone64_x86_64";
+    // Identity of the client this app registers as. Mirrors the Audible-for-iPhone registration
+    // performed by mkb79/Audible. The previous emulated Audible-for-Android client (device type
+    // A10KISP2GWF0E4, an Android Studio emulator running a userdebug/dev-keys build) stopped being
+    // granted download licenses on 2026-09-02: Audible answers every license request from it with
+    // [Client/RequesterEligibility] "AAA/LWA does not has access to asin".
+    // See rmcrackan/Libation#2021 and mkb79/audible-cli#317.
+    internal const string OsVersion = "15.0.0";
+    internal const string AppVersion = "3.56.2";
+    internal const string AppVersionName = "3.56.2";
+    internal const string SoftwareVersion = "35602678";
+    internal const string AppName = "Audible";
+    internal const string DeviceModel = "iPhone";
+    internal const string DeviceName = "Audible for iPhone";
 
     private const string HttpAuthorityAmzn = @"https://api.amazon.";
     private const string HttpAuthorityAdbl = @"https://api.audible.";
@@ -486,11 +489,11 @@ namespace Oahu.Core
             [""bearer"", ""mac_dms"", ""store_authentication_cookie"",
              ""website_cookies""],
         ""cookies"": {{
-          ""domain"": ""https://www.audible.{locale.Domain}"",
+          ""domain"": "".amazon.{locale.Domain}"",
           ""website_cookies"": []
         }},
         ""registration_data"": {{
-          ""domain"": ""DeviceLegacy"",
+          ""domain"": ""Device"",
           ""device_type"": ""{AudibleLogin.DeviceType}"",
           ""device_serial"": ""{profile.DeviceInfo.Serial}"",
           ""app_name"": ""{AppName}"",
@@ -499,19 +502,9 @@ namespace Oahu.Core
           ""os_version"": ""{OsVersion}"",
           ""software_version"": ""{SoftwareVersion}"",
           ""device_name"":
-              ""%FIRST_NAME%%FIRST_NAME_POSSESSIVE_STRING%%DUPE_STRATEGY_1ST%Oahu""
-        }},
-        ""device_metadata"": {{
-          ""device_os_family"": ""{OsFamily}"",
-          ""device_type"": ""{AudibleLogin.DeviceType}"",
-          ""device_serial"": ""{profile.DeviceInfo.Serial}"",
-          ""manufacturer"": ""{Manufacturer}"",
-          ""model"": ""{DeviceModel}"",
-          ""os_version"": ""{OsVersionNumber}"",
-          ""product"": ""{DeviceProduct}""
+              ""%FIRST_NAME%%FIRST_NAME_POSSESSIVE_STRING%%DUPE_STRATEGY_1ST%{DeviceName}""
         }},
         ""auth_data"": {{
-          ""use_global_authentication"": ""true"",
           ""authorization_code"": ""{profile.Authorization.AuthorizationCode}"",
           ""code_verifier"": ""{profile.Authorization.CodeVerifier}"",
           ""code_algorithm"": ""SHA-256"",
