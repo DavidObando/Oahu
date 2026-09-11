@@ -99,28 +99,28 @@ The repository ships a cross-platform Avalonia GUI client and a CLI/TUI client (
 dotnet build Oahu.sln
 
 # Run the Avalonia app
-dotnet run --project src/Oahu.App/Oahu.App.csproj
+dotnet run --project src/Oahu.App/Oahu.App.gsproj
 
 # Run the CLI (launches TUI by default)
-dotnet run --project src/Oahu.Cli/Oahu.Cli.csproj
+dotnet run --project src/Oahu.Cli/Oahu.Cli.gsproj
 
 # Run a CLI subcommand
-dotnet run --project src/Oahu.Cli/Oahu.Cli.csproj -- library list --json
+dotnet run --project src/Oahu.Cli/Oahu.Cli.gsproj -- library list --json
 
 # Publish for macOS (Apple Silicon)
-dotnet publish src/Oahu.App/Oahu.App.csproj \
+dotnet publish src/Oahu.App/Oahu.App.gsproj \
   -r osx-arm64 -c Release --self-contained
 
 # Publish for macOS (Intel)
-dotnet publish src/Oahu.App/Oahu.App.csproj \
+dotnet publish src/Oahu.App/Oahu.App.gsproj \
   -r osx-x64 -c Release --self-contained
 
 # Publish for Windows
-dotnet publish src/Oahu.App/Oahu.App.csproj \
+dotnet publish src/Oahu.App/Oahu.App.gsproj \
   -r win-x64 -c Release --self-contained
 
 # Publish for Linux
-dotnet publish src/Oahu.App/Oahu.App.csproj \
+dotnet publish src/Oahu.App/Oahu.App.gsproj \
   -r linux-x64 -c Release --self-contained
 ```
 

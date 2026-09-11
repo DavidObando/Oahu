@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><Project Sdk="Gsharp.NET.Sdk/0.4.591">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Oahu.Core</RootNamespace>
+    <AssemblyName>Oahu.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Oahu.Decrypt/Oahu.Decrypt.gsproj" />
+    <ProjectReference Include="../Oahu.Foundation/Oahu.Foundation.gsproj" />
+    <ProjectReference Include="../Oahu.Data/Oahu.Data.gsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.gs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.gs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

@@ -20,8 +20,8 @@ APPLE_TEAM_ID=""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SRC_DIR="$REPO_ROOT/src"
-PROJECT="$SRC_DIR/Oahu.App/Oahu.App.csproj"
-CLI_PROJECT="$SRC_DIR/Oahu.Cli/Oahu.Cli.csproj"
+PROJECT="$SRC_DIR/Oahu.App/Oahu.App.gsproj"
+CLI_PROJECT="$SRC_DIR/Oahu.Cli/Oahu.Cli.gsproj"
 INFO_PLIST="$SRC_DIR/Oahu.App/Info.plist"
 
 # Parse arguments
