@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/Oahu.Cli.App/Oahu.Cli.App.gsproj" Type="C#" />
+    <Project Path="src/Oahu.Cli.Tui/Oahu.Cli.Tui.gsproj" Type="C#" />
+    <Project Path="src/Oahu.Cli/Oahu.Cli.gsproj" Type="C#" />
+    <Project Path="src/Oahu.SystemManagement/Oahu.SystemManagement.gsproj" Type="C#" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Oahu.Cli.E2E.Tests/Oahu.Cli.E2E.Tests.gsproj" Type="C#" />
+    <Project Path="tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj" Type="C#" />
+    <Project Path="tests/Oahu.Foundation.Tests/Oahu.Foundation.Tests.gsproj" Type="C#" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Oahu.Diagnostics/Oahu.Diagnostics.gsproj" Type="C#" />
+  </Folder>
+  <Folder Name="/_InnoSetup/">
+    <File Path="src/InnoSetup/Oahu setup.iss" />
+  </Folder>
+  <Project Path="src/Oahu.App/Oahu.App.gsproj" Type="C#" />
+  <Project Path="src/Oahu.Core/Oahu.Core.gsproj" Type="C#" />
+  <Project Path="src/Oahu.Data/Oahu.Data.gsproj" Type="C#" />
+  <Project Path="src/Oahu.Decrypt/Oahu.Decrypt.gsproj" Type="C#" />
+  <Project Path="src/Oahu.Foundation/Oahu.Foundation.gsproj" Type="C#" />
+  <Project Path="src/Oahu.UI/Oahu.UI.gsproj" Type="C#" />
+</Solution>
