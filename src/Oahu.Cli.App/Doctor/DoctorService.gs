@@ -195,7 +195,7 @@ class DoctorService : IDoctorService {
         /// turned on `ExportToAax` without setting `ExportDirectory`.
         func CheckUserSettings() DoctorCheck {
             try {
-                // CoreEnvironment.Initialize is invoked by Program.cs at every CLI
+                // CoreEnvironment.Initialize is invoked by Program.gs at every CLI
                 // command's entry point (so doctor sees the GUI-shared paths). We
                 // intentionally do NOT call it from here so unit tests can run
                 // CheckUserSettings without mutating process-wide ApplEnv state.

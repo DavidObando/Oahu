@@ -105,7 +105,7 @@ class CoreLibraryService : ILibraryService {
         let libraryResponse LibraryResponse? = await api.GetLibraryAsync(resync: true).ConfigureAwait(false)
         if libraryResponse == nil {
             // AudibleApi.GetLibraryAsync silently returns null on any HTTP error
-            // (see SendForStringAsync's catch in src/Oahu.Core/AudibleApi.cs).
+            // (see SendForStringAsync's catch in src/Oahu.Core/AudibleApi.gs).
             // Surface that as a real failure rather than reporting "0 books"
             // and leaving the user wondering why a fresh sign-in produced
             // an empty library.

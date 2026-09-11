@@ -85,9 +85,9 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $RepoRoot  = (Resolve-Path "$ScriptDir/..").Path
 $SrcDir    = Join-Path $RepoRoot "src"
 
-$Project    = Join-Path $SrcDir "Oahu.App/Oahu.App.csproj"
+$Project    = Join-Path $SrcDir "Oahu.App/Oahu.App.gsproj"
 $ProjectDir = "Oahu.App"
-$CliProject = Join-Path $SrcDir "Oahu.Cli/Oahu.Cli.csproj"
+$CliProject = Join-Path $SrcDir "Oahu.Cli/Oahu.Cli.gsproj"
 
 $PublishDir = Join-Path $OutputDir "publish"
 

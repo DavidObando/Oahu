@@ -161,7 +161,7 @@ class CoreAuthService : IAuthService {
     ///
     /// In addition to translating the result, this:
     /// - activates the new profile via (cref:AudibleClient.ConfigFromFileAsync) (mirrors
-    /// `Oahu.App/MainWindow.axaml.cs:144`) — this is what creates the local `Account` row, fires the alias
+    /// `Oahu.App/MainWindow.axaml.gs:144`) — this is what creates the local `Account` row, fires the alias
     /// callback, and sets (cref:AudibleClient.Api);
     /// - persists the alias key to `UserSettings.DownloadSettings.Profile` so the next CLI launch
     /// auto-loads the same profile.
@@ -187,7 +187,7 @@ class CoreAuthService : IAuthService {
         // no-ops because the Accounts row hasn't been created yet (it is
         // created inside SetProfile -> GetAccountAliasContext).
         //
-        // Mirrors src/Oahu.App/MainWindow.axaml.cs:144 (LoadActiveProfileAsync).
+        // Mirrors src/Oahu.App/MainWindow.axaml.gs:144 (LoadActiveProfileAsync).
         let defaultAlias = if !string.IsNullOrWhiteSpace(newKey!!.AccountName) {
             newKey!!.AccountName!!
         } else {
@@ -204,7 +204,7 @@ class CoreAuthService : IAuthService {
             // load a different region's profile when several are registered.
             let aliasKeyHint = ProfileAliasKey(newKey!!.Region, accountAlias: nil)
             await client.ConfigFromFileAsync(aliasKeyHint, SetDefaultAlias)!!.ConfigureAwait(false)
-            // Mirror src/Oahu.App/MainWindow.axaml.cs:167 — wire the alias
+            // Mirror src/Oahu.App/MainWindow.axaml.gs:167 — wire the alias
             // callback onto the API so AudibleApi.EnsureAccountId() can install
             // the alias on the local Accounts row the first time it's queried
             // (e.g. inside the very next GetLibraryAsync call). Without this,
@@ -240,7 +240,7 @@ class CoreAuthService : IAuthService {
         }
         // Persist DownloadSettings.Profile so the next CLI launch auto-loads
         // this profile via CoreEnvironment.EnsureProfileLoadedAsync. Mirrors
-        // src/Oahu.App/MainWindow.axaml.cs:155.
+        // src/Oahu.App/MainWindow.axaml.gs:155.
         try {
             let settings = CoreEnvironment.Settings
             settings.DownloadSettings.Profile = ProfileAliasKey(newKey!!.Region, resolvedAlias!!)
