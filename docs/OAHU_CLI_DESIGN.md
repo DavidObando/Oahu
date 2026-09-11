@@ -2,7 +2,7 @@
 
 Status: **Draft / Proposed**
 Owner: TBD
-Target framework: `net10.0` (matches the rest of `Oahu.sln`)
+Target framework: `net10.0` (matches the rest of `Oahu.slnx`)
 Distribution: `dotnet tool` + self-contained binaries (Homebrew, WinGet, tarballs)
 
 ---
@@ -521,7 +521,7 @@ The plan is split into **eight phases**, each independently mergeable. Phases 1�
 - Exit criteria: `docs/OAHU_CLI_DESIGN.md` checked in; tracking issue opened.
 
 ### Phase 1 — Skeleton & plumbing
-- New solution items: `Oahu.Cli`, `Oahu.Cli.App`, `Oahu.Cli.Tui`, `Oahu.Cli.Tests` projects added to `Oahu.sln`.
+- New solution items: `Oahu.Cli`, `Oahu.Cli.App`, `Oahu.Cli.Tui`, `Oahu.Cli.Tests` projects added to `Oahu.slnx`.
 - Add NuGet refs: `System.CommandLine`, `Spectre.Console`, `Microsoft.Extensions.Logging`, `Verify.Xunit`, `Spectre.Console.Testing`.
 - Project-references to `Oahu.Core`, `Oahu.Data`, `Oahu.Decrypt`, `Oahu.Foundation`.
 - Implement `oahu-cli --version`, `oahu-cli --help`, `oahu-cli doctor` (env checks: write perms on output dir, can read profile store, library cache reachable, Audible API reachable, disk free). **No FFmpeg check** — decryption and muxing are in-process via `Oahu.Decrypt` (AAXClean-derived), with no external binary dependency.
@@ -792,7 +792,7 @@ The 1.0 server **refuses to bind to a non-loopback address**. Post-1.0 unlocks t
 ## 16. Appendix — file/project layout
 
 ```
-Oahu.sln                        (existing)
+Oahu.slnx                        (existing)
 src/
   Oahu.App/                     (existing, Avalonia)
   Oahu.Core/                    (existing)

@@ -99,7 +99,7 @@ The repository ships a cross-platform Avalonia GUI client and a CLI/TUI client (
 
 ```bash
 # Build the full solution
-dotnet build Oahu.sln
+dotnet build Oahu.slnx
 
 # Run the Avalonia app
 dotnet run --project src/Oahu.App/Oahu.App.gsproj

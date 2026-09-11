@@ -56,7 +56,7 @@ Layer 5 (app):      Connect.app.avalonia.core
 
 ```
 src/
-  Oahu.sln
+  Oahu.slnx
   Directory.Build.props
   Oahu.Foundation/         ← Utilities, logging, IO, diagnostics, shared types
   Oahu.Data/               ← EF Core + SQLite database + migrations
@@ -213,7 +213,7 @@ Oahu.App/
 - Update all `using`, XAML namespaces, and assembly references
 
 ### Step 7: Update solution file
-- Remove all 13 old project entries from Oahu.sln
+- Remove all 13 old project entries from Oahu.slnx
 - Add 5 new project entries
 - Simplify solution folders
 
@@ -229,7 +229,7 @@ Oahu.App/
 - Clean up any remaining `bin/` and `obj/` artifacts
 
 ### Step 10: Verify
-- `dotnet build Oahu.sln` — must compile cleanly
+- `dotnet build Oahu.slnx` — must compile cleanly
 - `dotnet ef migrations list --project src/Oahu.Data` — migrations intact
 - `dotnet run --project src/Oahu.App` — app launches
 - Grep for old namespace references — none should remain

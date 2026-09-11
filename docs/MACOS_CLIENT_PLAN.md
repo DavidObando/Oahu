@@ -11,8 +11,8 @@ This file is kept as an archive marker and intentionally does not contain the ol
 Use the shared Avalonia solution and app project:
 
 ```bash
-dotnet restore Oahu.sln
-dotnet build Oahu.sln
+dotnet restore Oahu.slnx
+dotnet build Oahu.slnx
 dotnet run --project src/Connect.app.avalonia.core/Connect.app.avalonia.core.csproj
 ```
 

@@ -83,10 +83,10 @@ jobs:
           echo "Found signing identity: $IDENTITY"
 
       - name: Restore dependencies
-        run: dotnet restore Oahu.sln
+        run: dotnet restore Oahu.slnx
 
       - name: Build
-        run: dotnet build Oahu.sln --configuration Release --no-restore
+        run: dotnet build Oahu.slnx --configuration Release --no-restore
 
       - name: Test (oahu-cli)
         run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
@@ -164,10 +164,10 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore dependencies
-        run: dotnet restore Oahu.sln
+        run: dotnet restore Oahu.slnx
 
       - name: Build
-        run: dotnet build Oahu.sln --configuration Release --no-restore
+        run: dotnet build Oahu.slnx --configuration Release --no-restore
 
       - name: Test (oahu-cli)
         run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
@@ -215,10 +215,10 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore dependencies
-        run: dotnet restore Oahu.sln
+        run: dotnet restore Oahu.slnx
 
       - name: Build
-        run: dotnet build Oahu.sln --configuration Release --no-restore
+        run: dotnet build Oahu.slnx --configuration Release --no-restore
 
       - name: Test (oahu-cli)
         run: dotnet test tests/Oahu.Cli.Tests/Oahu.Cli.Tests.gsproj --configuration Release --no-build --logger "console;verbosity=normal"
