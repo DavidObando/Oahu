@@ -36,9 +36,7 @@ open class MoovBox : Box {
             var coBox = track.Mdia.Minf.Stbl.COBox
             let offsets = coBox.ChunkOffsets
             var requires64Bit = false
-            for var i = 0;
-            i < offsets.Count;
-            i++ {
+            for var i = 0; i < offsets.Count; i++ {
                 let offset = offsets.GetOffsetAtIndex(i)
                 let newOffset = offset + shiftVector
                 requires64Bit |= newOffset > int64(uint32.MaxValue)

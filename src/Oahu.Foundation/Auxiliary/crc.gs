@@ -70,13 +70,9 @@ open class Crc32 : HashAlgorithm {
                 return defaultTable
             }
             let createTable = [256]uint32
-            for var i = 0;
-            i < 256;
-            i++ {
+            for var i = 0; i < 256; i++ {
                 var entry = uint32(i)
-                for var j = 0;
-                j < 8;
-                j++ {
+                for var j = 0; j < 8; j++ {
                     if (entry & uint32(1)) == uint32(1) {
                         entry = (entry >> 1) ^ polynomial
                     } else {
@@ -93,9 +89,7 @@ open class Crc32 : HashAlgorithm {
 
         private func CalculateHash(table[]?uint32, seed uint32, buffer IList[uint8], start int32, size int32) uint32 {
             var hash = seed
-            for var i = start;
-            i < start + size;
-            i++ {
+            for var i = start; i < start + size; i++ {
                 hash = (hash >> 8) ^ table!![uint32(buffer[i]) ^ hash & uint32(0xff)]
             }
             return hash
@@ -156,9 +150,7 @@ open class Crc64 : HashAlgorithm {
 
         protected func CalculateHash(seed uint64, table[]?uint64, buffer IList[uint8], start int32, size int32) uint64 {
             var hash = seed
-            for var i = start;
-            i < start + size;
-            i++ {
+            for var i = start; i < start + size; i++ {
                 unchecked {
                     hash = (hash >> 8) ^ table!![(uint64(buffer[i]) ^ hash) & uint64(0xff)]
                 }
@@ -168,13 +160,9 @@ open class Crc64 : HashAlgorithm {
 
         protected func CreateTable(polynomial uint64)[]uint64 {
             let createTable = [256]uint64
-            for var i = 0;
-            i < 256;
-            i++ {
+            for var i = 0; i < 256; i++ {
                 var entry = uint64(i)
-                for var j = 0;
-                j < 8;
-                j++ {
+                for var j = 0; j < 8; j++ {
                     if (entry & uint64(1)) == uint64(1) {
                         entry = (entry >> 1) ^ polynomial
                     } else {

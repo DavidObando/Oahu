@@ -91,9 +91,7 @@ class LogTmpFileMaintenance {
         var numFiles = 0
         var totalSize int64 = 0
         var oldest = default(DateTime)
-        for var i = files.Length - 1;
-        i >= 0;
-        i-- {
+        for var i = files.Length - 1; i >= 0; i-- {
             let fi = files[i]
             if fi.LastWriteTime.Date == Today {
                 break

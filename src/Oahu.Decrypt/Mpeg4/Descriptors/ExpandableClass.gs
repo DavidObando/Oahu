@@ -10,9 +10,7 @@ class ExpandableClass {
             const MaxSize = (1 << (7 * IntegerBytes)) - 1
             ArgumentOutOfRangeException.ThrowIfGreaterThan(sizeOfInstance, MaxSize, "sizeOfInstance")
             let size = GetSizeByteCount(sizeOfInstance, minimumBytes)
-            for var i = size - 1;
-            i > 0;
-            i-- {
+            for var i = size - 1; i > 0; i-- {
                 let b = 0x80 | ((sizeOfInstance >> (7 * i)) & 0x7f)
                 file.WriteByte(uint8(b))
             }

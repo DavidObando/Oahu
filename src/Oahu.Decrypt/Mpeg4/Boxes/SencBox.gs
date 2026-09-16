@@ -13,9 +13,7 @@ open class SencBox : FullBox {
         }
         let ivSize = int32(((header.TotalBoxSize - int64(16)) / int64(sampleCount)))
         IVs = [sampleCount][]uint8
-        for var i = 0;
-        i < sampleCount;
-        i++ {
+        for var i = 0; i < sampleCount; i++ {
             IVs[i] = file.ReadBlock(ivSize)
         }
     }

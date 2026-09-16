@@ -30,7 +30,8 @@ open class DashFile : Mp4File {
             .Minf
             .Stbl
             .Stsd
-            .AudioSampleEntry ?? throw InvalidDataException("The audio track doesn't contain an ${"AudioSampleEntry"}")
+            .AudioSampleEntry ??
+            throw InvalidDataException("The audio track doesn't contain an ${"AudioSampleEntry"}")
         if audioSampleEntry.GetChild[SinfBox]() is {} sinf {
             if sinf.SchemeType?.Type != SchmBox.SchemeType.Cenc {
                 throw NotSupportedException("Only ${"Cenc"} dash files are currently supported.")

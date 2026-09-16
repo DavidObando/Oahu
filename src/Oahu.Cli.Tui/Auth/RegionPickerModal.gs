@@ -60,9 +60,7 @@ class RegionPickerModal : Oahu.Cli.Tui.Shell.IModal[string] {
         lines.Add(Markup(string.Empty))
         lines.Add(Markup("[${Tokens.TextSecondary.Value.ToMarkup()}]Choose your Audible region:[/]"))
         lines.Add(Markup(string.Empty))
-        for var i = 0;
-        i < Regions.Length;
-        i++ {
+        for var i = 0; i < Regions.Length; i++ {
             let (code, name) = Regions[i]
             let prefix = if i == cursor {
                 "[${Tokens.Brand.Value.ToMarkup()}]  ❯ [/]"

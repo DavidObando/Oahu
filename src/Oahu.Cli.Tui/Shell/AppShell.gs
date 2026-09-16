@@ -156,9 +156,7 @@ class AppShell : IAppShellNavigator {
 
     /// Switch to the tab whose (cref:ITabScreen.NumberKey) matches.
     func SwitchToTab(numberKey char) {
-        for var i = 0;
-        i < tabs.Count;
-        i++ {
+        for var i = 0; i < tabs.Count; i++ {
             if tabs[i].NumberKey == numberKey {
                 SwitchTab(i)
                 return
@@ -302,9 +300,7 @@ class AppShell : IAppShellNavigator {
         } finally {
             // Run lifecycle teardown for every tab (give every screen a chance
             // to cancel observers, dispose handles, clear OSC, etc.).
-            for var i = 0;
-            i < tabs.Count;
-            i++ {
+            for var i = 0; i < tabs.Count; i++ {
                 try {
                     if i == activeTab {
                         tabs[i].OnDeactivated()
@@ -540,9 +536,7 @@ class AppShell : IAppShellNavigator {
         if options.LogBuffer != nil {
             globalEntries.Insert(4, ("l", "logs"))
         }
-        let sections = List[HelpOverlay.HelpSection]{
-            HelpOverlay.HelpSection("Global", globalEntries)
-        }
+        let sections = List[HelpOverlay.HelpSection]{HelpOverlay.HelpSection("Global", globalEntries)}
         let screenEntries = List[(Key string, Action string)]()
         for kv in tabs[activeTab].Hints {
             if !string.IsNullOrWhiteSpace(kv.Value) {
@@ -574,9 +568,7 @@ class AppShell : IAppShellNavigator {
 
     private func RunPaletteVerb(verb string) {
         let v = verb.Trim()
-        for var i = 0;
-        i < tabs.Count;
-        i++ {
+        for var i = 0; i < tabs.Count; i++ {
             if string.Equals(tabs[i].Title, v, StringComparison.OrdinalIgnoreCase) {
                 SwitchTab(i)
                 return
@@ -603,7 +595,11 @@ class AppShell : IAppShellNavigator {
             ShowModal(BuildHelpOverlay())
             return
         }
-        if string.Equals(v, "quit", StringComparison.OrdinalIgnoreCase) || string.Equals(v, "exit", StringComparison.OrdinalIgnoreCase) {
+        if string.Equals(v, "quit", StringComparison.OrdinalIgnoreCase) || string.Equals(
+            v,
+            "exit",
+            StringComparison.OrdinalIgnoreCase
+        ) {
             exitRequested = true
             return
         }
@@ -873,13 +869,7 @@ class AppShell : IAppShellNavigator {
     /// theme paints no backgrounds).
     private func ModalSurface(inner IRenderable) IRenderable {
         if Tokens.HasBackdrop && !options.UseAscii {
-            return Backdrop(
-                inner,
-                Tokens.InputBackground.Value,
-                accent: Tokens.Brand.Value,
-                padLeft: 1,
-                padRight: 1
-            )
+            return Backdrop(inner, Tokens.InputBackground.Value, accent: Tokens.Brand.Value, padLeft: 1, padRight: 1)
         }
         return Panel(inner){
             Border = if options.UseAscii {
@@ -901,9 +891,7 @@ class AppShell : IAppShellNavigator {
         )
         lines.Add(Markup(string.Empty))
         let startIndex = Math.Max(0, snapshot.Count - (height - 4))
-        for var i = startIndex;
-        i < snapshot.Count;
-        i++ {
+        for var i = startIndex; i < snapshot.Count; i++ {
             let entry = snapshot[i]
             let color = switch entry.Level {
                 case LogLevel.Warning: Tokens.StatusWarning
@@ -983,6 +971,7 @@ class AppShell : IAppShellNavigator {
                         return ev
                     }
                     // Hard failure — fall through to the portable path once.
+
                 }
                 let key = ReadKey()
                 if key == nil {
@@ -1014,6 +1003,7 @@ class AppShell : IAppShellNavigator {
                     return false
                 }
                 // Hard failure — fall through to the portable path.
+
             }
             while true {
                 if !TryReadKey(millisecondsTimeout, out var key) {

@@ -78,7 +78,8 @@ class CoreLibraryService : ILibraryService {
             (a AccountAlias) -> a.AccountId,
             (a AccountAlias) -> a.Alias,
             StringComparer.Ordinal
-        ) ?? Dictionary[string, string](StringComparer.Ordinal)
+        ) ??
+            Dictionary[string, string](StringComparer.Ordinal)
         let activeKey IProfileKey? = client.ProfileKey
         let activeAlias = if activeKey != nil && aliases.TryGetValue(activeKey.AccountId!!, out var aliasForActive) {
             aliasForActive!!
@@ -93,7 +94,8 @@ class CoreLibraryService : ILibraryService {
                     profileAlias,
                     StringComparison.Ordinal
                 )
-            ) ?? throw InvalidOperationException(
+            ) ??
+                throw InvalidOperationException(
                 "No profile with alias '$profileAlias'. Sign in with `oahu-cli auth login` first."
             )
             await client.ChangeProfileAsync(key, aliasChanged: false).ConfigureAwait(false)
@@ -248,12 +250,14 @@ class CoreLibraryService : ILibraryService {
                     .Authors
                     ?.Select((a Oahu.BooksDatabase.Author) -> a.Name)
                     .Where((n string) -> !string.IsNullOrWhiteSpace(n))
-                    .ToArray() ?? Array.Empty[string](),
+                    .ToArray() ??
+                    Array.Empty[string](),
                 Narrators: book
                     .Narrators
                     ?.Select((n Oahu.BooksDatabase.Narrator) -> n.Name)
                     .Where((n string) -> !string.IsNullOrWhiteSpace(n))
-                    .ToArray() ?? Array.Empty[string](),
+                    .ToArray() ??
+                    Array.Empty[string](),
                 Series: seriesEntry?.Series?.Title,
                 SeriesPosition: seriesPosition,
                 Runtime: runtime,

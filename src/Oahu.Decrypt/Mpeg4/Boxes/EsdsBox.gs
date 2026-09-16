@@ -8,9 +8,8 @@ import System.IO
 open class EsdsBox : FullBox {
     init(file Stream, header BoxHeader, parent IBox?) : base(file, header, parent) {
         let descroptor = DescriptorFactory.CreateDescriptor(file)
-        ES_Descriptor = descroptor as ES_Descriptor ?? throw InvalidDataException(
-            "${descroptor.GetType()} is not an ${"ES_Descriptor"}"
-        )
+        ES_Descriptor = descroptor as ES_Descriptor ??
+            throw InvalidDataException("${descroptor.GetType()} is not an ${"ES_Descriptor"}")
     }
 
     private init(es_Descriptor ES_Descriptor, parent IBox) : base(

@@ -77,9 +77,7 @@ class Ac4PresentationV1Dsi {
                 BEnablePresentation = reader.ReadBool()
                 NFilterBytes = uint8(reader.Read(8))
                 FilterData = [int32(NFilterBytes!!)]uint8
-                for var i = 0;
-                i < int32(NFilterBytes!!);
-                i++ {
+                for var i = 0; i < int32(NFilterBytes!!); i++ {
                     FilterData!![i] = uint8(reader.Read(8))
                 }
             }
@@ -94,9 +92,7 @@ class Ac4PresentationV1Dsi {
         if BAddEmdfSubstreams {
             NAddEmdfSubstreams = uint8(reader.Read(7))
             SubstreamsEmdfs = [int32(NAddEmdfSubstreams!!)](SubstreamEmdfVersion uint8, SubstreamKeyId uint16)
-            for var j = 0;
-            j < (NAddEmdfSubstreams as int32?);
-            j++ {
+            for var j = 0; j < (NAddEmdfSubstreams as int32?); j++ {
                 SubstreamsEmdfs!![j] = (uint8(reader.Read(5)), uint16(reader.Read(10)))
             }
         }

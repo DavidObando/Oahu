@@ -40,7 +40,8 @@ class CoreAuthService : IAuthService {
             (a AccountAlias) -> a.AccountId,
             (a AccountAlias) -> a.Alias,
             StringComparer.Ordinal
-        ) ?? Dictionary[string, string](StringComparer.Ordinal)
+        ) ??
+            Dictionary[string, string](StringComparer.Ordinal)
         return profiles.Select((p IProfileKeyEx) -> ToSession(p, aliases)).ToArray()
     }
 
@@ -119,16 +120,16 @@ class CoreAuthService : IAuthService {
             preAmazonUsername,
             coreCredentials,
             callbacks
-        ).ConfigureAwait(false)
+        )
+            .ConfigureAwait(false)
         return await CompleteRegistrationAsync(result).ConfigureAwait(false)
     }
 
     async func LogoutAsync(profileAlias string, cancellationToken CancellationToken = default(CancellationToken)) {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileAlias)
         cancellationToken.ThrowIfCancellationRequested()
-        let key = await ResolveKeyByAliasAsync(profileAlias).ConfigureAwait(false) ?? throw InvalidOperationException(
-            "No profile with alias '$profileAlias'."
-        )
+        let key = await ResolveKeyByAliasAsync(profileAlias).ConfigureAwait(false) ??
+            throw InvalidOperationException("No profile with alias '$profileAlias'.")
         let result = await client.RemoveProfileAsync(key).ConfigureAwait(false)
         if result < EAuthorizeResult.Succ {
             throw InvalidOperationException("Failed to remove profile '$profileAlias': $result.")
@@ -141,9 +142,8 @@ class CoreAuthService : IAuthService {
     ) AuthSession {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileAlias)
         cancellationToken.ThrowIfCancellationRequested()
-        let key = await ResolveKeyByAliasAsync(profileAlias).ConfigureAwait(false) ?? throw InvalidOperationException(
-            "No profile with alias '$profileAlias'."
-        )
+        let key = await ResolveKeyByAliasAsync(profileAlias).ConfigureAwait(false) ??
+            throw InvalidOperationException("No profile with alias '$profileAlias'.")
         // ChangeProfileAsync triggers a token refresh when the active profile
         // actually changes. Forcing aliasChanged=true makes it re-issue without
         // changing the alias when the profile was already active.
@@ -151,7 +151,8 @@ class CoreAuthService : IAuthService {
         let sessions = await ListSessionsAsync(cancellationToken).ConfigureAwait(false)
         return sessions.FirstOrDefault(
             (s AuthSession) -> string.Equals(s.ProfileAlias, profileAlias, StringComparison.Ordinal)
-        ) ?? throw InvalidOperationException("Profile '$profileAlias' disappeared after refresh.")
+        ) ??
+            throw InvalidOperationException("Profile '$profileAlias' disappeared after refresh.")
     }
 
     /// Shared post-registration translation: validate the (cref:RegisterResult)
@@ -227,7 +228,8 @@ class CoreAuthService : IAuthService {
             (a AccountAlias) -> a.AccountId,
             (a AccountAlias) -> a.Alias,
             StringComparer.Ordinal
-        ) ?? Dictionary[string, string](StringComparer.Ordinal)
+        ) ??
+            Dictionary[string, string](StringComparer.Ordinal)
         if !aliases.TryGetValue(newKey!!.AccountId!!, out var resolvedAlias) || string.IsNullOrWhiteSpace(
             resolvedAlias
         ) {
@@ -259,7 +261,8 @@ class CoreAuthService : IAuthService {
             (a AccountAlias) -> a.AccountId,
             (a AccountAlias) -> a.Alias,
             StringComparer.Ordinal
-        ) ?? Dictionary[string, string](StringComparer.Ordinal)
+        ) ??
+            Dictionary[string, string](StringComparer.Ordinal)
         let profiles IEnumerable[IProfileKeyEx]? = await client.GetProfilesAsync().ConfigureAwait(false)
         if profiles == nil {
             return nil

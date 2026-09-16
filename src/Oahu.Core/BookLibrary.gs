@@ -44,7 +44,8 @@ internal class BookLibrary : IBookLibrary {
         Directory.CreateDirectory(ImgDir)
         using let dbContext = BookDbContextLazyLoad(DbDir)
         let files = Directory.GetFiles(ImgDir)
-        let books = dbContext.Books
+        let books = dbContext
+            .Books
             .ToList()
             .Where((c Book) -> c.CoverImageFile == nil || !files.Contains(c.CoverImageFile!!))
             .ToList()
@@ -84,7 +85,8 @@ internal class BookLibrary : IBookLibrary {
         }
         using let dbContext = BookDbContext(DbDir)
         // using var rg = new ResourceGuard (x => dbContext.ChangeTracker.LazyLoadingEnabled = !x);
-        let books IEnumerable[Book] = dbContext.Books
+        let books IEnumerable[Book] = dbContext
+            .Books
             .Include((b Book) -> b.Conversion)
             .Include((b Book) -> b.Components)
             .ThenInclude((c Component) -> c.Conversion)
@@ -122,7 +124,8 @@ internal class BookLibrary : IBookLibrary {
         using let logGuard = LogGuard(3, this)
         using let dbContext = BookDbContextLazyLoad(DbDir)
         let GetAliasHashes = func () List[uint32] {
-            return dbContext.Accounts
+            return dbContext
+                .Accounts
                 .ToList()
                 .Where((a Account) -> !a.Alias.IsNullOrWhiteSpace())
                 .Select((a Account) -> a.Alias.Checksum32())
@@ -171,7 +174,8 @@ internal class BookLibrary : IBookLibrary {
         using let logGuard = LogGuard(3, this, () -> "asin = $asin")
         using let dbContext = BookDbContextLazyLoad(DbDir)
         // Filter by profile in memory: Conversion is a lazy-loaded navigation property.
-        let book Book? = dbContext.Books
+        let book Book? = dbContext
+            .Books
             .Where((b Book) -> b.Asin == asin)
             .ToList()
             .FirstOrDefault(
@@ -437,7 +441,8 @@ internal class BookLibrary : IBookLibrary {
         using let dbContext = BookDbContext(DbDir)
         // Load books with full graph, matching the GetBooks() query shape,
         // so the cached objects and DB stay in sync.
-        let books IEnumerable[Book] = dbContext.Books
+        let books IEnumerable[Book] = dbContext
+            .Books
             .Include((b Book) -> b.Conversion)
             .Include((b Book) -> b.Components)
             .ThenInclude((c Component) -> c.Conversion)
@@ -751,7 +756,8 @@ internal class BookLibrary : IBookLibrary {
             return dt
         }
         using let dbContext = BookDbContextLazyLoad(DbDir)
-        let latest = dbContext.Books
+        let latest = dbContext
+            .Books
             .Where(
             (b Book) -> (b.PurchaseDate != nil) &&
                 b
@@ -932,8 +938,7 @@ internal class BookLibrary : IBookLibrary {
                 if book == nil {
                     continue
                 }
-                if book.Conversion!!.AccountId != profileId.AccountId ||
-                    book.Conversion!!.Region != profileId.Region {
+                if book.Conversion!!.AccountId != profileId.AccountId || book.Conversion!!.Region != profileId.Region {
                     Log(3, this, () -> "different profile, ignored: $asin")
                     continue
                 }
@@ -1335,9 +1340,7 @@ internal class BookLibrary : IBookLibrary {
             let categories = itmCategories.Where((c Category) -> c.Root == "Genres").ToList()
             for category in categories {
                 var ladder Oahu.BooksDatabase.Ladder? = Oahu.BooksDatabase.Ladder()
-                for var i = 0;
-                i < category.Ladder.Length;
-                i++ {
+                for var i = 0; i < category.Ladder.Length; i++ {
                     let itmLadder = category.Ladder[i]
                     let idx = i + 1
                     let succ = int64.TryParse(itmLadder.Id, out var id)

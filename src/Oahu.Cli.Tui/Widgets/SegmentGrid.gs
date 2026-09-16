@@ -13,9 +13,7 @@ internal class SegmentGrid {
     shared {
         /// Emits the given lines separated by line breaks, with no trailing break.
         func Join(lines IReadOnlyList[List[Segment]]) sequence[Segment] {
-            for var i = 0;
-            i < lines.Count;
-            i++ {
+            for var i = 0; i < lines.Count; i++ {
                 if i > 0 {
                     yield Segment.LineBreak
                 }

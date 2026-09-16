@@ -76,9 +76,7 @@ class Program {
             // Quick prescan — final --log-level wins, --verbose adds Debug, otherwise Information.
             var raw string? = nil
             var verbose = false
-            for var i = 0;
-            i < args.Length;
-            i++ {
+            for var i = 0; i < args.Length; i++ {
                 if args[i] == "--log-level" && i + 1 < args.Length {
                     raw = args[i + 1]
                 } else if args[i].StartsWith("--log-level=", StringComparison.Ordinal) {

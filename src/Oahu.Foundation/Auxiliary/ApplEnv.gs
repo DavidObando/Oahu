@@ -45,9 +45,8 @@ class ApplEnv {
             }
         }
 
-        private let _assemblyTitle string = GetAttribute[
-            AssemblyTitleAttribute
-        ]()?.Title ?? Path.GetFileNameWithoutExtension(ExecutingAssembly.Location)
+        private let _assemblyTitle string = GetAttribute[AssemblyTitleAttribute]()?.Title ??
+            Path.GetFileNameWithoutExtension(ExecutingAssembly.Location)
 
         prop AssemblyTitle string {
             get {

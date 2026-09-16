@@ -29,16 +29,12 @@ open class SaioBox : FullBox, ISaioBox {
         EntryCount = file.ReadInt32BE()
         if Version == uint8(0) {
             offsets32 = [EntryCount]uint32
-            for var i = 0;
-            i < EntryCount;
-            i++ {
+            for var i = 0; i < EntryCount; i++ {
                 offsets32!![i] = file.ReadUInt32BE()
             }
         } else {
             offsets64 = [EntryCount]int64
-            for var i = 0;
-            i < EntryCount;
-            i++ {
+            for var i = 0; i < EntryCount; i++ {
                 offsets64!![i] = file.ReadInt64BE()
             }
         }

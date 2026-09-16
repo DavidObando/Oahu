@@ -33,14 +33,10 @@ internal class XXTEA {
             if encrypting {
                 sum = uint32(0)
                 z = v[n - 1]
-                for;
-                rounds > 0;
-                rounds-- {
+                for ; rounds > 0; rounds-- {
                     sum += DELTA
                     e = sum >> 2 & uint32(3)
-                    for p = 0;
-                    p < n - 1;
-                    p++ {
+                    for p = 0; p < n - 1; p++ {
                         y = v[p + 1]
                         z = (v[p] += MX())
                     }
@@ -50,13 +46,9 @@ internal class XXTEA {
             } else {
                 sum = uint32(rounds) * DELTA
                 y = v[0]
-                for;
-                rounds > 0;
-                rounds-- {
+                for ; rounds > 0; rounds-- {
                     e = sum >> 2 & uint32(3)
-                    for p = n - 1;
-                    p > 0;
-                    p-- {
+                    for p = n - 1; p > 0; p-- {
                         z = v[p - 1]
                         y = (v[p] -= MX())
                     }

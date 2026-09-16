@@ -5,9 +5,7 @@ import System.IO
 
 open class FreeBox : Box {
     init(file Stream, header BoxHeader, parent IBox?) : base(header, parent) {
-        for var i = Header.HeaderSize;
-        int64(i) < Header.TotalBoxSize;
-        i++ {
+        for var i = Header.HeaderSize; int64(i) < Header.TotalBoxSize; i++ {
             file.ReadByte()
         }
     }

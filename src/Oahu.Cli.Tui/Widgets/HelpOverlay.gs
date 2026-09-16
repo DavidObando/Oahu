@@ -39,9 +39,7 @@ class HelpOverlay : Oahu.Cli.Tui.Shell.IModal {
         let primary = Tokens.TextPrimary.Value.ToMarkup()
         let secondary = Tokens.TextSecondary.Value.ToMarkup()
         let tertiary = Tokens.TextTertiary.Value.ToMarkup()
-        let rows = List[IRenderable]{
-            Markup("[$brand bold]Keys[/]")
-        }
+        let rows = List[IRenderable]{Markup("[$brand bold]Keys[/]")}
         for section in sections {
             rows.Add(Markup(" "))
             rows.Add(Markup("[$secondary bold]${Markup.Escape(section.Title)}[/]"))

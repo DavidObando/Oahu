@@ -84,9 +84,7 @@ open class FrameFilterBase[TInput] : IDisposable {
         try {
             while await filterChannel.Reader.WaitToReadAsync(cancellationToken) {
                 await for messages in filterChannel.Reader.ReadAllAsync(cancellationToken) {
-                    for var i = 0;
-                    i < messages.NumEntries;
-                    i++ {
+                    for var i = 0; i < messages.NumEntries; i++ {
                         await HandleInputDataAsync(messages.Entries[i])
                     }
                 }

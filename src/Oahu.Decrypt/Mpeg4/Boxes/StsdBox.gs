@@ -9,9 +9,7 @@ open class StsdBox : FullBox {
         VisualSampleEntries = List[VisualSampleEntry]()
         EntryCount = file.ReadUInt32BE()
         let hdlr HdlrBox? = Parent?.Parent?.Parent?.GetChild[HdlrBox]()
-        for var i = 0;
-        int64(i) < int64(EntryCount);
-        i++ {
+        for var i = 0; int64(i) < int64(EntryCount); i++ {
             let h = BoxHeader(file)
             if hdlr?.HandlerType == "soun" {
                 AudioSampleEntry = AudioSampleEntry(file, h, this)

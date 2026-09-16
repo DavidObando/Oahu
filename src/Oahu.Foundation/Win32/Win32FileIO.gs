@@ -104,9 +104,7 @@ unsafe open class WinFileIO : IDisposable {
         var bytesRead = 0
         var pBuf = *uint8(pBuffer)
         // Do until there are no more bytes to read or the buffer is full.
-        for;
-        ;
-        {
+        for ; ; {
             if !ReadFile(handle, *void(pBuf), BlockSize, &bytesReadInBlock, 0) {
                 // This is an error condition.  The error msg can be obtained by creating a Win32Exception and
                 // using the Message property to obtain a description of the error that was encountered.

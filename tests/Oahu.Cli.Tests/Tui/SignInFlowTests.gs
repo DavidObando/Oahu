@@ -171,9 +171,7 @@ class SignInFlowTests : IDisposable {
     func PulseSpinner_Cycles_Frames_With_Constant_Width() {
         let spinner = PulseSpinner()
         let glyphs = List[string]()
-        for var i = 0;
-        i < 12;
-        i++ {
+        for var i = 0; i < 12; i++ {
             glyphs.Add(spinner.Glyph)
             spinner.Tick()
         }
@@ -186,9 +184,7 @@ class SignInFlowTests : IDisposable {
     @Fact
     func PulseSpinner_UseAscii_Renders_Static_Asterisk() {
         let spinner = PulseSpinner{UseAscii: true}
-        for var i = 0;
-        i < 5;
-        i++ {
+        for var i = 0; i < 5; i++ {
             Assert.Equal("*", spinner.Glyph)
             spinner.Tick()
         }

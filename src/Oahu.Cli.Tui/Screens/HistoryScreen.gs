@@ -99,9 +99,7 @@ class HistoryScreen : ITabScreen {
         lastListHeight = listHeight
         AdjustScroll(listHeight)
         let end = Math.Min(scrollOffset + listHeight, records.Count)
-        for var i = scrollOffset;
-        i < end;
-        i++ {
+        for var i = scrollOffset; i < end; i++ {
             let rec = records[i]
             let isCursor = i == cursor
             let pointer = if isCursor {

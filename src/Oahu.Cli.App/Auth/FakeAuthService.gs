@@ -87,9 +87,8 @@ class FakeAuthService : IAuthService {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileAlias)
         cancellationToken.ThrowIfCancellationRequested()
         lock $lock {
-            let existing = sessions.FirstOrDefault(
-                (s AuthSession) -> s.ProfileAlias == profileAlias
-            ) ?? throw InvalidOperationException("No session for profile '$profileAlias'.")
+            let existing = sessions.FirstOrDefault((s AuthSession) -> s.ProfileAlias == profileAlias) ??
+                throw InvalidOperationException("No session for profile '$profileAlias'.")
             let refreshed = existing with{ExpiresAt = DateTimeOffset.UtcNow.AddHours(1.0)}
             sessions.RemoveAll((s AuthSession) -> s.ProfileAlias == profileAlias)
             sessions.Add(refreshed)

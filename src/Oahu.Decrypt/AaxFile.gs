@@ -25,9 +25,7 @@ class AaxFile : Mp4File {
         if additionalFixups {
             // Remove extra Free boxes
             let children = AudioSampleEntry.Children
-            for var i = children.Count - 1;
-            i >= 0;
-            i-- {
+            for var i = children.Count - 1; i >= 0; i-- {
                 if children[i] is FreeBox {
                     children.RemoveAt(i)
                 }
@@ -82,9 +80,8 @@ class AaxFile : Mp4File {
         if FileType != FileType.Aax {
             throw ArgumentException("This instance of ${"AaxFile"} is not an ${FileType.Aax} file.")
         }
-        let adrm = AudioSampleEntry.GetChild[AdrmBox]() ?? throw InvalidOperationException(
-            "This instance of ${"AaxFile"} does not contain an adrm box."
-        )
+        let adrm = AudioSampleEntry.GetChild[AdrmBox]() ??
+            throw InvalidOperationException("This instance of ${"AaxFile"} does not contain an adrm box.")
         // Adrm key derrivation from
         // https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mov.c in mov_read_adrm
         let intermediate_key = Crypto.Sha1(

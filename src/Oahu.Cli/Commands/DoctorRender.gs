@@ -95,9 +95,7 @@ class DoctorRender {
                 }
             )
                 .Append(",\"checks\":[")
-            for var i = 0;
-            i < report.Checks.Count;
-            i++ {
+            for var i = 0; i < report.Checks.Count; i++ {
                 let c = report.Checks[i]
                 if i > 0 {
                     sb.Append(',')

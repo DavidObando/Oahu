@@ -60,9 +60,7 @@ class QueueScreenTests : IDisposable {
         let s = NewScreen(q)
         await WaitForLoad(s, NullNavigator())
         Assert.True(s.HandleKey(Key('\u0000', ConsoleKey.DownArrow, ConsoleModifiers.Shift)))
-        for var i = 0;
-        i < 50 && s.NeedsTimedRefresh;
-        i++ {
+        for var i = 0; i < 50 && s.NeedsTimedRefresh; i++ {
             await Task.Delay(20)
         }
         Assert.Equal([]string{"A2", "A1", "A3"}, (await q.ListAsync()).Select((e QueueEntry) -> e.Asin).ToArray())
@@ -77,9 +75,7 @@ class QueueScreenTests : IDisposable {
         let s = NewScreen(q)
         await WaitForLoad(s, NullNavigator())
         Assert.True(s.HandleKey(Key('x', ConsoleKey.X)))
-        for var i = 0;
-        i < 50 && s.NeedsTimedRefresh;
-        i++ {
+        for var i = 0; i < 50 && s.NeedsTimedRefresh; i++ {
             await Task.Delay(20)
         }
         Assert.Single(s.Entries)
@@ -95,9 +91,7 @@ class QueueScreenTests : IDisposable {
         let s = NewScreen(q, fakeJob)
         await WaitForLoad(s, nav)
         Assert.True(s.HandleKey(Key('\r', ConsoleKey.Enter)))
-        for var i = 0;
-        i < 50 && s.NeedsTimedRefresh;
-        i++ {
+        for var i = 0; i < 50 && s.NeedsTimedRefresh; i++ {
             await Task.Delay(20)
         }
         Assert.Single(fakeJob.Submitted)
@@ -271,9 +265,7 @@ class HistoryScreenTests {
             await task
         }
         Assert.True(s.HandleKey(ConsoleKeyInfo('r', ConsoleKey.R, false, false, false)))
-        for var i = 0;
-        i < 50 && fake.Submitted.Count == 0;
-        i++ {
+        for var i = 0; i < 50 && fake.Submitted.Count == 0; i++ {
             await Task.Delay(20)
         }
         Assert.Single(fake.Submitted)

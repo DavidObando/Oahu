@@ -62,13 +62,18 @@ class HintBar {
         }
         let sb = StringBuilder()
         var used = 0
-        for var i = 0;
-        i < hints.Count;
-        i++ {
+        for var i = 0; i < hints.Count; i++ {
             if MaxWidth is {} max {
                 // Plain-cell cost of this hint: "key action" plus " · " when
                 // it is not the first entry.
-                let cost = hints[i].Key.Length + 1 + hints[i].Action.Length + (
+                let cost = hints[i]
+                    .Key
+                    .Length +
+                    1 +
+                    hints[i]
+                    .Action
+                    .Length +
+                    (
                     if i > 0 {
                         sep.Length + 2
                     } else {

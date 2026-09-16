@@ -58,9 +58,7 @@ class Pager {
         }
         let end = Math.Min(lines.Count, offset + viewportHeight)
         let slice = List[string](end - offset)
-        for var i = offset;
-        i < end;
-        i++ {
+        for var i = offset; i < end; i++ {
             slice.Add(lines[i])
         }
         return slice

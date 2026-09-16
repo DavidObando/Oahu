@@ -21,9 +21,7 @@ class CTOCFrame : Frame {
         ElementID = Frame.ReadNullTerminatedString(file, false)
         ChapterFlags = ChapterFlags(file.ReadByte())
         let elemIdCount = file.ReadByte()
-        for var i = 0;
-        i < elemIdCount;
-        i++ {
+        for var i = 0; i < elemIdCount; i++ {
             ChildElementIDs.Add(Frame.ReadNullTerminatedString(file, false))
         }
         LoadChildren(file, endPosition)

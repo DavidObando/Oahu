@@ -42,7 +42,8 @@ open class Mpeg4File : IDisposable {
             .Minf
             .Stbl
             .Stsd
-            .AudioSampleEntry ?? throw InvalidOperationException("The audio track's AudioSampleEntry is null")
+            .AudioSampleEntry ??
+            throw InvalidOperationException("The audio track's AudioSampleEntry is null")
     }
 
     deinit {
@@ -92,11 +93,14 @@ open class Mpeg4File : IDisposable {
                     ?.ES_Descriptor
                     .DecoderConfig
                     .AudioSpecificConfig
-                    .SamplingFrequency ?? AudioSampleEntry
+                    .SamplingFrequency ??
+                    AudioSampleEntry
                     .Dec3
-                    ?.SampleRate ?? AudioSampleEntry
+                    ?.SampleRate ??
+                    AudioSampleEntry
                     .Dac4
-                    ?.SampleRate ?? int32(Moov.AudioTrack.Mdia.Mdhd.Timescale)
+                    ?.SampleRate ??
+                    int32(Moov.AudioTrack.Mdia.Mdhd.Timescale)
             )
         } else {
             timescale
@@ -110,11 +114,14 @@ open class Mpeg4File : IDisposable {
                     ?.ES_Descriptor
                     .DecoderConfig
                     .AudioSpecificConfig
-                    .ChannelConfiguration ?? AudioSampleEntry
+                    .ChannelConfiguration ??
+                    AudioSampleEntry
                     .Dec3
-                    ?.NumberOfChannels ?? AudioSampleEntry
+                    ?.NumberOfChannels ??
+                    AudioSampleEntry
                     .Dac4
-                    ?.NumberOfChannels ?? int32(AudioSampleEntry.ChannelCount)
+                    ?.NumberOfChannels ??
+                    int32(AudioSampleEntry.ChannelCount)
             )
         } else {
             audioChannels
@@ -129,11 +136,14 @@ open class Mpeg4File : IDisposable {
                             .Esds
                             ?.ES_Descriptor
                             .DecoderConfig
-                            .AverageBitrate ?? AudioSampleEntry
+                            .AverageBitrate ??
+                            AudioSampleEntry
                             .Dec3
-                            ?.AverageBitrate ?? AudioSampleEntry
+                            ?.AverageBitrate ??
+                            AudioSampleEntry
                             ?.Dac4
-                            ?.AverageBitrate ?? CalculateBitrate()
+                            ?.AverageBitrate ??
+                            CalculateBitrate()
                     )
                 )
             )
@@ -262,9 +272,7 @@ open class Mpeg4File : IDisposable {
         }
         let chapterInfo = ChapterInfo()
         var subtractNext = 0
-        for var i = 0;
-        i < chapterNames.Count;
-        i++ {
+        for var i = 0; i < chapterNames.Count; i++ {
             let sif = int32(sampleTimes[i].FrameDelta)
             let duration = TimeSpan.FromSeconds(Math.Max(0d, sif + subtractNext) / float64(TimeScale))
             chapterInfo.AddChapter(chapterNames[int32(cEntryList[i].ChunkIndex)], duration)

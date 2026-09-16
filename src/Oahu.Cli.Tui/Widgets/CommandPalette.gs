@@ -34,8 +34,9 @@ class CommandPalette : Oahu.Cli.Tui.Shell.IModal {
         private set;
     }
 
-    private prop Filtered List[PaletteVerb] -> verbs
-        .Where((v PaletteVerb) -> v.Verb.Contains(query, StringComparison.OrdinalIgnoreCase))
+    private prop Filtered List[PaletteVerb] -> verbs.Where(
+        (v PaletteVerb) -> v.Verb.Contains(query, StringComparison.OrdinalIgnoreCase)
+    )
         .ToList()
 
     func HandleKey(key ConsoleKeyInfo) bool {
@@ -113,9 +114,7 @@ class CommandPalette : Oahu.Cli.Tui.Shell.IModal {
             first = cursor - maxRows + 1
         }
         let visible = Math.Min(matches.Count - first, maxRows)
-        for var i = first;
-        i < first + visible;
-        i++ {
+        for var i = first; i < first + visible; i++ {
             let isSel = i == cursor
             let caret = if isSel {
                 "[$brand]❯[/] "

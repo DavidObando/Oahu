@@ -52,9 +52,7 @@ class EnumerableExtensions {
         ) bool {
             minIndex = -1
             minValue = nil
-            for var i = 0;
-            i < enumerators.Length;
-            i++ {
+            for var i = 0; i < enumerators.Length; i++ {
                 if enumerators[i] is IEnumerator[T]ei &&
                     (minValue == nil || Comparer.Compare(minValue.Current, ei.Current) > 0) {
                     minIndex, minValue = i, ei

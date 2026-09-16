@@ -8,9 +8,7 @@ class ByteUtil {
         func BytesFromHexString(hexString string)[]uint8 {
             let byteCount = hexString.Length / 2
             let bytes = [byteCount]uint8
-            for var i = 0;
-            i < byteCount;
-            i++ {
+            for var i = 0; i < byteCount; i++ {
                 bytes[i] = uint8.Parse(hexString.Substring(2 * i, 2), NumberStyles.HexNumber)
             }
             return bytes
@@ -42,9 +40,7 @@ class ByteUtil {
                 return false
             }
             let indexDiff = startIndex2 - startIndex1
-            for var i = startIndex1;
-            i < startIndex1 + count;
-            i++ {
+            for var i = startIndex1; i < startIndex1 + count; i++ {
                 let array2Index = if reverseDirection {
                     startIndex2 + count - 1 - (i - startIndex1)
                 } else {

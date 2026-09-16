@@ -46,9 +46,7 @@ class SettingsScreen : ITabScreen {
         lines.Add(Markup("[$primary bold]Settings[/]"))
         lines.Add(Markup(string.Empty))
         let values = GetFieldValues()
-        for var i = 0;
-        i < FieldNames.Length;
-        i++ {
+        for var i = 0; i < FieldNames.Length; i++ {
             let isCursor = i == cursor
             let pointer = if isCursor {
                 "[$brand]❯[/]"

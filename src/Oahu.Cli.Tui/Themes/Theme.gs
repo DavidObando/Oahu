@@ -124,9 +124,7 @@ class Theme {
         /// Advance to the next theme in (cref:Available) (wraps around).
         /// Used by the global theme-cycle key.
         func Cycle() {
-            for var i = 0;
-            i < Available.Count;
-            i++ {
+            for var i = 0; i < Available.Count; i++ {
                 if object.ReferenceEquals(Available[i], Current) {
                     Current = Available[(i + 1) % Available.Count]
                     return

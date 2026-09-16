@@ -138,7 +138,8 @@ class OahuTools {
                         } else {
                             default(string?)
                         }
-                    ) ?? asin
+                    ) ??
+                        asin
                 ),
                 Quality: q,
                 ProfileAlias: profile

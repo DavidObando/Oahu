@@ -49,9 +49,8 @@ open class Box : IBox {
         }
     }
 
-    func GetChildOrThrow[T IBox]() T -> GetChild[T]() ?? throw InvalidDataException(
-        "${Header.Type} does not contain a child of type ${typeof(T)}"
-    )
+    func GetChildOrThrow[T IBox]() T -> GetChild[T]() ??
+        throw InvalidDataException("${Header.Type} does not contain a child of type ${typeof(T)}")
 
     func GetChildren[T IBox]() IEnumerable[T] {
         return Children.OfType[T]()

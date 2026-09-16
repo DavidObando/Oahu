@@ -39,9 +39,7 @@ class ChunkOffsetList : ICollection[int64] {
                 // Move 32-bit offsets back to chunkOffsets32
                 let countToMove = index + 1
                 let toMove = [countToMove]uint32
-                for var i = 0;
-                i < countToMove;
-                i++ {
+                for var i = 0; i < countToMove; i++ {
                     toMove[i] = uint32(chunkOffsets64!![i])
                 }
                 chunkOffsets32.AddRange(toMove)
@@ -77,9 +75,7 @@ class ChunkOffsetList : ICollection[int64] {
                 let toMove = chunkOffsets32.Count - index
                 let longs = [toMove]int64
                 longs[0] = value
-                for var i = 1;
-                i < toMove;
-                i++ {
+                for var i = 1; i < toMove; i++ {
                     longs[i] = chunkOffsets32[index + i]
                 }
                 CollectionsMarshal.SetCount(chunkOffsets32, index)
@@ -219,9 +215,7 @@ class ChunkOffsetList : ICollection[int64] {
                 BinaryPrimitives.ReverseEndianness(span, span)
             }
             var lastChunkOffset int64 = 0
-            for var i = 0;
-            i < list.chunkOffsets32.Count;
-            i++ {
+            for var i = 0; i < list.chunkOffsets32.Count; i++ {
                 var chunkOffset int64 = list.chunkOffsets32[i]
                 // Seems some files incorrectly use stco box with offsets > uint.MAXVALUE (e.g. 50 Self Help Books).
                 // This causes the offsets to uint to overflow. Unfottnately, somtimes chapters are out of order and
@@ -258,9 +252,7 @@ class ChunkOffsetList : ICollection[int64] {
                     let list = ChunkOffsetList(count32Bit)
                     CollectionsMarshal.SetCount(list.chunkOffsets32, count32Bit)
                     let span = CollectionsMarshal.AsSpan(list.chunkOffsets32)
-                    for var i = 0;
-                    i < count32Bit;
-                    i++ {
+                    for var i = 0; i < count32Bit; i++ {
                         span[i] = uint32(longsSpan[i])
                     }
                     let remainder = longsSpan[count32Bit ..]
