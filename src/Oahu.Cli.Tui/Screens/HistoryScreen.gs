@@ -41,10 +41,9 @@ class HistoryScreen : ITabScreen {
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
             yield KeyValuePair[string, string?]("↑↓", "navigate")
-            yield KeyValuePair[string, string?]("PgUp/Dn", "page")
-            yield KeyValuePair[string, string?]("Enter/j", "details")
+            yield KeyValuePair[string, string?]("enter", "details")
             yield KeyValuePair[string, string?]("r", "retry")
-            yield KeyValuePair[string, string?]("Ctrl+R", "reload")
+            yield KeyValuePair[string, string?]("ctrl+r", "reload")
         }
     }
 
@@ -93,7 +92,7 @@ class HistoryScreen : ITabScreen {
                 lines.Add(Markup("[$tertiary]${Markup.Escape(line.TrimEnd('\r'))}[/]"))
             }
             lines.Add(Markup(string.Empty))
-            lines.Add(Markup("[$tertiary](press j to close)[/]"))
+            lines.Add(Markup("[$tertiary](Enter or Esc to close)[/]"))
             return Padder(Rows(lines)).Padding(2, 0, 2, 0)
         }
         let listHeight = Math.Max(1, height - lines.Count - 2)
@@ -134,12 +133,20 @@ class HistoryScreen : ITabScreen {
         return Padder(Rows(lines)).Padding(2, 0, 2, 0)
     }
 
+    func HandleScroll(delta int32) bool {
+        if jsonMode || records.Count == 0 {
+            return true
+        }
+        cursor = Math.Clamp(cursor + delta, 0, records.Count - 1)
+        return true
+    }
+
     func HandleKey(key ConsoleKeyInfo) bool {
         if busy {
             return false
         }
         if jsonMode {
-            if (key.Key is ConsoleKey.J or ConsoleKey.Escape or ConsoleKey.Enter) {
+            if (key.Key is ConsoleKey.D or ConsoleKey.Escape or ConsoleKey.Enter) {
                 jsonMode = false
                 return true
             }
@@ -150,7 +157,7 @@ class HistoryScreen : ITabScreen {
                 cursor = Math.Max(0, cursor - 1)
                 return true
             }
-            case ConsoleKey.DownArrow {
+            case ConsoleKey.DownArrow, ConsoleKey.J {
                 cursor = Math.Min(records.Count - 1, Math.Max(0, cursor + 1))
                 return true
             }
@@ -170,7 +177,7 @@ class HistoryScreen : ITabScreen {
                 cursor = Math.Max(0, records.Count - 1)
                 return true
             }
-            case ConsoleKey.J, ConsoleKey.Enter {
+            case ConsoleKey.D, ConsoleKey.Enter {
                 if records.Count > 0 {
                     jsonMode = true
                 }

@@ -30,6 +30,11 @@ class HomeScreen : ITabScreen {
     private var pendingRegion CliRegion
     private var signInFlow SignInFlow?
     private var signInBroker TuiCallbackBroker?
+    private var actionCursor int32
+
+    /// One selectable quick action: display label, the key alias shown beside
+    /// it, and an id the Enter handler dispatches on.
+    private data struct QuickAction(Label string, KeyHint string, Id string)
 
     init(state AppShellState, authServiceFactory() -> IAuthService, libraryServiceFactory() -> ILibraryService) {
         this.state = state ?? throw ArgumentNullException("state")
@@ -49,10 +54,54 @@ class HomeScreen : ITabScreen {
 
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
+            yield KeyValuePair[string, string?]("↑↓", "choose")
+            yield KeyValuePair[string, string?]("enter", "run")
             if !state.IsSignedIn {
                 yield KeyValuePair[string, string?]("s", "sign in")
             }
             yield KeyValuePair[string, string?]("r", "refresh")
+        }
+    }
+
+    /// The quick actions currently offered (depends on sign-in state).
+    private func QuickActions() List[QuickAction] {
+        let actions = List[QuickAction]()
+        if state.IsSignedIn {
+            actions.Add(QuickAction("browse the library", "2", "library"))
+            actions.Add(QuickAction("review the download queue", "3", "queue"))
+            actions.Add(QuickAction("watch running jobs", "4", "jobs"))
+            actions.Add(QuickAction("refresh the library from Audible", "r", "refresh"))
+            actions.Add(QuickAction("open settings", "6", "settings"))
+        } else {
+            actions.Add(QuickAction("sign in to Audible", "s", "signin"))
+            actions.Add(QuickAction("open settings", "6", "settings"))
+        }
+        return actions
+    }
+
+    private func RunAction(id string) {
+        switch id {
+            case "library" {
+                navigator?.SwitchToTab('2')
+            }
+            case "queue" {
+                navigator?.SwitchToTab('3')
+            }
+            case "jobs" {
+                navigator?.SwitchToTab('4')
+            }
+            case "settings" {
+                navigator?.SwitchToTab('6')
+            }
+            case "refresh" {
+                BeginRefresh()
+            }
+            case "signin" {
+                BeginSignIn()
+            }
+            default {
+                let _ = 0
+            }
         }
     }
 
@@ -72,29 +121,40 @@ class HomeScreen : ITabScreen {
         let secondary = Tokens.TextSecondary.Value.ToMarkup()
         let tertiary = Tokens.TextTertiary.Value.ToMarkup()
         let brand = Tokens.Brand.Value.ToMarkup()
-        lines.Add(Markup("[$brand bold]Aloha.[/]"))
-        lines.Add(Markup(string.Empty))
+        let success = Tokens.StatusSuccess.Value.ToMarkup()
+        let greetName = if !string.IsNullOrEmpty(accountName) {
+            ", ${accountName!!.Split(' ')[0]}"
+        } else {
+            string.Empty
+        }
+        lines.Add(Markup("[$brand bold]Aloha$greetName.[/]"))
+        lines.Add(Markup("[$tertiary]Your Audible library, on the command line.[/]"))
+        lines.Add(Markup(" "))
         if state.IsSignedIn {
-            lines.Add(Markup("[$primary]Signed in as [bold]${Markup.Escape(state.ProfileDisplay)}[/][/]"))
-            if !string.IsNullOrEmpty(accountName) {
-                lines.Add(Markup("[$secondary]${Markup.Escape(accountName!!)}[/]"))
+            lines.Add(Markup("[$secondary bold]Account[/]"))
+            let who = if string.IsNullOrEmpty(accountName) {
+                state.ProfileDisplay
+            } else {
+                "${accountName} · ${state.ProfileDisplay}"
             }
-            lines.Add(Markup(string.Empty))
+            lines.Add(Markup("  [$success]●[/] [$primary]${Markup.Escape(who)}[/]"))
             lines.Add(
-                Markup("[$secondary]Library: $libraryCount title${(if libraryCount == 1 { "" } else { "s" })}[/]")
+                Markup(
+                    "  [$tertiary]$libraryCount title${(if libraryCount == 1 { "" } else { "s" })} in your library[/]"
+                )
             )
-            lines.Add(Markup(string.Empty))
-            lines.Add(Markup("[$tertiary]Quick actions:[/]"))
-            lines.Add(Markup("  [$brand]2[/] [$secondary]Browse library[/]"))
-            lines.Add(Markup("  [$brand]3[/] [$secondary]View queue[/]"))
-            lines.Add(Markup("  [$brand]6[/] [$secondary]Settings[/]"))
+            lines.Add(Markup(" "))
+            lines.Add(Markup("[$secondary bold]Jump in[/]"))
+            AppendQuickActions(lines)
+            lines.Add(Markup(" "))
+            lines.Add(Markup("[$tertiary]: runs any command · t tries another look[/]"))
         } else if signInFlow != nil {
             // Sign-in in progress (between credentials submit and any 2FA modal,
             // or while waiting on Audible to finish registration). Surface a
             // PulseSpinner + the active verb so the home screen doesn't look
             // dead while the background task is working.
             lines.Add(Markup("[$secondary]${Markup.Escape(SignInActivityMessage)}…[/]"))
-            lines.Add(Markup(string.Empty))
+            lines.Add(Markup(" "))
             let verb = if string.IsNullOrWhiteSpace(state.ActivityVerb) || string.Equals(
                 state.ActivityVerb,
                 "idle",
@@ -111,17 +171,72 @@ class HomeScreen : ITabScreen {
             )
         } else {
             lines.Add(Markup("[$secondary]You're not signed in yet.[/]"))
-            lines.Add(Markup(string.Empty))
-            lines.Add(Markup("[$secondary]Press [$brand]s[/] to sign in to Audible, or use a subcommand:[/]"))
-            lines.Add(Markup("  [$tertiary]oahu-cli auth login --region us[/]"))
+            lines.Add(Markup(" "))
+            AppendQuickActions(lines)
+            lines.Add(Markup(" "))
+            lines.Add(Markup("[$tertiary]or from a shell: oahu-cli auth login --region us[/]"))
         }
         return Padder(Rows(lines)).Padding(2, 1, 2, 1)
+    }
+
+    /// Renders the quick-action rows with a movable cursor. The key alias
+    /// beside each label still works directly, so this is discoverability
+    /// sugar, not a new input mode.
+    private func AppendQuickActions(lines List[IRenderable]) {
+        let primary = Tokens.TextPrimary.Value.ToMarkup()
+        let secondary = Tokens.TextSecondary.Value.ToMarkup()
+        let tertiary = Tokens.TextTertiary.Value.ToMarkup()
+        let brand = Tokens.Brand.Value.ToMarkup()
+        let actions = QuickActions()
+        actionCursor = Math.Clamp(actionCursor, 0, Math.Max(0, actions.Count - 1))
+        for var i = 0;
+        i < actions.Count;
+        i++ {
+            let isCursor = i == actionCursor
+            let pointer = if isCursor {
+                "[$brand]❯[/]"
+            } else {
+                " "
+            }
+            let style = if isCursor {
+                "bold $primary"
+            } else {
+                secondary
+            }
+            let rowText =
+                "  $pointer [$style]${Markup.Escape(actions[i].Label)}[/]  [$tertiary]${Markup.Escape(actions[i].KeyHint)}[/]"
+            if isCursor && Tokens.HasBackdrop {
+                lines.Add(Oahu.Cli.Tui.Widgets.Backdrop(Markup(rowText), Tokens.InputBackground.Value, padLeft: 0, padRight: 1))
+            } else {
+                lines.Add(Markup(rowText))
+            }
+        }
+    }
+
+    func HandleScroll(delta int32) bool {
+        actionCursor = Math.Clamp(actionCursor + delta, 0, Math.Max(0, QuickActions().Count - 1))
+        return true
     }
 
     func HandleKey(key ConsoleKeyInfo) bool {
         switch key.Key {
             case ConsoleKey.Escape when signInFlow != nil {
                 signInFlow!!.Cancel()
+                return true
+            }
+            case ConsoleKey.UpArrow, ConsoleKey.K {
+                actionCursor = Math.Max(0, actionCursor - 1)
+                return true
+            }
+            case ConsoleKey.DownArrow, ConsoleKey.J {
+                actionCursor = Math.Min(QuickActions().Count - 1, actionCursor + 1)
+                return true
+            }
+            case ConsoleKey.Enter {
+                let actions = QuickActions()
+                if actionCursor >= 0 && actionCursor < actions.Count {
+                    RunAction(actions[actionCursor].Id)
+                }
                 return true
             }
             case ConsoleKey.S when key.Modifiers == 0 {

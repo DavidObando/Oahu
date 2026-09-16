@@ -41,12 +41,11 @@ class QueueScreen : ITabScreen {
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
             yield KeyValuePair[string, string?]("↑↓", "navigate")
-            yield KeyValuePair[string, string?]("Shift+↑↓", "move")
+            yield KeyValuePair[string, string?]("shift+↑↓", "move")
+            yield KeyValuePair[string, string?]("enter", "run")
+            yield KeyValuePair[string, string?]("r", "run all")
             yield KeyValuePair[string, string?]("x", "remove")
-            yield KeyValuePair[string, string?]("Enter", "run")
-            yield KeyValuePair[string, string?]("R", "run all")
             yield KeyValuePair[string, string?]("c", "clear")
-            yield KeyValuePair[string, string?]("F5", "reload")
         }
     }
 
@@ -120,6 +119,14 @@ class QueueScreen : ITabScreen {
         return Padder(Rows(lines)).Padding(2, 0, 2, 0)
     }
 
+    func HandleScroll(delta int32) bool {
+        if entries.Count == 0 {
+            return true
+        }
+        cursor = Math.Clamp(cursor + delta, 0, entries.Count - 1)
+        return true
+    }
+
     func HandleKey(key ConsoleKeyInfo) bool {
         if busy {
             // Ignore input while a mutation is in flight to keep the model consistent.
@@ -166,7 +173,11 @@ class QueueScreen : ITabScreen {
                 RunSelected()
                 return true
             }
-            case ConsoleKey.R when(key.Modifiers & ConsoleModifiers.Shift) != 0 {
+            case ConsoleKey.R when(key.Modifiers & ConsoleModifiers.Control) != 0 {
+                Reload()
+                return true
+            }
+            case ConsoleKey.R {
                 RunAll()
                 return true
             }

@@ -59,6 +59,20 @@ interface ITabScreen {
 
     /// Called once when the shell is shutting down (default: no-op).
     func OnShutdown() { }
+
+    /// Mouse wheel over the body: [`delta`](paramref) is signed lines
+    /// (positive = towards newer/lower content). Return true if consumed.
+    /// Default: no-op.
+    func HandleScroll(delta int32) bool {
+        return false
+    }
+
+    /// Left click in the body at screen-relative cell coordinates (0-based;
+    /// the shell has already subtracted the chrome offsets). Return true if
+    /// consumed. Default: no-op.
+    func HandleClick(x int32, y int32) bool {
+        return false
+    }
 }
 
 /// Optional shell-side service exposed to screens for tab navigation, modal

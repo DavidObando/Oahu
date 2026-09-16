@@ -70,13 +70,71 @@ class AppShellTests : IDisposable {
     }
 
     @Fact
-    func Plain_Q_Is_Not_A_Global_Quit() {
-        // Regression: plain `q` must remain available for screens (e.g.
-        // LibraryScreen "enqueue"). The shell's switch falls through with
-        // ShellAction.Continue when no screen consumed the key.
+    func Mouse_Click_On_Header_Tab_Switches() {
+        let shell = NewShell()
+        // Tab strip starts at column 9; entry 1 ("2 library") spans strip
+        // columns 9..19 → screen columns 18..28.
+        shell.DispatchMouse(MouseEvent(MouseEventKind.Click, 20, 0))
+        Assert.Equal(1, shell.ActiveTab)
+        // Brand pill (columns 1..6) jumps home.
+        shell.DispatchMouse(MouseEvent(MouseEventKind.Click, 3, 0))
+        Assert.Equal(0, shell.ActiveTab)
+    }
+
+    @Fact
+    func Mouse_Wheel_Routes_To_Active_Screen() {
+        let screen = ScrollRecordingScreen()
+        let shell = AppShell(NewConsole(), AppShellOptions{Tabs: []ITabScreen{screen}})
+        shell.DispatchMouse(MouseEvent(MouseEventKind.WheelDown, 5, 10))
+        Assert.Equal(3, screen.LastScrollDelta)
+        shell.DispatchMouse(MouseEvent(MouseEventKind.WheelUp, 5, 10))
+        Assert.Equal(-3, screen.LastScrollDelta)
+    }
+
+    @Fact
+    func Mouse_Is_Inert_While_Modal_Open() {
+        let shell = NewShell()
+        shell.ShowModal(TestModal())
+        shell.DispatchMouse(MouseEvent(MouseEventKind.Click, 20, 0))
+        Assert.Equal(0, shell.ActiveTab)
+    }
+
+    private class ScrollRecordingScreen : ITabScreen {
+        prop LastScrollDelta int32 {
+            get;
+            private set;
+        }
+
+        prop Title string -> "Scrolly"
+        prop NumberKey char -> '1'
+        prop Hints IEnumerable[KeyValuePair[string, string?]] -> Array.Empty[KeyValuePair[string, string?]]()
+
+        func Render(width int32, height int32) IRenderable -> Markup("scroll test")
+
+        func HandleKey(key ConsoleKeyInfo) bool -> false
+
+        func HandleScroll(delta int32) bool {
+            LastScrollDelta = delta
+            return true
+        }
+    }
+
+    private class TestModal : IModal {
+        prop IsComplete bool -> false
+        prop WasCancelled bool -> false
+
+        func Render(width int32, height int32) IRenderable -> Markup("modal")
+
+        func HandleKey(key ConsoleKeyInfo) bool -> true
+    }
+
+    @Fact
+    func Plain_Q_Is_A_Global_Quit() {
+        // Streamlined keymap: no screen binds `q`, so an unconsumed plain `q`
+        // is the clean-quit gesture on every tab.
         let shell = NewShell()
         let action = shell.Dispatch(Key('q', ConsoleKey.Q))
-        Assert.Equal(ShellAction.Continue, action)
+        Assert.Equal(ShellAction.Exit, action)
     }
 
     @Fact

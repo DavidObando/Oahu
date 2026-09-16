@@ -21,9 +21,10 @@ class TabStripTests : IDisposable {
         c.EmitAnsiSequences = false
         TabStrip{Titles: []string{"Home", "Library", "Queue"}, ActiveIndex: 0}.Write(c)
         let output = c.Output
-        Assert.Contains("1 Home", output)
-        Assert.Contains("2 Library", output)
-        Assert.Contains("3 Queue", output)
+        // Titles render lowercase in the streamlined strip.
+        Assert.Contains("1 home", output)
+        Assert.Contains("2 library", output)
+        Assert.Contains("3 queue", output)
     }
 
     @Fact
