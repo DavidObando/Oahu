@@ -228,7 +228,11 @@ internal class BookLibrary : IBookLibrary {
             dbContext.SaveChanges()
         }
         // run in main thread, to channel DbContext.SaveChanges() invocations
-        syncContext.Send(SaveFileNameSuffix, conversion, suffix)
+        if syncContext != nil {
+            syncContext.Send(SaveFileNameSuffix, conversion, suffix)
+        } else {
+            SaveFileNameSuffix(conversion, suffix)
+        }
     }
 
     func SavePersistentState(conversion Conversion, state EConversionState) {
@@ -243,7 +247,11 @@ internal class BookLibrary : IBookLibrary {
             dbContext.SaveChanges()
         }
         // run in main thread, to channel DbContext.SaveChanges() invocations
-        syncContext.Send(SavePersistentState, conversion, state)
+        if syncContext != nil {
+            syncContext.Send(SavePersistentState, conversion, state)
+        } else {
+            SavePersistentState(conversion, state)
+        }
     }
 
     func RestorePersistentState(conversion Conversion) {
