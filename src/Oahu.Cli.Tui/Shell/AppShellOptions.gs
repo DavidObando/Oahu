@@ -1,5 +1,6 @@
 package Oahu.Cli.Tui.Shell
 
+import Oahu.Cli.App.Config
 import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Queue
 import Oahu.Cli.Tui.Logging
@@ -71,6 +72,14 @@ class AppShellOptions {
 
     /// Resolver for the job scheduler. Phase 8+.
     prop JobServiceFactory(() -> IJobService)? {
+        get;
+        init;
+    }
+
+    /// Resolver for the config store. When set, runtime theme switches
+    /// (`t` cycle, `:theme <name>`) are persisted so the choice survives
+    /// restarts, matching what the Settings screen saves.
+    prop ConfigServiceFactory(() -> IConfigService)? {
         get;
         init;
     }

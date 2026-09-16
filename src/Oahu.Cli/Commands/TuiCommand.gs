@@ -124,7 +124,8 @@ class TuiCommand {
                 LogBuffer: LogBuffer,
                 Version: ResolveVersion(),
                 Tabs: tabs,
-                State: state
+                State: state,
+                ConfigServiceFactory: () -> CliServiceFactory.ConfigServiceFactory()
             }
             return Launcher(opts)
         }

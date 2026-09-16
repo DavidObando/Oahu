@@ -76,4 +76,18 @@ data class LibraryItem {
         get;
         init;
     }
+
+    /// Absolute path where the 500-px cover art is (or would be) cached on
+    /// disk. The file may not exist yet — consumers should check and fall back
+    /// to (cref:CoverImageUrl).
+    prop CoverImagePath string? {
+        get;
+        init;
+    }
+
+    /// Remote URL of the 500-px cover art, when the library sync recorded one.
+    prop CoverImageUrl string? {
+        get;
+        init;
+    }
 }

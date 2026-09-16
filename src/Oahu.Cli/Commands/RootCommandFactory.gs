@@ -67,7 +67,7 @@ class RootCommandFactory {
                 Recursive = true
             }
             let themeOpt = Option[string?]("--theme"){
-                Description = "Override the TUI theme for this invocation (Default | Mono | HighContrast | Colorblind).",
+                Description = "Override the TUI theme for this invocation (Default | Sunset | Sand | Mono | HighContrast | Colorblind).",
                 Recursive = true
             }
             // --json and --plain are mutually exclusive renderers.

@@ -32,6 +32,38 @@ class AltScreen {
         /// DEC private mode 2026: end synchronized update — terminal renders the buffered frame atomically.
         const SyncEndSequence string = "\u001B[?2026l"
 
+        /// DECSET 1000 (press/release tracking) + 1006 (SGR encoding) —
+        /// enables mouse reporting on Unix terminals.
+        const MouseEnableSequence string = "\u001B[?1000;1006h"
+
+        /// DECRST for the mouse modes enabled by (cref:MouseEnableSequence).
+        const MouseDisableSequence string = "\u001B[?1006;1000l"
+
+        /// Enable terminal mouse reporting (kept separate from (cref:Enter)
+        /// so the exit-trap can restore each concern independently).
+        func EnableMouse(writer TextWriter? = nil) {
+            let w = writer ?? Console.Out
+            try {
+                w.Write(MouseEnableSequence)
+                w.Flush()
+            } catch {
+                // Best effort.
+
+            }
+        }
+
+        /// Disable terminal mouse reporting.
+        func DisableMouse(writer TextWriter? = nil) {
+            let w = writer ?? Console.Out
+            try {
+                w.Write(MouseDisableSequence)
+                w.Flush()
+            } catch {
+                // ignore
+
+            }
+        }
+
         /// Normalize newlines and inject `\e[K` (erase-to-end-of-line) before each `\n`
         /// so each rendered line clears any residual characters from a longer previous frame.
         ///

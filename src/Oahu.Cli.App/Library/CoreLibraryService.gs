@@ -194,6 +194,20 @@ class CoreLibraryService : ILibraryService {
             return items
         }
 
+        /// Where the 500-px cover for this book lives (or would live) on disk.
+        /// Prefers the path recorded by a GUI cover download; otherwise derives
+        /// the shared cache location (`<data root>/img/<ASIN>.jpg`) so the TUI
+        /// can download the cover itself on first view.
+        private func ResolveCoverPath(book Book) string? {
+            if !string.IsNullOrWhiteSpace(book.CoverImageFile) {
+                return book.CoverImageFile
+            }
+            if string.IsNullOrWhiteSpace(book.CoverImageUrl) || string.IsNullOrWhiteSpace(book.Asin) {
+                return nil
+            }
+            return System.IO.Path.Combine(Oahu.Aux.ApplEnv.LocalApplDirectory, "img", "${book.Asin}.jpg")
+        }
+
         private func MapBook(book Book) LibraryItem {
             let seriesEntry SeriesBook? = book.Series?.FirstOrDefault()
             var seriesPosition float64? = nil
@@ -245,7 +259,13 @@ class CoreLibraryService : ILibraryService {
                 Runtime: runtime,
                 PurchaseDate: purchase,
                 IsAvailable: available,
-                HasMultiplePartFiles: multiPart
+                HasMultiplePartFiles: multiPart,
+                CoverImagePath: ResolveCoverPath(book),
+                CoverImageUrl: if string.IsNullOrWhiteSpace(book.CoverImageUrl) {
+                    default(string?)
+                } else {
+                    book.CoverImageUrl!!
+                }
             }
         }
     }

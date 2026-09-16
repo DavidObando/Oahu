@@ -28,6 +28,13 @@ class HintBar {
         init;
     }
 
+    /// When set, trailing hints that would overflow this many cells are
+    /// dropped instead of wrapping (the `?` overlay still lists everything).
+    prop MaxWidth int32? {
+        get;
+        set;
+    }
+
     func Add(key string, action string?) HintBar {
         if string.IsNullOrWhiteSpace(action) {
             return this
@@ -54,9 +61,25 @@ class HintBar {
             Separator
         }
         let sb = StringBuilder()
+        var used = 0
         for var i = 0;
         i < hints.Count;
         i++ {
+            if MaxWidth is {} max {
+                // Plain-cell cost of this hint: "key action" plus " · " when
+                // it is not the first entry.
+                let cost = hints[i].Key.Length + 1 + hints[i].Action.Length + (
+                    if i > 0 {
+                        sep.Length + 2
+                    } else {
+                        0
+                    }
+                )
+                if used + cost > max {
+                    break
+                }
+                used += cost
+            }
             if i > 0 {
                 sb
                     .Append(' ')

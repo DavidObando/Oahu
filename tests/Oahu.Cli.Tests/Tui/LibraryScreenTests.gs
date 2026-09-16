@@ -107,7 +107,7 @@ class LibraryScreenTests : IDisposable {
     }
 
     @Fact
-    async func Q_Enqueues_Selected_Items_And_Switches_To_Queue_Tab() {
+    async func E_Enqueues_Selected_Items_And_Switches_To_Queue_Tab() {
         let queue = InMemoryQueueService()
         let screen = CreateScreen(
             []LibraryItem{MakeItem("A1", "Alpha", "Auth1"), MakeItem("A2", "Beta", "Auth2"), MakeItem("A3", "Gamma")},
@@ -122,7 +122,7 @@ class LibraryScreenTests : IDisposable {
         screen.HandleKey(Key('j', ConsoleKey.J))
         screen.HandleKey(Key(' ', ConsoleKey.Spacebar))
         Assert.Equal(2, screen.SelectedCount)
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)))
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)))
         await WaitForEnqueue(screen)
         let entries = await queue.ListAsync()
         Assert.Equal([]string{"A1", "A3"}, entries.Select((e QueueEntry) -> e.Asin).ToArray())
@@ -133,15 +133,15 @@ class LibraryScreenTests : IDisposable {
     }
 
     @Fact
-    async func Q_With_No_Selection_Enqueues_Cursor_Item() {
+    async func E_With_No_Selection_Enqueues_Cursor_Item() {
         let queue = InMemoryQueueService()
         let screen = CreateScreen([]LibraryItem{MakeItem("A1", "Alpha"), MakeItem("A2", "Beta")}, queue)
         let nav = NullNavigator()
         let _ = screen.OnActivatedAsync(nav)
         screen.Reload()
-        // Move to second item and press q with no selection.
+        // Move to second item and press e with no selection.
         screen.HandleKey(Key('j', ConsoleKey.J))
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)))
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)))
         await WaitForEnqueue(screen)
         let entries = await queue.ListAsync()
         Assert.Single(entries)
@@ -150,7 +150,7 @@ class LibraryScreenTests : IDisposable {
     }
 
     @Fact
-    async func Q_Skips_Duplicates_And_Reports_In_Toast() {
+    async func E_Skips_Duplicates_And_Reports_In_Toast() {
         let queue = InMemoryQueueService()
         await queue.AddAsync(QueueEntry{Asin: "A1", Title: "Alpha"})
         let screen = CreateScreen([]LibraryItem{MakeItem("A1", "Alpha"), MakeItem("A2", "Beta")}, queue)
@@ -158,7 +158,7 @@ class LibraryScreenTests : IDisposable {
         let _ = screen.OnActivatedAsync(nav)
         screen.Reload()
         screen.HandleKey(Key('a', ConsoleKey.A)) // select all
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)))
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)))
         await WaitForEnqueue(screen)
         let entries = await queue.ListAsync()
         Assert.Equal([]string{"A1", "A2"}, entries.Select((e QueueEntry) -> e.Asin).ToArray())
@@ -168,12 +168,13 @@ class LibraryScreenTests : IDisposable {
     }
 
     @Fact
-    func Q_Without_QueueService_Is_NoOp() {
+    func E_Without_QueueService_Is_NoOp() {
         // No queue service wired in (legacy 2-arg ctor).
         let screen = CreateScreen([]LibraryItem{MakeItem("A1", "Alpha")})
         screen.Reload()
-        // Should NOT consume the key, so AppShell's fallback can take over.
-        Assert.False(screen.HandleKey(Key('q', ConsoleKey.Q)))
+        // Should NOT consume the key ('e' has no global fallback; the press
+        // is simply inert when no queue service is wired).
+        Assert.False(screen.HandleKey(Key('e', ConsoleKey.E)))
     }
 
     @Fact

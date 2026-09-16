@@ -31,7 +31,7 @@ class SettingsScreen : ITabScreen {
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
             yield KeyValuePair[string, string?]("↑↓", "navigate")
-            yield KeyValuePair[string, string?]("Enter/Space", "toggle")
+            yield KeyValuePair[string, string?]("enter", "toggle")
             yield KeyValuePair[string, string?]("s", "save")
         }
     }
@@ -71,6 +71,11 @@ class SettingsScreen : ITabScreen {
             lines.Add(Markup("  [${Tokens.StatusSuccess.Value.ToMarkup()}]${Markup.Escape(toast!!)}[/]"))
         }
         return Padder(Rows(lines)).Padding(2, 1, 2, 1)
+    }
+
+    func HandleScroll(delta int32) bool {
+        cursor = Math.Clamp(cursor + delta, 0, FieldNames.Length - 1)
+        return true
     }
 
     func HandleKey(key ConsoleKeyInfo) bool {

@@ -26,7 +26,16 @@ class TuiHost {
             let shell = AppShell(console, options)
             var prevTreatCtrlC = false
             var altEntered = false
+            var mouseEnabled = false
             let restore() -> void = () -> {
+                if mouseEnabled {
+                    if OperatingSystem.IsWindows() {
+                        WindowsConsoleInput.Restore()
+                    } else {
+                        AltScreen.DisableMouse()
+                    }
+                    mouseEnabled = false
+                }
                 if altEntered {
                     AltScreen.Leave()
                     altEntered = false
@@ -49,6 +58,15 @@ class TuiHost {
                 }
                 AltScreen.Enter()
                 altEntered = true
+                // Mouse reporting (wheel + click). Opt out with OAHU_NO_MOUSE=1.
+                if !string.Equals(Environment.GetEnvironmentVariable("OAHU_NO_MOUSE"), "1", StringComparison.Ordinal) {
+                    if OperatingSystem.IsWindows() {
+                        mouseEnabled = WindowsConsoleInput.TrySetup()
+                    } else {
+                        AltScreen.EnableMouse()
+                        mouseEnabled = true
+                    }
+                }
                 return shell.Run(AppShell.ConsoleKeyReader())
             } finally {
                 restore()

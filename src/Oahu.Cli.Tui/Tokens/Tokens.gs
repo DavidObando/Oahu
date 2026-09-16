@@ -21,7 +21,13 @@ class Tokens {
         prop Selected SemanticColor -> Theme.Current.Selected
         prop BorderNeutral SemanticColor -> Theme.Current.BorderNeutral
         prop BackgroundSecondary SemanticColor -> Theme.Current.BackgroundSecondary
+        prop Canvas SemanticColor -> Theme.Current.Canvas
+        prop CellBackground SemanticColor -> Theme.Current.CellBackground
+        prop InputBackground SemanticColor -> Theme.Current.InputBackground
         prop DiffAdd SemanticColor -> Theme.Current.DiffAdd
         prop DiffRemove SemanticColor -> Theme.Current.DiffRemove
+
+        /// True when the current theme paints surface backgrounds (false for Mono).
+        prop HasBackdrop bool -> Theme.Current.Canvas.Value != Spectre.Console.Color.Default
     }
 }

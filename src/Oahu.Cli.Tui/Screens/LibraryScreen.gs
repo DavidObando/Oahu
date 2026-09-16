@@ -30,6 +30,9 @@ class LibraryScreen : ITabScreen {
     private var searchMode bool
     private var navigator IAppShellNavigator?
     private var enqueueTask Task?
+    private var coverPending bool
+    private var lastListTop int32 = 2
+    private var lastListWidth int32 = 80
 
     convenience init(state AppShellState, libraryServiceFactory() -> ILibraryService) {
         init(state, libraryServiceFactory, nil)
@@ -43,6 +46,7 @@ class LibraryScreen : ITabScreen {
 
     prop Title string -> "Library"
     prop NumberKey char -> '2'
+    prop NeedsTimedRefresh bool -> coverPending
     prop Cursor int32 -> cursor
     prop SelectedCount int32 -> selected.Count
     prop Items IReadOnlyList[LibraryItem] -> filtered
@@ -50,16 +54,15 @@ class LibraryScreen : ITabScreen {
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
             if searchMode {
-                yield KeyValuePair[string, string?]("Enter", "search")
-                yield KeyValuePair[string, string?]("Esc", "cancel")
+                yield KeyValuePair[string, string?]("enter", "search")
+                yield KeyValuePair[string, string?]("esc", "cancel")
             } else {
                 yield KeyValuePair[string, string?]("/", "search")
                 yield KeyValuePair[string, string?]("↑↓", "navigate")
-                yield KeyValuePair[string, string?]("PgUp/Dn", "page")
-                yield KeyValuePair[string, string?]("Space", "select")
+                yield KeyValuePair[string, string?]("space", "select")
                 yield KeyValuePair[string, string?]("a", "select all")
                 if queueServiceFactory != nil {
-                    yield KeyValuePair[string, string?]("q", "enqueue")
+                    yield KeyValuePair[string, string?]("e", "enqueue")
                 }
             }
         }
@@ -83,12 +86,45 @@ class LibraryScreen : ITabScreen {
     }
 
     func Render(width int32, height int32) IRenderable {
+        // Master/detail split on wide terminals: list on the left, a detail
+        // pane (cover art + metadata) for the cursor item on the right.
+        let detailWidth = if width >= 96 {
+            Math.Clamp(width * 2 / 5, 34, 44)
+        } else {
+            0
+        }
+        let listWidth = if detailWidth > 0 {
+            width - detailWidth - 1
+        } else {
+            width
+        }
+        lastListWidth = listWidth
+        let list = RenderList(listWidth, height)
+        if detailWidth == 0 {
+            return list
+        }
+        let paneColor = Tokens.BackgroundSecondary.Value
+        let paneFill = if Tokens.HasBackdrop {
+            Style(background: paneColor)
+        } else {
+            Style.Plain
+        }
+        let pane = FixedHeight(
+            Widgets.Backdrop(RenderDetail(detailWidth - 4, height), paneColor, padLeft: 2, padRight: 2, padTop: 1),
+            height,
+            paneFill
+        )
+        return Widgets.SideBySide(list, listWidth, 1, pane, detailWidth, nil)
+    }
+
+    private func RenderList(width int32, height int32) IRenderable {
         let lines = List[IRenderable]()
         let primary = Tokens.TextPrimary.Value.ToMarkup()
         let secondary = Tokens.TextSecondary.Value.ToMarkup()
         let tertiary = Tokens.TextTertiary.Value.ToMarkup()
         let brand = Tokens.Brand.Value.ToMarkup()
         let success = Tokens.StatusSuccess.Value.ToMarkup()
+        lines.Add(Markup(" "))
         // Search bar
         if searchMode {
             lines.Add(searchInput.Render())
@@ -102,20 +138,22 @@ class LibraryScreen : ITabScreen {
             string.Empty
         }
         lines.Add(Markup("[$secondary]${filtered.Count} of ${allItems.Count} titles$selStr[/]"))
-        lines.Add(Markup(string.Empty))
+        lines.Add(Markup(" "))
         if filtered.Count == 0 {
             lines.Add(
                 Markup(
                     "[$tertiary]${(if allItems.Count == 0 { "Library is empty. Sync from the Home tab." } else { "No matches." })}[/]"
                 )
             )
-            return Padder(Rows(lines)).Padding(2, 1, 2, 1)
+            return Padder(Rows(lines)).Padding(2, 0, 2, 0)
         }
         // Visible rows
         let listHeight = Math.Max(1, height - lines.Count - 2)
         lastListHeight = listHeight
+        lastListTop = lines.Count
         AdjustScroll(listHeight)
         let end = Math.Min(scrollOffset + listHeight, filtered.Count)
+        let cursorBg = Tokens.InputBackground.Value
         for var i = scrollOffset;
         i < end;
         i++ {
@@ -147,16 +185,134 @@ class LibraryScreen : ITabScreen {
             } else {
                 string.Empty
             }
-            lines.Add(
-                Markup(
-                    "  $pointer $mark  [$style]${Markup.Escape(Truncate(item.Title, width - 30))}[/]  [$tertiary]${Markup.Escape(Truncate(authors, 30))}[/]  [$tertiary]$runtime[/]"
-                )
-            )
+            // Fixed columns: title | authors | runtime (right-aligned), so the
+            // list reads as a table without drawing one.
+            let runtimeWidth = 7
+            let authorWidth = Math.Clamp((width - 14 - runtimeWidth) / 3, 12, 30)
+            let titleWidth = Math.Max(12, width - 10 - authorWidth - runtimeWidth)
+            let titleCell = Truncate(item.Title, titleWidth).PadRight(titleWidth)
+            let authorCell = Truncate(authors, authorWidth).PadRight(authorWidth)
+            let runtimeCell = runtime.PadLeft(runtimeWidth)
+            let rowText =
+                "$pointer $mark [$style]${Markup.Escape(titleCell)}[/] [$tertiary]${Markup.Escape(authorCell)}[/][$tertiary]${Markup.Escape(runtimeCell)}[/]"
+            if isCursor && Tokens.HasBackdrop {
+                // Full-width highlight for the cursor row.
+                lines.Add(Widgets.Backdrop(Markup(rowText), cursorBg, padLeft: 2, padRight: 1))
+            } else {
+                lines.Add(Padder(Markup(rowText)).Padding(2, 0, 0, 0))
+            }
         }
         if filtered.Count > listHeight {
-            lines.Add(Markup("[$tertiary]  ↕ ${scrollOffset + 1}–$end of ${filtered.Count}[/]"))
+            lines.Add(Markup("  [$tertiary]↕ ${scrollOffset + 1}–$end of ${filtered.Count}[/]"))
         }
-        return Padder(Rows(lines)).Padding(2, 0, 2, 0)
+        return Rows(lines)
+    }
+
+    /// The right-hand detail pane for the cursor item: cover art (half-block
+    /// truecolor) plus metadata. Cover decoding runs in the background; while
+    /// pending this screen reports (cref:NeedsTimedRefresh) so the shell keeps
+    /// re-rendering until the art pops in.
+    private func RenderDetail(width int32, height int32) IRenderable {
+        coverPending = false
+        let lines = List[IRenderable]()
+        let primary = Tokens.TextPrimary.Value.ToMarkup()
+        let secondary = Tokens.TextSecondary.Value.ToMarkup()
+        let tertiary = Tokens.TextTertiary.Value.ToMarkup()
+        let brand = Tokens.Brand.Value.ToMarkup()
+        if cursor < 0 || cursor >= filtered.Count {
+            lines.Add(Markup("[$tertiary]No selection.[/]"))
+            return Rows(lines)
+        }
+        let item = filtered[cursor]
+        // Cover art (skipped in Mono/ASCII where half-blocks would degrade).
+        if Tokens.HasBackdrop && !Icons.Icons.ForceAscii {
+            let coverWidth = Math.Min(width, 26)
+            let cover = Widgets.CoverArt.TryGet(item.CoverImagePath, item.CoverImageUrl, coverWidth)
+            if cover.State == Widgets.CoverArt.CoverState.Ready && cover.Lines != nil {
+                for line in cover.Lines!! {
+                    lines.Add(Markup(line))
+                }
+                lines.Add(Markup(" "))
+            } else if cover.State == Widgets.CoverArt.CoverState.Pending {
+                coverPending = true
+                let ph = String('░', Math.Max(1, coverWidth))
+                for var r = 0;
+                r < Math.Max(1, coverWidth / 2);
+                r++ {
+                    lines.Add(Markup("[$tertiary]$ph[/]"))
+                }
+                lines.Add(Markup(" "))
+            }
+        }
+        lines.Add(Markup("[$primary bold]${Markup.Escape(item.Title)}[/]"))
+        if item.Subtitle is {} sub {
+            lines.Add(Markup("[$secondary]${Markup.Escape(sub)}[/]"))
+        }
+        lines.Add(Markup(" "))
+        if item.Authors.Length > 0 {
+            lines.Add(Markup("[$secondary]by ${Markup.Escape(string.Join(", ", item.Authors))}[/]"))
+        }
+        if item.Narrators.Length > 0 {
+            lines.Add(Markup("[$tertiary]read by ${Markup.Escape(string.Join(", ", item.Narrators))}[/]"))
+        }
+        if item.Series is {} series {
+            let position = if item.SeriesPosition is {} pos {
+                " · #${pos:0.###}"
+            } else {
+                string.Empty
+            }
+            lines.Add(Markup("[$tertiary]${Markup.Escape(series)}$position[/]"))
+        }
+        lines.Add(Markup(" "))
+        let facts = List[string]()
+        if item.Runtime is {} runtime {
+            facts.Add(FormatRuntime(runtime))
+        }
+        if item.PurchaseDate is {} purchased {
+            facts.Add("added ${purchased.ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}")
+        }
+        if item.HasMultiplePartFiles {
+            facts.Add("multi-part")
+        }
+        if facts.Count > 0 {
+            lines.Add(Markup("[$tertiary]${Markup.Escape(string.Join("  ·  ", facts))}[/]"))
+        }
+        if selected.Contains(item.Asin) {
+            lines.Add(Markup(" "))
+            lines.Add(Markup("[${Tokens.StatusSuccess.Value.ToMarkup()}]✓ selected[/]"))
+        }
+        lines.Add(Markup(" "))
+        lines.Add(Markup("[$brand]e[/] [$tertiary]enqueue for download[/]"))
+        return Rows(lines)
+    }
+
+    func HandleScroll(delta int32) bool {
+        if filtered.Count == 0 {
+            return true
+        }
+        cursor = Math.Clamp(cursor + delta, 0, filtered.Count - 1)
+        return true
+    }
+
+    func HandleClick(x int32, y int32) bool {
+        // Clicks in the detail pane are inert; only the list is interactive.
+        if x >= lastListWidth {
+            return false
+        }
+        let idx = scrollOffset + (y - lastListTop)
+        if y < lastListTop || idx < 0 || idx >= filtered.Count || idx >= scrollOffset + lastListHeight {
+            return false
+        }
+        if idx == cursor {
+            // Second click on the focused row toggles selection, like Space.
+            let asin = filtered[idx].Asin
+            if !selected.Remove(asin) {
+                selected.Add(asin)
+            }
+        } else {
+            cursor = idx
+        }
+        return true
     }
 
     func HandleKey(key ConsoleKeyInfo) bool {
@@ -233,7 +389,7 @@ class LibraryScreen : ITabScreen {
                     return true
                 }
             }
-            case ConsoleKey.Q when key.Modifiers == 0 {
+            case ConsoleKey.E when key.Modifiers == 0 {
                 return EnqueueSelection()
             }
             default {
@@ -254,6 +410,7 @@ class LibraryScreen : ITabScreen {
             allItems = lib.ListAsync().GetAwaiter().GetResult()
             loaded = true
             ApplyFilter()
+            PrefetchCovers()
         } catch {
             loaded = true
             // Swallow to keep TUI stable.
@@ -270,12 +427,26 @@ class LibraryScreen : ITabScreen {
                     let items = lib.ListAsync().GetAwaiter().GetResult()
                     allItems = items
                     ApplyFilter()
+                    PrefetchCovers()
                 } catch {
                     // Swallow to keep TUI stable.
 
                 }
             }
         )
+    }
+
+    /// Kick the shared cover cache-fill for any titles whose art is missing on
+    /// disk (CLI-only installs never run the GUI's cover download). No-op when
+    /// the theme can't show covers anyway.
+    private func PrefetchCovers() {
+        if !Tokens.HasBackdrop || Icons.Icons.ForceAscii {
+            return
+        }
+        let covers = allItems
+            .Select((i LibraryItem) -> (Path: i.CoverImagePath, Url: i.CoverImageUrl))
+            .ToArray()
+        Widgets.CoverArt.Prefetch(covers)
     }
 
     /// Background task spawned by `q`; exposed for tests.
