@@ -203,7 +203,7 @@ class AudibleJobExecutor : IJobExecutor {
                         []Conversion{conversion},
                         progress,
                         CliCancellation(linkedToken),
-                        convertAction!!
+                        convertAction
                     ).ConfigureAwait(false)
                 } finally {
                     channel.Writer.TryComplete()
