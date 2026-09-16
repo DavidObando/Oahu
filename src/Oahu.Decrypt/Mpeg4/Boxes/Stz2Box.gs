@@ -32,9 +32,7 @@ open class Stz2Box : FullBox, IStszBox {
             }
         } else {
             let bytes Span[uint8] = file.ReadBlock(int32(sampleCount))
-            for var i = 0;
-            int64(i) < int64(sampleCount);
-            i++ {
+            for var i = 0; int64(i) < int64(sampleCount); i++ {
                 shortSpan[i] = bytes[i]
             }
         }

@@ -86,9 +86,7 @@ class QueueScreen : ITabScreen {
         lastListHeight = listHeight
         AdjustScroll(listHeight)
         let end = Math.Min(scrollOffset + listHeight, entries.Count)
-        for var i = scrollOffset;
-        i < end;
-        i++ {
+        for var i = scrollOffset; i < end; i++ {
             let entry = entries[i]
             let isCursor = i == cursor
             let pointer = if isCursor {

@@ -15,9 +15,7 @@ class Crypto {
         func Sha1(blocks ...(Bytes[]uint8, Start int32, Length int32))[]uint8 {
             using let sha = SHA1.Create()
             var i = 0
-            for;
-            i < blocks.Length - 1;
-            i++ {
+            for ; i < blocks.Length - 1; i++ {
                 sha.TransformBlock(blocks[i].Bytes, blocks[i].Start, blocks[i].Length, nil, 0)
             }
             sha.TransformFinalBlock(blocks[i].Bytes, blocks[i].Start, blocks[i].Length)

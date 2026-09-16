@@ -42,9 +42,7 @@ open class StszBox : FullBox, IStszBox {
             sampleSizes16 = List[uint16](origSampleCount)
             CollectionsMarshal.SetCount(sampleSizes16!!, origSampleCount)
             let shortListSpan = CollectionsMarshal.AsSpan(sampleSizes16)
-            for var i = 0;
-            i < origSampleCount;
-            i++ {
+            for var i = 0; i < origSampleCount; i++ {
                 shortListSpan[i] = uint16(intListSpan[i])
             }
             CollectionsMarshal.SetCount(sampleSizes32!!, 0)
@@ -77,13 +75,13 @@ open class StszBox : FullBox, IStszBox {
 
     prop SampleCount int32 -> sampleSizes32?.Count ?? sampleSizes16?.Count ?? origSampleCount
     prop MaxSize int32 -> sampleSizes32?.Max() ?? sampleSizes16?.Max() ?? SampleSize
-    prop TotalSize int64 -> sampleSizes32?.Sum((s int32) -> int64(s)) ?? sampleSizes16?.Sum(
-        (s uint16) -> int64(s)
-    ) ?? int64(SampleSize * origSampleCount)
+    prop TotalSize int64 -> sampleSizes32?.Sum((s int32) -> int64(s)) ?? sampleSizes16?.Sum((s uint16) -> int64(s)) ??
+        int64(SampleSize * origSampleCount)
 
     func GetSizeAtIndex(index int32) int32 -> sampleSizes32?[index] ?? sampleSizes16?[index] ?? SampleSize
 
-    func SumFirstNSizes(firstN int32) int64 -> sampleSizes32?.Take(firstN).Sum((s int32) -> int64(s)) ?? sampleSizes16
+    func SumFirstNSizes(firstN int32) int64 -> sampleSizes32?.Take(firstN).Sum((s int32) -> int64(s)) ??
+        sampleSizes16
         ?.Take(firstN).Sum((s uint16) -> int64(s)) ?? int64(SampleSize) * int64(firstN)
 
     protected open override func Render(file Stream) {

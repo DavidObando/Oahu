@@ -124,7 +124,13 @@ internal class WindowsConsoleInput {
                     let alt = (state & (LeftAltPressed | RightAltPressed)) != 0
                     let control = (state & (LeftCtrlPressed | RightCtrlPressed)) != 0
                     return ShellInputEvent.FromKey(
-                        ConsoleKeyInfo(char(ke.UnicodeChar), cast[ConsoleKey](int32(ke.VirtualKeyCode)), shift, alt, control)
+                        ConsoleKeyInfo(
+                            char(ke.UnicodeChar),
+                            cast[ConsoleKey](int32(ke.VirtualKeyCode)),
+                            shift,
+                            alt,
+                            control
+                        )
                     )
                 }
                 if rec.EventType == MouseEventType {
@@ -180,7 +186,6 @@ internal class WindowsConsoleInput {
         private const RightCtrlPressed uint32 = uint32(0x0004)
         private const WaitObject0 uint32 = uint32(0)
         private const Infinite uint32 = uint32(0xFFFFFFFF)
-
 
         @DllImport("kernel32.dll", SetLastError: true)
         private func GetStdHandle(nStdHandle int32) nint;

@@ -39,9 +39,7 @@ unsafe class AesCtr : IDisposable {
                     while count >= AesBlockSize {
                         encryptor.TransformBlock(iv, 0, AesBlockSize, encryptedCounter, 0)
                         IncrementBE(iv)
-                        for var i = 0;
-                        i < aesNumDwords;
-                        i++ {
+                        for var i = 0; i < aesNumDwords; i++ {
                             *pD32 = pEc32[i] ^ *pS32
                             pD32++
                             pS32++

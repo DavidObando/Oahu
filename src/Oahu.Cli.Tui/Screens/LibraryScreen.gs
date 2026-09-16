@@ -154,9 +154,7 @@ class LibraryScreen : ITabScreen {
         AdjustScroll(listHeight)
         let end = Math.Min(scrollOffset + listHeight, filtered.Count)
         let cursorBg = Tokens.InputBackground.Value
-        for var i = scrollOffset;
-        i < end;
-        i++ {
+        for var i = scrollOffset; i < end; i++ {
             let item = filtered[i]
             let isCursor = i == cursor
             let isSel = selected.Contains(item.Asin)
@@ -194,7 +192,7 @@ class LibraryScreen : ITabScreen {
             let authorCell = Truncate(authors, authorWidth).PadRight(authorWidth)
             let runtimeCell = runtime.PadLeft(runtimeWidth)
             let rowText =
-                "$pointer $mark [$style]${Markup.Escape(titleCell)}[/] [$tertiary]${Markup.Escape(authorCell)}[/][$tertiary]${Markup.Escape(runtimeCell)}[/]"
+            "$pointer $mark [$style]${Markup.Escape(titleCell)}[/] [$tertiary]${Markup.Escape(authorCell)}[/][$tertiary]${Markup.Escape(runtimeCell)}[/]"
             if isCursor && Tokens.HasBackdrop {
                 // Full-width highlight for the cursor row.
                 lines.Add(Widgets.Backdrop(Markup(rowText), cursorBg, padLeft: 2, padRight: 1))
@@ -236,9 +234,7 @@ class LibraryScreen : ITabScreen {
             } else if cover.State == Widgets.CoverArt.CoverState.Pending {
                 coverPending = true
                 let ph = String('░', Math.Max(1, coverWidth))
-                for var r = 0;
-                r < Math.Max(1, coverWidth / 2);
-                r++ {
+                for var r = 0; r < Math.Max(1, coverWidth / 2); r++ {
                     lines.Add(Markup("[$tertiary]$ph[/]"))
                 }
                 lines.Add(Markup(" "))
@@ -269,7 +265,9 @@ class LibraryScreen : ITabScreen {
             facts.Add(FormatRuntime(runtime))
         }
         if item.PurchaseDate is {} purchased {
-            facts.Add("added ${purchased.ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}")
+            facts.Add(
+                "added ${purchased.ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"
+            )
         }
         if item.HasMultiplePartFiles {
             facts.Add("multi-part")
@@ -443,9 +441,7 @@ class LibraryScreen : ITabScreen {
         if !Tokens.HasBackdrop || Icons.Icons.ForceAscii {
             return
         }
-        let covers = allItems
-            .Select((i LibraryItem) -> (Path: i.CoverImagePath, Url: i.CoverImageUrl))
-            .ToArray()
+        let covers = allItems.Select((i LibraryItem) -> (Path: i.CoverImagePath, Url: i.CoverImageUrl)).ToArray()
         Widgets.CoverArt.Prefetch(covers)
     }
 

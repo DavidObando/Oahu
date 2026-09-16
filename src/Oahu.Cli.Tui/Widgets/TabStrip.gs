@@ -37,9 +37,7 @@ class TabStrip {
         // back to inverse video so the active tab stays visible without colour.
         let hasBackdrop = Tokens.HasBackdrop
         let sb = StringBuilder()
-        for var i = 0;
-        i < Titles.Count;
-        i++ {
+        for var i = 0; i < Titles.Count; i++ {
             let num = (i + 1).ToString(CultureInfo.InvariantCulture)
             let label = num + " " + Titles[i].ToLowerInvariant()
             if i > 0 {
@@ -56,11 +54,7 @@ class TabStrip {
                 } else {
                     sb.Append("[invert bold]")
                 }
-                sb
-                    .Append(' ')
-                    .Append(Markup.Escape(label))
-                    .Append(' ')
-                    .Append("[/]")
+                sb.Append(' ').Append(Markup.Escape(label)).Append(' ').Append("[/]")
             } else {
                 sb
                     .Append('[')
@@ -93,9 +87,7 @@ class TabStrip {
             return -1
         }
         var pos = 0
-        for var i = 0;
-        i < Titles.Count;
-        i++ {
+        for var i = 0; i < Titles.Count; i++ {
             if i > 0 {
                 pos += 1
             }

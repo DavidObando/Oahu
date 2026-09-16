@@ -17,9 +17,7 @@ open class Dec3Box : Box {
         let num_ind_sub = reader.Read(3)
         Debug.Assert(num_ind_sub == uint32(0))
         IndependentSubstream = [int32(num_ind_sub + uint32(1))]Ec3IndependentSubstream
-        for var i = 0;
-        int64(i) <= int64(num_ind_sub);
-        i++ {
+        for var i = 0; int64(i) <= int64(num_ind_sub); i++ {
             IndependentSubstream[i] = Ec3IndependentSubstream(reader)
         }
         let indSample = IndependentSubstream.First()

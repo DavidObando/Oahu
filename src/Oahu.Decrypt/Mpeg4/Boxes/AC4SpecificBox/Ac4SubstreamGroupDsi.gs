@@ -21,9 +21,7 @@ class Ac4SubstreamGroupDsi {
         BChannelCoded = reader.ReadBool()
         NSubstreams = uint8(reader.Read(8))
         Substreams = [int32(NSubstreams)]Ac4Substream
-        for var i = 0;
-        i < int32(NSubstreams);
-        i++ {
+        for var i = 0; i < int32(NSubstreams); i++ {
             Substreams[i] = Ac4Substream(this, reader)
         }
         BContentType = reader.ReadBool()
@@ -33,9 +31,7 @@ class Ac4SubstreamGroupDsi {
             if BLanguageIndicator!! {
                 NLanguageTagBytes = uint8(reader.Read(6))
                 LanguageTagBytes = [NLanguageTagBytes!!]uint8
-                for var i = 0;
-                i < LanguageTagBytes!!.Length;
-                i++ {
+                for var i = 0; i < LanguageTagBytes!!.Length; i++ {
                     LanguageTagBytes!![i] = uint8(reader.Read(8))
                 }
             }

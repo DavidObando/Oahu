@@ -189,9 +189,7 @@ class HomeScreen : ITabScreen {
         let brand = Tokens.Brand.Value.ToMarkup()
         let actions = QuickActions()
         actionCursor = Math.Clamp(actionCursor, 0, Math.Max(0, actions.Count - 1))
-        for var i = 0;
-        i < actions.Count;
-        i++ {
+        for var i = 0; i < actions.Count; i++ {
             let isCursor = i == actionCursor
             let pointer = if isCursor {
                 "[$brand]❯[/]"
@@ -204,9 +202,15 @@ class HomeScreen : ITabScreen {
                 secondary
             }
             let rowText =
-                "  $pointer [$style]${Markup.Escape(actions[i].Label)}[/]  [$tertiary]${Markup.Escape(actions[i].KeyHint)}[/]"
+            "  $pointer [$style]${Markup.Escape(actions[i].Label)}[/]  [$tertiary]${Markup.Escape(actions[i].KeyHint)}[/]"
             if isCursor && Tokens.HasBackdrop {
-                lines.Add(Oahu.Cli.Tui.Widgets.Backdrop(Markup(rowText), Tokens.InputBackground.Value, padLeft: 0, padRight: 1))
+                lines.Add(
+                    Oahu
+                        .Cli
+                        .Tui
+                        .Widgets
+                        .Backdrop(Markup(rowText), Tokens.InputBackground.Value, padLeft: 0, padRight: 1)
+                )
             } else {
                 lines.Add(Markup(rowText))
             }

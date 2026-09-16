@@ -77,9 +77,7 @@ class KnightRiderAnimation {
         let state = GetScannerState(frame)
         let fade = ComputeFade(state)
         let sb = StringBuilder()
-        for var charIndex = 0;
-        charIndex < width;
-        charIndex++ {
+        for var charIndex = 0; charIndex < width; charIndex++ {
             let colorIndex = CalculateColorIndex(charIndex, state)
             var glyph char
             var color Color
@@ -158,10 +156,7 @@ class KnightRiderAnimation {
             return Math.Max(minAlpha, 1d - (progress * (1d - minAlpha)))
         }
         if !state.IsHolding && state.MovementTotal > 0 {
-            let progress = Math.Min(
-                float64(state.MovementProgress) / float64(Math.Max(1, state.MovementTotal - 1)),
-                1d
-            )
+            let progress = Math.Min(float64(state.MovementProgress) / float64(Math.Max(1, state.MovementTotal - 1)), 1d)
             return minAlpha + (progress * (1d - minAlpha))
         }
         return 1.0d
@@ -186,9 +181,7 @@ class KnightRiderAnimation {
         /// alpha decay behind it.
         func DeriveTrailColors(brightColor Color, steps int32 = 6)[]AlphaColor {
             let colors = [Math.Max(1, steps)]AlphaColor
-            for var i = 0;
-            i < colors.Length;
-            i++ {
+            for var i = 0; i < colors.Length; i++ {
                 var alpha float64
                 var brightness float64
                 if i == 0 {

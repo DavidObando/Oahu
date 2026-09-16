@@ -23,16 +23,15 @@ class Overlay : IRenderable {
     func Measure(options RenderOptions, maxWidth int32) Measurement -> Measurement(maxWidth, maxWidth)
 
     func Render(options RenderOptions, maxWidth int32) IEnumerable[Segment] {
-        let baseLines = Segment.SplitLines(baseFrame.Render(options, maxWidth))
+        let baseLines = Segment
+            .SplitLines(baseFrame.Render(options, maxWidth))
             .Select((l SegmentLine) -> List[Segment](l))
             .ToList()
         let mw = Math.Min(modalWidth, maxWidth)
         let modalLines = Segment.SplitLines(modal.Render(options, mw))
         let left = Math.Max(0, (maxWidth - mw) / 2)
         let top = Math.Max(0, (baseLines.Count - modalLines.Count) / 2)
-        for var j = 0;
-        j < modalLines.Count;
-        j++ {
+        for var j = 0; j < modalLines.Count; j++ {
             let idx = top + j
             if idx < 0 || idx >= baseLines.Count {
                 continue

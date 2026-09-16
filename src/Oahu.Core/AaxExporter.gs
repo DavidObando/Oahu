@@ -175,9 +175,7 @@ class AaxExporter {
         if AccuChapters.Count < 2 {
             return false
         }
-        for var i = 0;
-        i < AccuChapters.Count - 1;
-        i++ {
+        for var i = 0; i < AccuChapters.Count - 1; i++ {
             let chextr ChapterExtract? = AccuChapters[i].FirstOrDefault(
                 (ce ChapterExtract) -> string.Equals(ce.Title, ch.Title) && Math.Abs(ce.Length - ch.LengthMs) < 1500 &&
                     ch.LengthMs < 25000
@@ -190,9 +188,7 @@ class AaxExporter {
     }
 
     private func UpdateAccuChapters(accuPart List[List[ChapterExtract]]) {
-        for var i = 0;
-        i < accuPart.Count;
-        i++ {
+        for var i = 0; i < accuPart.Count; i++ {
             if AccuChapters.Count < i + 1 {
                 AccuChapters.Add(List[ChapterExtract]())
             }

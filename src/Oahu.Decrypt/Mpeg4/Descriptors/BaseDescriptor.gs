@@ -49,9 +49,8 @@ open class BaseDescriptor {
         }
     }
 
-    func GetChildOrThrow[T BaseDescriptor]() T -> GetChild[T]() ?? throw InvalidDataException(
-        "Descriptor does not contain a child of type ${typeof(T)}"
-    )
+    func GetChildOrThrow[T BaseDescriptor]() T -> GetChild[T]() ??
+        throw InvalidDataException("Descriptor does not contain a child of type ${typeof(T)}")
 
     func GetChildren[T BaseDescriptor]() IEnumerable[T] {
         return Children.OfType[T]()

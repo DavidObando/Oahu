@@ -87,9 +87,7 @@ class LogRingBuffer : ILoggerProvider {
             let result = [count]LogEntry
             // Oldest entry sits at (head - count) mod len.
             let start = (head - count + ring.Length) % ring.Length
-            for var i = 0;
-            i < count;
-            i++ {
+            for var i = 0; i < count; i++ {
                 result[i] = ring[(start + i) % ring.Length]
             }
             return result

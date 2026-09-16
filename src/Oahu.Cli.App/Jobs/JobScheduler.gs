@@ -86,9 +86,7 @@ class JobScheduler : IJobService, IAsyncDisposable {
             }
         )
         workers = [Math.Max(1, this.options.MaxParallelism)]Task
-        for var i = 0;
-        i < workers.Length;
-        i++ {
+        for var i = 0; i < workers.Length; i++ {
             workers[i] = Task.Run(WorkerLoopAsync)
         }
     }

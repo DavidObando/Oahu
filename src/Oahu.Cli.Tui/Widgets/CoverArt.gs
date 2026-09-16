@@ -1,5 +1,9 @@
 package Oahu.Cli.Tui.Widgets
 
+import SixLabors.ImageSharp
+import SixLabors.ImageSharp.PixelFormats
+import SixLabors.ImageSharp.Processing
+import Spectre.Console
 import System
 import System.Collections.Concurrent
 import System.Collections.Generic
@@ -8,10 +12,6 @@ import System.Net.Http
 import System.Text
 import System.Threading
 import System.Threading.Tasks
-import SixLabors.ImageSharp
-import SixLabors.ImageSharp.PixelFormats
-import SixLabors.ImageSharp.Processing
-import Spectre.Console
 
 /// Renders book cover art as truecolor half-block (`▀`) rows — two image pixels
 /// per terminal cell — which works in any truecolor terminal without graphics
@@ -147,8 +147,22 @@ class CoverArt {
         /// Quadrant glyphs indexed by a 4-bit "foreground" mask:
         /// bit 1 = upper-left, 2 = upper-right, 4 = lower-left, 8 = lower-right.
         private let QuadrantGlyphs[]string = []string{
-            " ", "▘", "▝", "▀", "▖", "▌", "▞", "▛",
-            "▗", "▚", "▐", "▜", "▄", "▙", "▟", "█"
+            " ",
+            "▘",
+            "▝",
+            "▀",
+            "▖",
+            "▌",
+            "▞",
+            "▛",
+            "▗",
+            "▚",
+            "▐",
+            "▜",
+            "▄",
+            "▙",
+            "▟",
+            "█"
         }
 
         private func Decode(path string, widthCells int32) CoverResult {
@@ -167,13 +181,9 @@ class CoverArt {
                 let pixels = [pxWidth * pxHeight]Rgba32
                 image.CopyPixelDataTo(pixels)
                 let lines = List[string](rows)
-                for var row = 0;
-                row < rows;
-                row++ {
+                for var row = 0; row < rows; row++ {
                     let sb = StringBuilder(widthCells * 28)
-                    for var cx = 0;
-                    cx < widthCells;
-                    cx++ {
+                    for var cx = 0; cx < widthCells; cx++ {
                         AppendQuadrantCell(sb, pixels, pxWidth, cx, row)
                     }
                     lines.Add(sb.ToString())
@@ -197,10 +207,10 @@ class CoverArt {
             }
             var lumaSum = 0.0d
             let luma = [4]float64
-            for var i = 0;
-            i < 4;
-            i++ {
-                luma[i] = (0.2126d * float64(quad[i].R)) + (0.7152d * float64(quad[i].G)) + (0.0722d * float64(quad[i].B))
+            for var i = 0; i < 4; i++ {
+                luma[i] = (0.2126d * float64(quad[i].R)) +
+                    (0.7152d * float64(quad[i].G)) +
+                    (0.0722d * float64(quad[i].B))
                 lumaSum += luma[i]
             }
             let mean = lumaSum / 4.0d
@@ -213,9 +223,7 @@ class CoverArt {
             var bg = 0
             var bb = 0
             var bn = 0
-            for var i = 0;
-            i < 4;
-            i++ {
+            for var i = 0; i < 4; i++ {
                 if luma[i] >= mean {
                     mask |= 1 << i
                     fr += int32(quad[i].R)

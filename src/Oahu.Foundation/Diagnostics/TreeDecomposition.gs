@@ -305,7 +305,8 @@ internal class TreeDecomposition[T IPrimitiveTypes init()] {
             .GetInterfaces()
             .Where((t Type) -> t.IsGenericType && t.GetGenericTypeDefinition().Equals(typeof(IEnumerable[_])))
             .Select((t Type) -> t.GetGenericArguments()[0])
-            .FirstOrDefault() ?? typeof(object)
+            .FirstOrDefault() ??
+            typeof(object)
         let desc string? = GetTypeDesc(itemType, flags, true)
         // if (!desc.IsNull())
         //  ; // for debug

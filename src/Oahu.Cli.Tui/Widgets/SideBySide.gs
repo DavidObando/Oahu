@@ -32,9 +32,7 @@ class SideBySide : IRenderable {
         let rightLines = Segment.SplitLines(right.Render(options, rightWidth))
         let rows = Math.Max(leftLines.Count, rightLines.Count)
         let outLines = List[List[Segment]](rows)
-        for var i = 0;
-        i < rows;
-        i++ {
+        for var i = 0; i < rows; i++ {
             let row = List[Segment]()
             let leftLine = if i < leftLines.Count {
                 cast[IReadOnlyList[Segment]](leftLines[i])

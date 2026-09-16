@@ -89,9 +89,8 @@ class AudibleJobExecutor : IJobExecutor {
             yield break
         }
         let client = clientFactory()
-        let api = client.Api ?? throw InvalidOperationException(
-            "AudibleClient.Api is null after EnsureProfileLoadedAsync returned true."
-        )
+        let api = client.Api ??
+            throw InvalidOperationException("AudibleClient.Api is null after EnsureProfileLoadedAsync returned true.")
         let book Book? = api.GetBooks()?.FirstOrDefault(
             (b Book) -> string.Equals(b.Asin, request.Asin, StringComparison.OrdinalIgnoreCase)
         )
@@ -204,7 +203,8 @@ class AudibleJobExecutor : IJobExecutor {
                         progress,
                         CliCancellation(linkedToken),
                         convertAction
-                    ).ConfigureAwait(false)
+                    )
+                        .ConfigureAwait(false)
                 } finally {
                     channel.Writer.TryComplete()
                 }

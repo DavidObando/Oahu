@@ -32,7 +32,8 @@ class MacHardwareIdProvider : IHardwareIdProvider {
             // Hardware UUID is the macOS equivalent of a motherboard serial
             cachedMotherboardId = RunCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")?.ExtractIoregValue(
                 "IOPlatformUUID"
-            ) ?? string.Empty
+            ) ??
+                string.Empty
             return cachedMotherboardId
         } catch (Exception) {
             return string.Empty
@@ -42,9 +43,8 @@ class MacHardwareIdProvider : IHardwareIdProvider {
     func GetMotherboardPnpDeviceId() string? {
         try {
             // Serial number serves as a secondary identifier on macOS
-            return RunCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")?.ExtractIoregValue(
-                "IOPlatformSerialNumber"
-            ) ?? string.Empty
+            return RunCommand("ioreg", "-rd1 -c IOPlatformExpertDevice")?.ExtractIoregValue("IOPlatformSerialNumber") ??
+                string.Empty
         } catch (Exception) {
             return string.Empty
         }

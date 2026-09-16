@@ -102,9 +102,8 @@ class MacOsKeychainCredentialStore : ICredentialStore {
         using let timeoutCts = CancellationTokenSource(DefaultTimeout)
         using let linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token)
         let token = linkedCts.Token
-        using let proc = Process.Start(psi) ?? throw CredentialStoreUnavailableException(
-            "Could not start $securityBinary."
-        )
+        using let proc = Process.Start(psi) ??
+            throw CredentialStoreUnavailableException("Could not start $securityBinary.")
         let stdoutTask = proc.StandardOutput.ReadToEndAsync(token)
         let stderrTask = proc.StandardError.ReadToEndAsync(token)
         try {

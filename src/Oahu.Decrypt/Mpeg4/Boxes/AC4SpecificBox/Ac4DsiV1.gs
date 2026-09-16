@@ -48,9 +48,7 @@ class Ac4DsiV1 {
         Ac4BitrateDsi = Ac4BitrateDsi(reader)
         reader.ByteAlign()
         Presentations = [int32(NPresentations)]object
-        for var i = 0;
-        i < int32(NPresentations);
-        i++ {
+        for var i = 0; i < int32(NPresentations); i++ {
             var presentationBytes uint32
             let presentationVersion = reader.Read(8)
             var presBytes = reader.Read(8)

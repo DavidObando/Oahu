@@ -14,9 +14,7 @@ open class HdlrBox : FullBox {
         HandlerType = Encoding.UTF8.GetString(file.ReadBlock(4))
         reserved = file.ReadBlock(12)
         let readToEnd = file.ReadBlock(int32((endPos - file.Position)))
-        for var i = readToEnd.Length - 1;
-        i >= 0 && readToEnd[i] == uint8(0);
-        i-- {
+        for var i = readToEnd.Length - 1; i >= 0 && readToEnd[i] == uint8(0); i-- {
             NullTerminatorCount++
         }
         HandlerName = Encoding.UTF8.GetString(readToEnd, 0, readToEnd.Length - NullTerminatorCount)

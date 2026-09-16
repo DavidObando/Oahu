@@ -55,7 +55,14 @@ class Backdrop : IRenderable {
             Style.Plain
         }
         let barStyle = if accent is {} a {
-            Style(foreground: a, background: if paint { background } else { Color.Default })
+            Style(
+                foreground: a,
+                background: if paint {
+                    background
+                } else {
+                    Color.Default
+                }
+            )
         } else {
             bg
         }
@@ -67,9 +74,7 @@ class Backdrop : IRenderable {
         let innerWidth = Math.Max(1, maxWidth - barWidth - padLeft - padRight)
         let lines = Segment.SplitLines(child.Render(options, innerWidth))
         let outLines = List[List[Segment]]()
-        for var i = 0;
-        i < padTop;
-        i++ {
+        for var i = 0; i < padTop; i++ {
             outLines.Add(FrameLine(maxWidth, barWidth, barStyle, bg))
         }
         for line in lines {
@@ -94,9 +99,7 @@ class Backdrop : IRenderable {
             }
             outLines.Add(row)
         }
-        for var i = 0;
-        i < padBottom;
-        i++ {
+        for var i = 0; i < padBottom; i++ {
             outLines.Add(FrameLine(maxWidth, barWidth, barStyle, bg))
         }
         while outLines.Count < minHeight {

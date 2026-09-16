@@ -77,9 +77,7 @@ class SortableTable {
     /// Build a fresh Spectre (cref:Table) with the current header + row state.
     func Build() Table {
         let t = Table()
-        for var i = 0;
-        i < headers.Count;
-        i++ {
+        for var i = 0; i < headers.Count; i++ {
             let marker = if i == sortColumn {
                 (
                     if sortAscending {

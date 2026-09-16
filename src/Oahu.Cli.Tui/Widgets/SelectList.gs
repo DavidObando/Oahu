@@ -44,9 +44,7 @@ class SelectList[T] {
 
     func Render() IRenderable {
         let sb = StringBuilder()
-        for var i = 0;
-        i < Items.Count;
-        i++ {
+        for var i = 0; i < Items.Count; i++ {
             if i > 0 {
                 sb.Append('\n')
             }

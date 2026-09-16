@@ -18,9 +18,7 @@ open class SidxBox : FullBox {
         let _ = file.ReadInt16BE()
         let referenceCount int32 = file.ReadUInt16BE()
         Segments = [referenceCount]Segment
-        for var i = 0;
-        i < Segments.Length;
-        i++ {
+        for var i = 0; i < Segments.Length; i++ {
             Segments[i] = Segment(file)
         }
     }

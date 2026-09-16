@@ -52,9 +52,8 @@ open class Mp4aWriter : IDisposable {
             .Minf
             .Stbl
             .Stsd
-            .AudioSampleEntry ?? throw InvalidDataException(
-            "Audio track's stsd box does not contain an ${"AudioSampleEntry"}"
-        )
+            .AudioSampleEntry ??
+            throw InvalidDataException("Audio track's stsd box does not contain an ${"AudioSampleEntry"}")
         ftyp.Save(OutputFile)
         mdatStart = OutputFile.Position
         // Placeholder mdat header

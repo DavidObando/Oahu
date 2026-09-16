@@ -167,9 +167,7 @@ class JobsScreen : ITabScreen, ITerminalProgressProvider {
         if cursor < 0 {
             cursor = 0
         }
-        for var i = 0;
-        i < snap.Count;
-        i++ {
+        for var i = 0; i < snap.Count; i++ {
             let s = snap[i]
             let pointer = if i == cursor {
                 "[$brand]❯[/]"

@@ -313,9 +313,7 @@ func (cookieContainer CookieContainer?) CookiesToString(uri Uri?) string? {
     }
     let sb = StringBuilder()
     sb.Append("${cookies.GetType().Name}:")
-    for var i = 0;
-    i < cookies.Count;
-    i++ {
+    for var i = 0; i < cookies.Count; i++ {
         let cookie = cookies[i]
         sb.Append("${Environment.NewLine}  ${cookie.Name} = ${cookie.Value}")
     }
@@ -334,9 +332,7 @@ async func (content HttpContent?) ContentToStringAsync(creds Credentials? = nil)
     let nvc = HttpUtility.ParseQueryString(reqContentString)
     let sb = StringBuilder()
     sb.Append("${content.GetType().Name}:")
-    for var i = 0;
-    i < nvc.Count;
-    i++ {
+    for var i = 0; i < nvc.Count; i++ {
         let key string? = nvc.GetKey(i)
         let values[]?string = nvc.GetValues(i)
         for val in values!! {

@@ -69,9 +69,7 @@ class SymmetricEncryptor {
                 let signatureTagExpected = hmac.ComputeHash(encryptedData, 0, payloadToSignLength)
                 // constant time checking to prevent timing attacks
                 var signatureVerificationResult = 0
-                for var i = 0;
-                i < signatureTag.Length;
-                i++ {
+                for var i = 0; i < signatureTag.Length; i++ {
                     signatureVerificationResult |= signatureTag[i] ^ signatureTagExpected[i]
                 }
                 if signatureVerificationResult != 0 {
@@ -83,11 +81,7 @@ class SymmetricEncryptor {
                 using let aes = Aes.Create()
                 {
                     using let encryptor = aes.CreateDecryptor(key, iv)
-                    let decryptedBytes = encryptor.TransformFinalBlock(
-                        encryptedData,
-                        cipherTextIndex,
-                        cipherTextLength
-                    )
+                    let decryptedBytes = encryptor.TransformFinalBlock(encryptedData, cipherTextIndex, cipherTextLength)
                     return StringEncoding.GetString(decryptedBytes)
                 }
             }
@@ -113,9 +107,7 @@ class SymmetricEncryptor {
         private func MergeArrays(additionalCapacity int32 = 0, arrays ...[][]uint8)[]uint8 {
             let merged = [arrays.Sum((a[]uint8) -> a.Length) + additionalCapacity]uint8
             var mergeIndex = 0
-            for var i = 0;
-            i < arrays.GetLength(0);
-            i++ {
+            for var i = 0; i < arrays.GetLength(0); i++ {
                 arrays[i].CopyTo(merged, mergeIndex)
                 mergeIndex += arrays[i].Length
             }

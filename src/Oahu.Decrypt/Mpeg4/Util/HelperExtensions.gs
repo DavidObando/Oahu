@@ -11,9 +11,7 @@ internal class HelperExtensions {
                 let numVectors = ints.Length / vecSize
                 let comparand = Vector256.Create(value)
                 fixed pInts *T = ints {
-                    for var i = 0;
-                    i < numVectors;
-                    i++ {
+                    for var i = 0; i < numVectors; i++ {
                         let intVector = Vector256.Load(pInts + vecSize * i)
                         if !Vector256.LessThanOrEqualAll(intVector, comparand) {
                             checkedcount = vecSize * i
@@ -32,9 +30,7 @@ internal class HelperExtensions {
                 let numVectors = ints.Length / vecSize
                 let comparand = Vector512.Create(value)
                 fixed pInts *T = ints {
-                    for var i = 0;
-                    i < numVectors;
-                    i++ {
+                    for var i = 0; i < numVectors; i++ {
                         let intVector = Vector512.Load(pInts + vecSize * i)
                         if !Vector512.LessThanOrEqualAll(intVector, comparand) {
                             checkedcount = vecSize * i
@@ -64,9 +60,7 @@ func (ints Span[T]) AllLessThanOrEqual[T IComparable[T]unmanaged](value T) bool 
         if !result {
             return false
         }
-        for var i = checkedCount;
-        i < ints.Length;
-        i++ {
+        for var i = checkedCount; i < ints.Length; i++ {
             if ints[i].CompareTo(value) == 1 {
                 return false
             }

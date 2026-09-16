@@ -162,9 +162,7 @@ func (s string?) SubstitUser() string? {
 func (value string) Rot13() string {
     const C = 13
     let array = value.ToCharArray()
-    for var i = 0;
-    i < array.Length;
-    i++ {
+    for var i = 0; i < array.Length; i++ {
         var number = int32(array[i])
         if number >= int32('a') && number <= int32('z') {
             if number > int32('m') {
@@ -383,9 +381,7 @@ class ExImage {
             if data!!.Length < signature.Length {
                 return false
             }
-            for var i = 0;
-            i < signature.Length;
-            i++ {
+            for var i = 0; i < signature.Length; i++ {
                 if (data!![i] != signature[i]) {
                     return false
                 }

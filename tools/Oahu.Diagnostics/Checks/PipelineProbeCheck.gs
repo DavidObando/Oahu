@@ -160,9 +160,7 @@ class PipelineProbeCheck {
                     inputStream.Position = chunk.ChunkOffset
                     await inputStream.ReadExactlyAsync(chunkData)
                     var offset = 0
-                    for var f = 0;
-                    f < chunk.FrameSizes.Length && framesDecrypted < framesToTest;
-                    f++ {
+                    for var f = 0; f < chunk.FrameSizes.Length && framesDecrypted < framesToTest; f++ {
                         let frameSize = chunk.FrameSizes[f]
                         let frameData = chunkData.AsSpan(offset, frameSize)
                         if frameSize >= 16 {

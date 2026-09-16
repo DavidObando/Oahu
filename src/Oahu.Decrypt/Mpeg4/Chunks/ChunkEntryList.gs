@@ -36,9 +36,7 @@ class ChunkEntryList : IReadOnlyCollection[ChunkEntry] {
 
     private func EnumerateChunks() sequence[ChunkEntry] {
         var startSample int64 = 0
-        for var chunkIndex = 0;
-        chunkIndex < Count;
-        chunkIndex++ {
+        for var chunkIndex = 0; chunkIndex < Count; chunkIndex++ {
             let chunkOffset = chunkOffsets.GetOffsetAtIndex(chunkIndex)
             let chunkFrames = chunkFrameTable[chunkIndex]
             let (frameSizes, totalChunkSize) = stsz.GetFrameSizes(

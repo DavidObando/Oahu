@@ -18,7 +18,10 @@ internal class Resources {
         prop ResourceManager System.Resources.ResourceManager {
             get {
                 if resourceMan == nil {
-                    var temp = System.Resources.ResourceManager("Oahu.Core.Properties.Resources", typeof(Resources).Assembly)
+                    var temp = System.Resources.ResourceManager(
+                        "Oahu.Core.Properties.Resources",
+                        typeof(Resources).Assembly
+                    )
                     resourceMan = temp
                 }
 
@@ -29,8 +32,12 @@ internal class Resources {
         /// Overrides the current thread's CurrentUICulture property for all
         /// resource lookups using this strongly typed resource class.
         prop Culture System.Globalization.CultureInfo? {
-            get { return resourceCulture }
-            set { resourceCulture = value }
+            get {
+                return resourceCulture
+            }
+            set {
+                resourceCulture = value
+            }
         }
 
         /// Looks up a localized string similar to .m4b.

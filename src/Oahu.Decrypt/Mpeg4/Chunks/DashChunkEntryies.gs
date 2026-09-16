@@ -85,10 +85,7 @@ class DashChunkEntryies : IEnumerable[ChunkEntry] {
                 yield trackChunk
             } else {
                 // Skip over mdat to next moof
-                let endOfMdat = InputStream.Position +
-                    mdatBox
-                    .Header
-                    .TotalBoxSize - int64(mdatBox.Header.HeaderSize)
+                let endOfMdat = InputStream.Position + mdatBox.Header.TotalBoxSize - int64(mdatBox.Header.HeaderSize)
                 InputStream.SeekToOffset(endOfMdat)
             }
             if InputStream.Position < endOfFile {

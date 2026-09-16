@@ -232,8 +232,9 @@ class HistoryCommand {
                     }
                     let writer = OutputWriterFactory.Create(ConfigCommand.BuildContext(globals))
                     let jobService = CliServiceFactory.JobServiceFactory()
-                    return await DownloadCommand.RunAsync(jobService, []JobRequest{request}, writer, ct)
-                        .ConfigureAwait(false)
+                    return await DownloadCommand.RunAsync(jobService, []JobRequest{request}, writer, ct).ConfigureAwait(
+                        false
+                    )
                 }
             )
             return c

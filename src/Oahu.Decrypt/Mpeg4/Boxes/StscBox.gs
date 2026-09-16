@@ -57,9 +57,7 @@ open class StscBox : FullBox {
         let table = [int32(numChunks)]ChunkFrames
         var firstFrameIndex uint32 = uint32(0)
         var lastStscIndex = 0
-        for var chunk uint32 = uint32(1);
-        chunk <= numChunks;
-        chunk++ {
+        for var chunk uint32 = uint32(1); chunk <= numChunks; chunk++ {
             if lastStscIndex + 1 < Samples.Count && chunk == Samples[lastStscIndex + 1].FirstChunk {
                 lastStscIndex++
             }

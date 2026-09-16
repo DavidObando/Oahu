@@ -24,7 +24,8 @@ class FixedHeight : IRenderable {
     func Measure(options RenderOptions, maxWidth int32) Measurement -> Measurement(maxWidth, maxWidth)
 
     func Render(options RenderOptions, maxWidth int32) IEnumerable[Segment] {
-        var lines = Segment.SplitLines(child.Render(options, maxWidth))
+        var lines = Segment
+            .SplitLines(child.Render(options, maxWidth))
             .Select((l SegmentLine) -> SegmentGrid.PadLine(l, maxWidth, fill))
             .ToList()
         if lines.Count > height {

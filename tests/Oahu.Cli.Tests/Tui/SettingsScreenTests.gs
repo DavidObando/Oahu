@@ -99,9 +99,7 @@ class SettingsScreenTests : IDisposable {
         )
         screen.Reload()
         // Move cursor to the Theme row (index 7).
-        for var i = 0;
-        i < 7;
-        i++ {
+        for var i = 0; i < 7; i++ {
             screen.HandleKey(Key('j', ConsoleKey.J))
         }
         Assert.Equal(7, screen.CursorIndex)
@@ -124,15 +122,11 @@ class SettingsScreenTests : IDisposable {
             }
         )
         screen.Reload()
-        for var i = 0;
-        i < 7;
-        i++ {
+        for var i = 0; i < 7; i++ {
             screen.HandleKey(Key('j', ConsoleKey.J))
         }
         let seen = HashSet[string]()
-        for var i = 0;
-        i < Theme.Available.Count + 1;
-        i++ {
+        for var i = 0; i < Theme.Available.Count + 1; i++ {
             screen.HandleKey(Key(' ', ConsoleKey.Spacebar))
             seen.Add(Theme.Current.Name)
         }

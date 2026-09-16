@@ -69,9 +69,7 @@ class PagerTests {
     shared {
         private func NewPager(viewport int32 = 3, lineCount int32 = 10) Pager {
             let p = Pager{ViewportHeight: viewport}
-            for var i = 0;
-            i < lineCount;
-            i++ {
+            for var i = 0; i < lineCount; i++ {
                 p.Append("line-$i")
             }
             return p

@@ -13,9 +13,7 @@ open class TrunBox : FullBox {
             FirstSampleFlags = file.ReadUInt32BE()
         }
         Samples = [int32(sampleCount)]SampleInfo
-        for var i = 0;
-        int64(i) < int64(sampleCount);
-        i++ {
+        for var i = 0; int64(i) < int64(sampleCount); i++ {
             let sampleDuration uint32? = if SampleDurationPresent {
                 file.ReadUInt32BE()
             } else {
@@ -121,9 +119,7 @@ open class TrunBox : FullBox {
         if FirstSampleFlagsPresent {
             file.WriteUInt32BE(FirstSampleFlags)
         }
-        for var i = 0;
-        i < Samples.Length;
-        i++ {
+        for var i = 0; i < Samples.Length; i++ {
             if SampleDurationPresent {
                 file.WriteUInt32BE(Samples[i].SampleDuration ?? uint32(0))
             }

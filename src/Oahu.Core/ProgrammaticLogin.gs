@@ -333,7 +333,8 @@ internal class ProgrammaticLogin {
                     .OrderByDescending(
                     (a IPAddress) -> !a.IsIPv6LinkLocal && !a.IsIPv6SiteLocal && !a.IsIPv6UniqueLocal
                 )
-                    .FirstOrDefault() ?? IPAddress.IPv6Any
+                    .FirstOrDefault() ??
+                    IPAddress.IPv6Any
             } catch {
                 ip = IPAddress.IPv6Any
             }
@@ -385,9 +386,7 @@ internal class ProgrammaticLogin {
         }
 
         private async func LoadSessionCookiesAsync(client HttpClientEx, baseUri Uri) {
-            for var i = 0;
-            i < MaxSessionCookieTries;
-            i++ {
+            for var i = 0; i < MaxSessionCookieTries; i++ {
                 // Follow redirects to collect all cookies from the chain.
                 // HttpClientEx has AllowAutoRedirect=false, so we follow manually.
                 var response = await client.GetAsync(baseUri)

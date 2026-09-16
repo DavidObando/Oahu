@@ -88,18 +88,12 @@ class ParseErrorRewriter {
             }
             var prev = [b.Length + 1]int32
             var curr = [b.Length + 1]int32
-            for var j = 0;
-            j <= b.Length;
-            j++ {
+            for var j = 0; j <= b.Length; j++ {
                 prev[j] = j
             }
-            for var i = 1;
-            i <= a.Length;
-            i++ {
+            for var i = 1; i <= a.Length; i++ {
                 curr[0] = i
-                for var j = 1;
-                j <= b.Length;
-                j++ {
+                for var j = 1; j <= b.Length; j++ {
                     let cost = if char.ToLowerInvariant(a[i - 1]) == char.ToLowerInvariant(b[j - 1]) {
                         0
                     } else {

@@ -45,9 +45,7 @@ open class TrefBox : Box {
         init(file Stream, parent IBox?) : base(BoxHeader(file), parent) {
             let numTraks = int32(RemainingBoxLength(file)) / 4
             TrackIds = HashSet[uint32](numTraks)
-            for var i = 0;
-            i < numTraks;
-            i++ {
+            for var i = 0; i < numTraks; i++ {
                 TrackIds.Add(file.ReadUInt32BE())
             }
         }

@@ -39,9 +39,7 @@ func (value TEnum) ToDisplayString[TEnum Enum struct, TPunct IChainPunctuation c
     let noSubstitutes = parts.Select((s string) -> s.Length).Min() > 1
     let sb = StringBuilder()
     if noSubstitutes {
-        for var i = 0;
-        i < parts.Length;
-        i++ {
+        for var i = 0; i < parts.Length; i++ {
             parts[i] = (punct!!.Prefix + rm.GetStringEx(parts[i]) + punct!!.Suffix)
         }
         for s in parts {
@@ -51,9 +49,7 @@ func (value TEnum) ToDisplayString[TEnum Enum struct, TPunct IChainPunctuation c
             sb.Append(s)
         }
     } else {
-        for var i = 0;
-        i < parts.Length;
-        i++ {
+        for var i = 0; i < parts.Length; i++ {
             if parts[i].Length > 1 {
                 parts[i] = (punct!!.Prefix + rm.GetStringEx(parts[i]) + punct!!.Suffix)
             } else {
