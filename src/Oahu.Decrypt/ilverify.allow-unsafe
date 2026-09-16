@@ -2,8 +2,11 @@
 #
 # These types use `stackalloc` (Span<byte> over a localloc buffer).
 # `localloc` is inherently unverifiable IL, and the C# compiler emits the same
-# instruction. cs2gs lowers extension methods to the package host type.
-Oahu.Decrypt.Mpeg4.Util.<Program>
+# instruction. cs2gs preserves an extension method's original owner-type
+# identity (gsharp issue #4234), so StreamExtensions' stackalloc-using
+# methods land on their real declaring type rather than the package host
+# type `<Program>`.
+Oahu.Decrypt.Mpeg4.Util.StreamExtensions
 Oahu.Decrypt.Mpeg4.Boxes.Stz2Box
 Oahu.Decrypt.Mpeg4.ID3.APICFrame
 Oahu.Decrypt.Mpeg4.ID3.FrameHeader
