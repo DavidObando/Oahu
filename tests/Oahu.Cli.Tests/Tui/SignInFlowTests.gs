@@ -191,14 +191,23 @@ class SignInFlowTests : IDisposable {
     }
 
     @Fact
-    func SignInFlow_Start_Sets_State() {
+    async func SignInFlow_Start_Sets_State() {
         let state = AppShellState()
         let broker = TuiCallbackBroker()
-        let flow = SignInFlow(SignInFlowTests.FakeAuthService(), SignInFlowTests.FakeLibraryService(), broker, state)
+        let gate = TaskCompletionSource[AuthSession]()
+        let authService = SignInFlowTests.FakeAuthService(gate.Task)
+        let flow = SignInFlow(authService, SignInFlowTests.FakeLibraryService(), broker, state)
         Assert.False(flow.IsRunning)
         flow.Start(CliRegion.Us, AuthCredentials("alice@example.com", "secret"))
         Assert.True(flow.IsRunning)
         Assert.Equal("signing in…", state.ActivityVerb)
+        // Release the blocked login and let the background task finish.
+        gate.SetResult(AuthSession{ProfileAlias: "test", Region: CliRegion.Us, AccountId: "acct-1"})
+        let deadline = DateTime.UtcNow.AddSeconds(5.0)
+        while flow.IsRunning {
+            Assert.True(DateTime.UtcNow < deadline, "SignInFlow did not finish within the expected timeout.")
+            await Task.Delay(10)
+        }
     }
 
     @Fact
@@ -269,6 +278,15 @@ class SignInFlowTests : IDisposable {
     }
 
     private class FakeAuthService : IAuthService {
+        // Optional gate the test can hold open so it can observe SignInFlow.IsRunning
+        // before the background task completes, avoiding a race against Task.Run
+        // scheduling against an already-completed task.
+        private let credentialsLogin Task[AuthSession]?
+
+        init(credentialsLogin Task[AuthSession]? = nil) {
+            this.credentialsLogin = credentialsLogin
+        }
+
         func ListSessionsAsync(ct CancellationToken = default(CancellationToken)) Task[
             IReadOnlyList[AuthSession]
         ] -> Task.FromResult[IReadOnlyList[AuthSession]](Array.Empty[AuthSession]())
@@ -286,6 +304,16 @@ class SignInFlowTests : IDisposable {
             // Simulate external login: the broker must be called
             return Task.FromResult(AuthSession{ProfileAlias: "test", Region: region, AccountId: "acct-1"})
         }
+
+        func LoginWithCredentialsAsync(
+            region CliRegion,
+            broker IAuthCallbackBroker,
+            credentials AuthCredentials,
+            preAmazonUsername bool = false,
+            ct CancellationToken = default(CancellationToken)
+        ) Task[AuthSession] -> credentialsLogin ?? Task.FromResult(
+            AuthSession{ProfileAlias: "test", Region: region, AccountId: "acct-1"}
+        )
 
         func LogoutAsync(
             profileAlias string,
