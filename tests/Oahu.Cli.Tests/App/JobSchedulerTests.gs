@@ -100,7 +100,15 @@ class JobSchedulerTests : IDisposable {
         var peak = 0
         let executor = ProbeExecutor(
             onStart: () -> {
-                peak = Math.Max(peak, Interlocked.Increment(&active))
+                let current = Interlocked.Increment(&active)
+                var recorded = Volatile.Read(&peak)
+                while current > recorded {
+                    let previous = Interlocked.CompareExchange(&peak, current, recorded)
+                    if previous == recorded {
+                        break
+                    }
+                    recorded = previous
+                }
             },
             onEnd: () -> Interlocked.Decrement(&active)
         )
@@ -109,16 +117,16 @@ class JobSchedulerTests : IDisposable {
         let done = TaskCompletionSource()
         var seenCompletions = 0
         let observeCts = CancellationTokenSource(TimeSpan.FromSeconds(10))
+        let updates = sched.ObserveAll(observeCts.Token)
         let _ = Task.Run(
             async () -> {
-                await for u in sched.ObserveAll(observeCts.Token) {
+                await for u in updates {
                     if u.Phase == JobPhase.Completed && Interlocked.Increment(&seenCompletions) == 4 {
                         done.TrySetResult()
                     }
                 }
             }
         )
-        await Task.Delay(50)
         for r in ids {
             await sched.SubmitAsync(r)
         }
