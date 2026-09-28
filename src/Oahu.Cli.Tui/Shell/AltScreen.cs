@@ -33,6 +33,38 @@ public static class AltScreen
     /// <summary>DEC private mode 2026: end synchronized update — terminal renders the buffered frame atomically.</summary>
     public const string SyncEndSequence = "\u001b[?2026l";
 
+    public const string MouseEnableSequence = "\u001b[?1000;1006h";
+
+    public const string MouseDisableSequence = "\u001b[?1006;1000l";
+
+    public static void EnableMouse(TextWriter? writer = null)
+    {
+        var output = writer ?? Console.Out;
+        try
+        {
+            output.Write(MouseEnableSequence);
+            output.Flush();
+        }
+        catch
+        {
+            // Best effort.
+        }
+    }
+
+    public static void DisableMouse(TextWriter? writer = null)
+    {
+        var output = writer ?? Console.Out;
+        try
+        {
+            output.Write(MouseDisableSequence);
+            output.Flush();
+        }
+        catch
+        {
+            // Best effort.
+        }
+    }
+
     /// <summary>
     /// Normalize newlines and inject <c>\e[K</c> (erase-to-end-of-line) before each <c>\n</c>
     /// so each rendered line clears any residual characters from a longer previous frame.

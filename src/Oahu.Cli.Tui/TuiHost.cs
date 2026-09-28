@@ -33,8 +33,21 @@ public static class TuiHost
         var shell = new AppShell(console, options);
         var prevTreatCtrlC = false;
         var altEntered = false;
+        var mouseEnabled = false;
         Action restore = () =>
         {
+            if (mouseEnabled)
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    WindowsConsoleInput.Restore();
+                }
+                else
+                {
+                    AltScreen.DisableMouse();
+                }
+                mouseEnabled = false;
+            }
             if (altEntered)
             {
                 AltScreen.Leave();
@@ -65,6 +78,22 @@ public static class TuiHost
 
             AltScreen.Enter();
             altEntered = true;
+
+            if (!string.Equals(
+                    Environment.GetEnvironmentVariable("OAHU_NO_MOUSE"),
+                    "1",
+                    StringComparison.Ordinal))
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    mouseEnabled = WindowsConsoleInput.TrySetup();
+                }
+                else
+                {
+                    AltScreen.EnableMouse();
+                    mouseEnabled = true;
+                }
+            }
 
             return shell.Run(new AppShell.ConsoleKeyReader());
         }

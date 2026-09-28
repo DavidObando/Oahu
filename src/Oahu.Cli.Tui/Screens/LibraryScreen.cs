@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Oahu.Cli.App.Library;
 using Oahu.Cli.App.Models;
 using Oahu.Cli.App.Queue;
+using Oahu.Cli.Tui.Icons;
 using Oahu.Cli.Tui.Shell;
+using Oahu.Cli.Tui.Widgets;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -34,6 +36,9 @@ public sealed class LibraryScreen : ITabScreen
 
     private IAppShellNavigator? navigator;
     private Task? enqueueTask;
+    private bool coverPending;
+    private int lastListTop = 2;
+    private int lastListWidth = 80;
 
     public LibraryScreen(AppShellState state, Func<ILibraryService> libraryServiceFactory)
         : this(state, libraryServiceFactory, queueServiceFactory: null)
@@ -54,6 +59,8 @@ public sealed class LibraryScreen : ITabScreen
 
     public char NumberKey => '2';
 
+    public bool NeedsTimedRefresh => coverPending;
+
     public int Cursor => cursor;
 
     public int SelectedCount => selected.Count;
@@ -66,19 +73,18 @@ public sealed class LibraryScreen : ITabScreen
         {
             if (searchMode)
             {
-                yield return new("Enter", "search");
-                yield return new("Esc", "cancel");
+                yield return new("enter", "search");
+                yield return new("esc", "cancel");
             }
             else
             {
                 yield return new("/", "search");
                 yield return new("↑↓", "navigate");
-                yield return new("PgUp/Dn", "page");
-                yield return new("Space", "select");
+                yield return new("space", "select");
                 yield return new("a", "select all");
                 if (queueServiceFactory is not null)
                 {
-                    yield return new("q", "enqueue");
+                    yield return new("e", "enqueue");
                 }
             }
         }
@@ -108,6 +114,26 @@ public sealed class LibraryScreen : ITabScreen
 
     public IRenderable Render(int width, int height)
     {
+        var detailWidth = width >= 96 ? Math.Clamp(width * 2 / 5, 34, 44) : 0;
+        var listWidth = detailWidth > 0 ? width - detailWidth - 1 : width;
+        lastListWidth = listWidth;
+        var list = RenderList(listWidth, height);
+        if (detailWidth == 0)
+        {
+            return list;
+        }
+
+        var paneColor = Tokens.Tokens.BackgroundSecondary.Value;
+        var paneFill = Tokens.Tokens.HasBackdrop ? new Style(background: paneColor) : Style.Plain;
+        var pane = new FixedHeight(
+            new Backdrop(RenderDetail(detailWidth - 4, height), paneColor, padLeft: 2, padRight: 2, padTop: 1),
+            height,
+            paneFill);
+        return new SideBySide(list, listWidth, 1, pane, detailWidth);
+    }
+
+    private IRenderable RenderList(int width, int height)
+    {
         var lines = new List<IRenderable>();
 
         var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
@@ -116,7 +142,7 @@ public sealed class LibraryScreen : ITabScreen
         var brand = Tokens.Tokens.Brand.Value.ToMarkup();
         var success = Tokens.Tokens.StatusSuccess.Value.ToMarkup();
 
-        // Search bar
+        lines.Add(new Markup(" "));
         if (searchMode)
         {
             lines.Add(searchInput.Render());
@@ -129,17 +155,18 @@ public sealed class LibraryScreen : ITabScreen
         // Summary line
         var selStr = selected.Count > 0 ? $"  [{brand}]{selected.Count} selected[/]" : string.Empty;
         lines.Add(new Markup($"[{secondary}]{filtered.Count} of {allItems.Count} titles{selStr}[/]"));
-        lines.Add(new Markup(string.Empty));
+        lines.Add(new Markup(" "));
 
         if (filtered.Count == 0)
         {
             lines.Add(new Markup($"[{tertiary}]{(allItems.Count == 0 ? "Library is empty. Sync from the Home tab." : "No matches.")}[/]"));
-            return new Padder(new Rows(lines)).Padding(2, 1, 2, 1);
+            return new Padder(new Rows(lines)).Padding(2, 0, 2, 0);
         }
 
         // Visible rows
         var listHeight = Math.Max(1, height - lines.Count - 2);
         lastListHeight = listHeight;
+        lastListTop = lines.Count;
         AdjustScroll(listHeight);
 
         var end = Math.Min(scrollOffset + listHeight, filtered.Count);
@@ -154,15 +181,148 @@ public sealed class LibraryScreen : ITabScreen
             var authors = item.Authors.Length > 0 ? string.Join(", ", item.Authors) : string.Empty;
             var runtime = item.Runtime is { } r ? FormatRuntime(r) : string.Empty;
 
-            lines.Add(new Markup($"  {pointer} {mark}  [{style}]{Markup.Escape(Truncate(item.Title, width - 30))}[/]  [{tertiary}]{Markup.Escape(Truncate(authors, 30))}[/]  [{tertiary}]{runtime}[/]"));
+            var runtimeWidth = 7;
+            var authorWidth = Math.Clamp((width - 14 - runtimeWidth) / 3, 12, 30);
+            var titleWidth = Math.Max(12, width - 10 - authorWidth - runtimeWidth);
+            var titleCell = Truncate(item.Title, titleWidth).PadRight(titleWidth);
+            var authorCell = Truncate(authors, authorWidth).PadRight(authorWidth);
+            var runtimeCell = runtime.PadLeft(runtimeWidth);
+            var rowText = $"{pointer} {mark} [{style}]{Markup.Escape(titleCell)}[/] " +
+                          $"[{tertiary}]{Markup.Escape(authorCell)}[/]" +
+                          $"[{tertiary}]{Markup.Escape(runtimeCell)}[/]";
+            lines.Add(isCursor && Tokens.Tokens.HasBackdrop
+                ? new Backdrop(new Markup(rowText), Tokens.Tokens.InputBackground.Value, padLeft: 2, padRight: 1)
+                : new Padder(new Markup(rowText)).Padding(2, 0, 0, 0));
         }
 
         if (filtered.Count > listHeight)
         {
-            lines.Add(new Markup($"[{tertiary}]  ↕ {scrollOffset + 1}–{end} of {filtered.Count}[/]"));
+            lines.Add(new Markup($"  [{tertiary}]↕ {scrollOffset + 1}–{end} of {filtered.Count}[/]"));
         }
 
-        return new Padder(new Rows(lines)).Padding(2, 0, 2, 0);
+        return new Rows(lines);
+    }
+
+    private IRenderable RenderDetail(int width, int height)
+    {
+        coverPending = false;
+        var lines = new List<IRenderable>();
+        var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
+        var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
+        var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
+        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
+        if (cursor < 0 || cursor >= filtered.Count)
+        {
+            lines.Add(new Markup($"[{tertiary}]No selection.[/]"));
+            return new Rows(lines);
+        }
+
+        var item = filtered[cursor];
+        if (Tokens.Tokens.HasBackdrop && !Icons.Icons.ForceAscii)
+        {
+            var coverWidth = Math.Min(width, 26);
+            var cover = CoverArt.TryGet(item.CoverImagePath, item.CoverImageUrl, coverWidth);
+            if (cover.State == CoverArt.CoverState.Ready && cover.Lines is not null)
+            {
+                foreach (var line in cover.Lines)
+                {
+                    lines.Add(new Markup(line));
+                }
+                lines.Add(new Markup(" "));
+            }
+            else if (cover.State == CoverArt.CoverState.Pending)
+            {
+                coverPending = true;
+                var placeholder = new string('░', Math.Max(1, coverWidth));
+                for (var row = 0; row < Math.Max(1, coverWidth / 2); row++)
+                {
+                    lines.Add(new Markup($"[{tertiary}]{placeholder}[/]"));
+                }
+                lines.Add(new Markup(" "));
+            }
+        }
+
+        lines.Add(new Markup($"[{primary} bold]{Markup.Escape(item.Title)}[/]"));
+        if (item.Subtitle is { } subtitle)
+        {
+            lines.Add(new Markup($"[{secondary}]{Markup.Escape(subtitle)}[/]"));
+        }
+        lines.Add(new Markup(" "));
+        if (item.Authors.Length > 0)
+        {
+            lines.Add(new Markup($"[{secondary}]by {Markup.Escape(string.Join(", ", item.Authors))}[/]"));
+        }
+        if (item.Narrators.Length > 0)
+        {
+            lines.Add(new Markup($"[{tertiary}]read by {Markup.Escape(string.Join(", ", item.Narrators))}[/]"));
+        }
+        if (item.Series is { } series)
+        {
+            var position = item.SeriesPosition is { } seriesPosition ? $" · #{seriesPosition:0.###}" : string.Empty;
+            lines.Add(new Markup($"[{tertiary}]{Markup.Escape(series)}{position}[/]"));
+        }
+        lines.Add(new Markup(" "));
+        var facts = new List<string>();
+        if (item.Runtime is { } runtime)
+        {
+            facts.Add(FormatRuntime(runtime));
+        }
+        if (item.PurchaseDate is { } purchased)
+        {
+            facts.Add($"added {purchased.ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}");
+        }
+        if (item.HasMultiplePartFiles)
+        {
+            facts.Add("multi-part");
+        }
+        if (facts.Count > 0)
+        {
+            lines.Add(new Markup($"[{tertiary}]{Markup.Escape(string.Join("  ·  ", facts))}[/]"));
+        }
+        if (selected.Contains(item.Asin))
+        {
+            lines.Add(new Markup(" "));
+            lines.Add(new Markup($"[{Tokens.Tokens.StatusSuccess.Value.ToMarkup()}]✓ selected[/]"));
+        }
+        lines.Add(new Markup(" "));
+        lines.Add(new Markup($"[{brand}]e[/] [{tertiary}]enqueue for download[/]"));
+        return new Rows(lines);
+    }
+
+    public bool HandleScroll(int delta)
+    {
+        if (filtered.Count == 0)
+        {
+            return true;
+        }
+        cursor = Math.Clamp(cursor + delta, 0, filtered.Count - 1);
+        return true;
+    }
+
+    public bool HandleClick(int x, int y)
+    {
+        if (x >= lastListWidth)
+        {
+            return false;
+        }
+        var index = scrollOffset + y - lastListTop;
+        if (y < lastListTop || index < 0 || index >= filtered.Count || index >= scrollOffset + lastListHeight)
+        {
+            return false;
+        }
+        if (index == cursor)
+        {
+            var asin = filtered[index].Asin;
+            if (!selected.Remove(asin))
+            {
+                selected.Add(asin);
+            }
+        }
+        else
+        {
+            cursor = index;
+        }
+        return true;
     }
 
     public bool HandleKey(ConsoleKeyInfo key)
@@ -243,7 +403,7 @@ public sealed class LibraryScreen : ITabScreen
                     return true;
                 }
                 break;
-            case ConsoleKey.Q when key.Modifiers == 0:
+            case ConsoleKey.E when key.Modifiers == 0:
                 return EnqueueSelection();
         }
 
@@ -265,6 +425,7 @@ public sealed class LibraryScreen : ITabScreen
             allItems = lib.ListAsync().GetAwaiter().GetResult();
             loaded = true;
             ApplyFilter();
+            PrefetchCovers();
         }
         catch
         {
@@ -284,12 +445,22 @@ public sealed class LibraryScreen : ITabScreen
                 var items = lib.ListAsync().GetAwaiter().GetResult();
                 allItems = items;
                 ApplyFilter();
+                PrefetchCovers();
             }
             catch
             {
                 // Swallow to keep TUI stable.
             }
         });
+    }
+
+    private void PrefetchCovers()
+    {
+        if (!Tokens.Tokens.HasBackdrop || Icons.Icons.ForceAscii)
+        {
+            return;
+        }
+        CoverArt.Prefetch(allItems.Select(item => (item.CoverImagePath, item.CoverImageUrl)).ToArray());
     }
 
     /// <summary>Background task spawned by <c>q</c>; exposed for tests.</summary>

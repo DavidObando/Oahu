@@ -211,6 +211,19 @@ public sealed class CoreLibraryService : ILibraryService
         return items;
     }
 
+    private static string? ResolveCoverPath(Book book)
+    {
+        if (!string.IsNullOrWhiteSpace(book.CoverImageFile))
+        {
+            return book.CoverImageFile;
+        }
+        if (string.IsNullOrWhiteSpace(book.CoverImageUrl) || string.IsNullOrWhiteSpace(book.Asin))
+        {
+            return null;
+        }
+        return Path.Combine(Oahu.Aux.ApplEnv.LocalApplDirectory, "img", $"{book.Asin}.jpg");
+    }
+
     private static LibraryItem MapBook(Book book)
     {
         var seriesEntry = book.Series?.FirstOrDefault();
@@ -260,6 +273,8 @@ public sealed class CoreLibraryService : ILibraryService
             PurchaseDate = purchase,
             IsAvailable = available,
             HasMultiplePartFiles = multiPart,
+            CoverImagePath = ResolveCoverPath(book),
+            CoverImageUrl = string.IsNullOrWhiteSpace(book.CoverImageUrl) ? null : book.CoverImageUrl,
         };
     }
 }

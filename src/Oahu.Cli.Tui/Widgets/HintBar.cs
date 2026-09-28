@@ -20,6 +20,8 @@ public sealed class HintBar
 
     public string Separator { get; init; } = "·";
 
+    public int? MaxWidth { get; set; }
+
     public HintBar Add(string key, string? action)
     {
         if (string.IsNullOrWhiteSpace(action))
@@ -49,8 +51,19 @@ public sealed class HintBar
 
         var sep = UseAscii ? "|" : Separator;
         var sb = new StringBuilder();
+        var used = 0;
         for (var i = 0; i < hints.Count; i++)
         {
+            if (MaxWidth is { } max)
+            {
+                var cost = hints[i].Key.Length + 1 + hints[i].Action.Length +
+                    (i > 0 ? sep.Length + 2 : 0);
+                if (used + cost > max)
+                {
+                    break;
+                }
+                used += cost;
+            }
             if (i > 0)
             {
                 sb.Append(' ')

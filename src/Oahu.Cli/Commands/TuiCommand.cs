@@ -125,6 +125,7 @@ public static class TuiCommand
             Version = ResolveVersion(),
             Tabs = tabs,
             State = state,
+            ConfigServiceFactory = () => CliServiceFactory.ConfigServiceFactory(),
         };
 
         return Launcher(opts);

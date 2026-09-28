@@ -128,7 +128,7 @@ public class LibraryScreenTests : IDisposable
     }
 
     [Fact]
-    public async Task Q_Enqueues_Selected_Items_And_Switches_To_Queue_Tab()
+    public async Task E_Enqueues_Selected_Items_And_Switches_To_Queue_Tab()
     {
         var queue = new InMemoryQueueService();
         var screen = CreateScreen(
@@ -145,7 +145,7 @@ public class LibraryScreenTests : IDisposable
         screen.HandleKey(Key(' ', ConsoleKey.Spacebar));
         Assert.Equal(2, screen.SelectedCount);
 
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)));
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)));
         await WaitForEnqueue(screen);
 
         var entries = await queue.ListAsync();
@@ -157,7 +157,7 @@ public class LibraryScreenTests : IDisposable
     }
 
     [Fact]
-    public async Task Q_With_No_Selection_Enqueues_Cursor_Item()
+    public async Task E_With_No_Selection_Enqueues_Cursor_Item()
     {
         var queue = new InMemoryQueueService();
         var screen = CreateScreen(
@@ -167,9 +167,9 @@ public class LibraryScreenTests : IDisposable
         _ = screen.OnActivatedAsync(nav);
         screen.Reload();
 
-        // Move to second item and press q with no selection.
+        // Move to second item and press e with no selection.
         screen.HandleKey(Key('j', ConsoleKey.J));
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)));
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)));
         await WaitForEnqueue(screen);
 
         var entries = await queue.ListAsync();
@@ -179,7 +179,7 @@ public class LibraryScreenTests : IDisposable
     }
 
     [Fact]
-    public async Task Q_Skips_Duplicates_And_Reports_In_Toast()
+    public async Task E_Skips_Duplicates_And_Reports_In_Toast()
     {
         var queue = new InMemoryQueueService();
         await queue.AddAsync(new QueueEntry { Asin = "A1", Title = "Alpha" });
@@ -192,7 +192,7 @@ public class LibraryScreenTests : IDisposable
         screen.Reload();
 
         screen.HandleKey(Key('a', ConsoleKey.A)); // select all
-        Assert.True(screen.HandleKey(Key('q', ConsoleKey.Q)));
+        Assert.True(screen.HandleKey(Key('e', ConsoleKey.E)));
         await WaitForEnqueue(screen);
 
         var entries = await queue.ListAsync();
@@ -203,13 +203,13 @@ public class LibraryScreenTests : IDisposable
     }
 
     [Fact]
-    public void Q_Without_QueueService_Is_NoOp()
+    public void E_Without_QueueService_Is_NoOp()
     {
         // No queue service wired in (legacy 2-arg ctor).
         var screen = CreateScreen(new[] { MakeItem("A1", "Alpha") });
         screen.Reload();
         // Should NOT consume the key, so AppShell's fallback can take over.
-        Assert.False(screen.HandleKey(Key('q', ConsoleKey.Q)));
+        Assert.False(screen.HandleKey(Key('e', ConsoleKey.E)));
     }
 
     [Fact]

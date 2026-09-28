@@ -72,6 +72,10 @@ public interface ITabScreen
     void OnShutdown()
     {
     }
+
+    bool HandleScroll(int delta) => false;
+
+    bool HandleClick(int x, int y) => false;
 }
 
 /// <summary>

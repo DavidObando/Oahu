@@ -5,126 +5,150 @@ using Spectre.Console;
 
 namespace Oahu.Cli.Tui.Themes;
 
-/// <summary>
-/// A complete palette: every widget consumes <see cref="Tokens.Tokens"/>, which in turn
-/// reads from <see cref="Current"/>. Switching theme is a single <see cref="Use(string)"/>
-/// call — no widget needs to subscribe.
-/// </summary>
 public sealed class Theme
 {
-    public static Theme Current { get; private set; } = Themes.Default;
+    private static Theme _current = Themes.Default;
 
-    public static IReadOnlyList<Theme> Available { get; } = new[]
+    public static Theme Current
     {
+        get => _current;
+        private set => _current = value;
+    }
+
+    public static IReadOnlyList<Theme> Available { get; } =
+    [
         Themes.Default,
+        Themes.Sunset,
+        Themes.Sand,
         Themes.Mono,
         Themes.HighContrast,
         Themes.Colorblind,
-    };
+    ];
 
     public required string Name { get; init; }
-
     public required SemanticColor TextPrimary { get; init; }
-
     public required SemanticColor TextSecondary { get; init; }
-
     public required SemanticColor TextTertiary { get; init; }
-
     public required SemanticColor StatusInfo { get; init; }
-
     public required SemanticColor StatusSuccess { get; init; }
-
     public required SemanticColor StatusWarning { get; init; }
-
     public required SemanticColor StatusError { get; init; }
-
     public required SemanticColor Brand { get; init; }
-
     public required SemanticColor Selected { get; init; }
-
     public required SemanticColor BorderNeutral { get; init; }
-
     public required SemanticColor BackgroundSecondary { get; init; }
-
+    public required SemanticColor Canvas { get; init; }
+    public required SemanticColor CellBackground { get; init; }
+    public required SemanticColor InputBackground { get; init; }
     public required SemanticColor DiffAdd { get; init; }
-
     public required SemanticColor DiffRemove { get; init; }
 
-    /// <summary>Switch the active theme by name (case-insensitive).</summary>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> matches no built-in theme.</exception>
-    public static void Use(string name)
+    public static void Cycle()
     {
-        foreach (var t in Available)
+        for (var i = 0; i < Available.Count; i++)
         {
-            if (string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+            if (ReferenceEquals(Available[i], Current))
             {
-                Current = t;
+                Current = Available[(i + 1) % Available.Count];
                 return;
             }
         }
-        throw new ArgumentException($"Unknown theme '{name}'. Known: {string.Join(", ", AvailableNames())}.", nameof(name));
+        Current = Available[0];
     }
 
-    /// <summary>Reset to the <see cref="Themes.Default"/> theme. Useful for tests.</summary>
+    public static void Use(string name)
+    {
+        foreach (var theme in Available)
+        {
+            if (string.Equals(theme.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                Current = theme;
+                return;
+            }
+        }
+        throw new ArgumentException(
+            $"Unknown theme '{name}'. Known: {string.Join(", ", AvailableNames())}.",
+            nameof(name));
+    }
+
     public static void Reset() => Current = Themes.Default;
 
     public static IEnumerable<string> AvailableNames()
     {
-        foreach (var t in Available)
+        foreach (var theme in Available)
         {
-            yield return t.Name;
+            yield return theme.Name;
         }
     }
 }
 
-/// <summary>Built-in theme palettes. Add new ones here and append to <see cref="Theme.Available"/>.</summary>
 public static class Themes
 {
     public static Theme Default { get; } = new()
     {
         Name = "Default",
-        TextPrimary = new(Color.White),
-        TextSecondary = new(Color.Grey85),
-        TextTertiary = new(Color.Grey50),
-        StatusInfo = new(Color.SkyBlue1),
-        StatusSuccess = new(Color.Green),
-        StatusWarning = new(Color.Yellow),
-        StatusError = new(Color.Red),
-        Brand = new(Color.Aqua),
-        Selected = new(Color.DodgerBlue1),
-        BorderNeutral = new(Color.Grey50),
-        BackgroundSecondary = new(Color.Grey15),
-        DiffAdd = new(Color.Green),
-        DiffRemove = new(Color.Red),
+        TextPrimary = new(new Color(232, 242, 244)),
+        TextSecondary = new(new Color(175, 201, 209)),
+        TextTertiary = new(new Color(105, 136, 148)),
+        StatusInfo = new(new Color(79, 195, 247)),
+        StatusSuccess = new(new Color(87, 217, 130)),
+        StatusWarning = new(new Color(245, 197, 66)),
+        StatusError = new(new Color(248, 113, 113)),
+        Brand = new(new Color(53, 208, 186)),
+        Selected = new(new Color(53, 208, 186)),
+        BorderNeutral = new(new Color(58, 88, 100)),
+        BackgroundSecondary = new(new Color(26, 45, 56)),
+        Canvas = new(new Color(8, 18, 24)),
+        CellBackground = new(new Color(15, 32, 41)),
+        InputBackground = new(new Color(23, 48, 60)),
+        DiffAdd = new(new Color(87, 217, 130)),
+        DiffRemove = new(new Color(248, 113, 113)),
     };
 
-    /// <summary>
-    /// Monochrome theme used automatically when <c>NO_COLOR</c> is set, when stdout is
-    /// redirected, or when a screen reader is detected. Every token resolves to the
-    /// terminal's default foreground so no ANSI colour escape is ever emitted.
-    /// </summary>
-    public static Theme Mono { get; } = new()
+    public static Theme Sunset { get; } = new()
     {
-        Name = "Mono",
-        TextPrimary = new(Color.Default),
-        TextSecondary = new(Color.Default),
-        TextTertiary = new(Color.Default),
-        StatusInfo = new(Color.Default),
-        StatusSuccess = new(Color.Default),
-        StatusWarning = new(Color.Default),
-        StatusError = new(Color.Default),
-        Brand = new(Color.Default),
-        Selected = new(Color.Default),
-        BorderNeutral = new(Color.Default),
-        BackgroundSecondary = new(Color.Default),
-        DiffAdd = new(Color.Default),
-        DiffRemove = new(Color.Default),
+        Name = "Sunset",
+        TextPrimary = new(new Color(246, 232, 224)),
+        TextSecondary = new(new Color(217, 184, 172)),
+        TextTertiary = new(new Color(150, 116, 110)),
+        StatusInfo = new(new Color(242, 166, 90)),
+        StatusSuccess = new(new Color(123, 216, 143)),
+        StatusWarning = new(new Color(255, 201, 77)),
+        StatusError = new(new Color(255, 107, 107)),
+        Brand = new(new Color(255, 138, 92)),
+        Selected = new(new Color(255, 138, 92)),
+        BorderNeutral = new(new Color(94, 62, 72)),
+        BackgroundSecondary = new(new Color(46, 27, 40)),
+        Canvas = new(new Color(20, 10, 18)),
+        CellBackground = new(new Color(33, 18, 29)),
+        InputBackground = new(new Color(51, 32, 44)),
+        DiffAdd = new(new Color(123, 216, 143)),
+        DiffRemove = new(new Color(255, 107, 107)),
     };
 
-    /// <summary>
-    /// High-contrast theme: maximum-contrast palette suitable for low-vision users and
-    /// for the accessibility audit (APCA Lc ≥ 30 for body text, per Phase 9).
-    /// </summary>
+    public static Theme Sand { get; } = new()
+    {
+        Name = "Sand",
+        TextPrimary = new(new Color(58, 46, 34)),
+        TextSecondary = new(new Color(92, 76, 58)),
+        TextTertiary = new(new Color(138, 120, 96)),
+        StatusInfo = new(new Color(18, 115, 166)),
+        StatusSuccess = new(new Color(46, 125, 50)),
+        StatusWarning = new(new Color(178, 106, 0)),
+        StatusError = new(new Color(198, 40, 40)),
+        Brand = new(new Color(14, 124, 123)),
+        Selected = new(new Color(14, 124, 123)),
+        BorderNeutral = new(new Color(183, 169, 140)),
+        BackgroundSecondary = new(new Color(234, 224, 200)),
+        Canvas = new(new Color(237, 228, 206)),
+        CellBackground = new(new Color(247, 241, 227)),
+        InputBackground = new(new Color(231, 220, 194)),
+        DiffAdd = new(new Color(46, 125, 50)),
+        DiffRemove = new(new Color(198, 40, 40)),
+    };
+
+    public static Theme Mono { get; } = Monochrome("Mono");
+
     public static Theme HighContrast { get; } = new()
     {
         Name = "HighContrast",
@@ -139,17 +163,13 @@ public static class Themes
         Selected = new(Color.Yellow),
         BorderNeutral = new(Color.White),
         BackgroundSecondary = new(Color.Black),
+        Canvas = new(Color.Black),
+        CellBackground = new(Color.Black),
+        InputBackground = new(Color.Black),
         DiffAdd = new(Color.Lime),
         DiffRemove = new(Color.Red),
     };
 
-    /// <summary>
-    /// Colorblind-safe theme using the Okabe-Ito palette: avoids red/green
-    /// pairings that the most common forms of color vision deficiency
-    /// (deuteranopia, protanopia) confuse. Status semantics are conveyed by
-    /// blue (info), bluish-green (success), orange/yellow (warning), and
-    /// vermillion (error) — all distinguishable by deuteranopes/protanopes.
-    /// </summary>
     public static Theme Colorblind { get; } = new()
     {
         Name = "Colorblind",
@@ -164,7 +184,31 @@ public static class Themes
         Selected = new(Color.Yellow),
         BorderNeutral = new(Color.Grey50),
         BackgroundSecondary = new(Color.Grey15),
+        Canvas = new(new Color(8, 18, 24)),
+        CellBackground = new(new Color(15, 32, 41)),
+        InputBackground = new(new Color(23, 48, 60)),
         DiffAdd = new(Color.SkyBlue1),
         DiffRemove = new(Color.Orange1),
+    };
+
+    private static Theme Monochrome(string name) => new()
+    {
+        Name = name,
+        TextPrimary = new(Color.Default),
+        TextSecondary = new(Color.Default),
+        TextTertiary = new(Color.Default),
+        StatusInfo = new(Color.Default),
+        StatusSuccess = new(Color.Default),
+        StatusWarning = new(Color.Default),
+        StatusError = new(Color.Default),
+        Brand = new(Color.Default),
+        Selected = new(Color.Default),
+        BorderNeutral = new(Color.Default),
+        BackgroundSecondary = new(Color.Default),
+        Canvas = new(Color.Default),
+        CellBackground = new(Color.Default),
+        InputBackground = new(Color.Default),
+        DiffAdd = new(Color.Default),
+        DiffRemove = new(Color.Default),
     };
 }

@@ -2,10 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Oahu.Cli.App.Config;
 using Oahu.Cli.App.Errors;
+using Oahu.Cli.App.Models;
 using Oahu.Cli.Tui.Auth;
 using Oahu.Cli.Tui.Logging;
 using Oahu.Cli.Tui.Screens;
+using Oahu.Cli.Tui.Themes;
 using Oahu.Cli.Tui.Widgets;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -59,7 +64,29 @@ public sealed class AppShell : IAppShellNavigator
             key = result.Value;
             return true;
         }
+
+        ShellInputEvent? ReadEvent()
+        {
+            var key = ReadKey();
+            return key is null ? null : ShellInputEvent.FromKey(key.Value);
+        }
+
+        bool TryReadEvent(int millisecondsTimeout, out ShellInputEvent inputEvent)
+        {
+            if (TryReadKey(millisecondsTimeout, out var key))
+            {
+                inputEvent = ShellInputEvent.FromKey(key);
+                return true;
+            }
+            inputEvent = default;
+            return false;
+        }
     }
+
+    private const int ScrollLinesPerNotch = 3;
+    private const int HeaderStripStart = 9;
+    private const int BodyTop = 2;
+    private const int BodyLeft = 2;
 
     /// <summary>OSC 9;4 clear sequence — removes the terminal title-bar / dock progress indicator.</summary>
     public const string TerminalProgressClearSequence = "\u001b]9;4;0;0\u001b\\";
@@ -70,6 +97,7 @@ public sealed class AppShell : IAppShellNavigator
     private readonly CtrlCState ctrlC;
     private readonly PulseSpinner loadSpinner = new();
 
+    private int loadFrame;
     private int activeTab;
     private int lastRenderedTab = -1;
     private bool logsOpen;
@@ -78,6 +106,8 @@ public sealed class AppShell : IAppShellNavigator
     private IModal? activeModal;
     private TuiCallbackBroker? activeBroker;
     private volatile bool needsTimedRefresh;
+    private bool exitRequested;
+    private int lastBodyHeight = 20;
 
     // Shell-managed loading: the shell tracks the async load task returned by
     // OnActivatedAsync (or TrackLoad) and renders a spinner while it's pending.
@@ -254,9 +284,13 @@ public sealed class AppShell : IAppShellNavigator
                 {
                     // When a screen is loading, use a timed read so the render
                     // loop can re-render the spinner (~100ms ticks).
-                    if (keyReader.TryReadKey(100, out var timedKey))
+                    if (keyReader.TryReadEvent(100, out var timedEvent))
                     {
-                        var timedAction = Dispatch(timedKey);
+                        var timedAction = DispatchEvent(timedEvent);
+                        if (exitRequested)
+                        {
+                            return ExitCodes.Success;
+                        }
                         switch (timedAction)
                         {
                             case ShellAction.Exit:
@@ -276,9 +310,13 @@ public sealed class AppShell : IAppShellNavigator
                 // cleanly when the queue drains.
                 if (activeBroker is not null)
                 {
-                    if (keyReader.TryReadKey(250, out var idleKey))
+                    if (keyReader.TryReadEvent(250, out var idleEvent))
                     {
-                        var idleAction = Dispatch(idleKey);
+                        var idleAction = DispatchEvent(idleEvent);
+                        if (exitRequested)
+                        {
+                            return ExitCodes.Success;
+                        }
                         switch (idleAction)
                         {
                             case ShellAction.Continue:
@@ -302,12 +340,16 @@ public sealed class AppShell : IAppShellNavigator
                     continue;
                 }
 
-                var key = keyReader.ReadKey();
-                if (key is null)
+                var inputEvent = keyReader.ReadEvent();
+                if (inputEvent is null)
                 {
                     return ExitCodes.Success;
                 }
-                var action = Dispatch(key.Value);
+                var action = DispatchEvent(inputEvent.Value);
+                if (exitRequested)
+                {
+                    return ExitCodes.Success;
+                }
                 switch (action)
                 {
                     case ShellAction.Continue:
@@ -343,6 +385,60 @@ public sealed class AppShell : IAppShellNavigator
             // Always clear any in-flight terminal progress indicator.
             EmitTerminalSequence(TerminalProgressClearSequence);
         }
+    }
+
+    private ShellAction DispatchEvent(ShellInputEvent inputEvent)
+    {
+        if (inputEvent.Key is { } key)
+        {
+            return Dispatch(key);
+        }
+        if (inputEvent.Mouse is { } mouse)
+        {
+            return DispatchMouse(mouse);
+        }
+        return ShellAction.Continue;
+    }
+
+    public ShellAction DispatchMouse(MouseEvent mouseEvent)
+    {
+        if (activeModal is not null || logsOpen)
+        {
+            return ShellAction.Continue;
+        }
+        switch (mouseEvent.Kind)
+        {
+            case MouseEventKind.WheelUp:
+                tabs[activeTab].HandleScroll(-ScrollLinesPerNotch);
+                break;
+            case MouseEventKind.WheelDown:
+                tabs[activeTab].HandleScroll(ScrollLinesPerNotch);
+                break;
+            case MouseEventKind.Click:
+                if (mouseEvent.Y == 0)
+                {
+                    if (mouseEvent.X is >= 1 and <= 6)
+                    {
+                        SwitchTab(0);
+                    }
+                    else
+                    {
+                        var index = MakeTabStrip().HitTest(mouseEvent.X - HeaderStripStart);
+                        if (index >= 0 && index < tabs.Count)
+                        {
+                            SwitchTab(index);
+                        }
+                    }
+                }
+                else if (mouseEvent.Y >= BodyTop && mouseEvent.Y < BodyTop + lastBodyHeight)
+                {
+                    tabs[activeTab].HandleClick(
+                        Math.Max(0, mouseEvent.X - BodyLeft),
+                        mouseEvent.Y - BodyTop);
+                }
+                break;
+        }
+        return ShellAction.Continue;
     }
 
     /// <summary>
@@ -451,6 +547,17 @@ public sealed class AppShell : IAppShellNavigator
             return ShellAction.Continue;
         }
 
+        if (key.KeyChar == '?')
+        {
+            ShowModal(BuildHelpOverlay());
+            return ShellAction.Continue;
+        }
+        if (key.KeyChar == ':')
+        {
+            ShowModal(BuildCommandPalette());
+            return ShellAction.Continue;
+        }
+
         // Number keys 1..9 jump to that tab.
         if (key.KeyChar >= '1' && key.KeyChar <= '9')
         {
@@ -483,19 +590,143 @@ public sealed class AppShell : IAppShellNavigator
                     logsOpen = true;
                 }
                 return ShellAction.Continue;
-            case ConsoleKey.Q when (key.Modifiers & ConsoleModifiers.Shift) != 0
-                                && (key.Modifiers & (ConsoleModifiers.Control | ConsoleModifiers.Alt)) == 0:
-                // Shift+Q is the discoverable, non-SIGINT clean-quit gesture.
-                // Plain `q` is reserved for screens (e.g. LibraryScreen
-                // "enqueue") and is handled by the screen-first delegation
-                // above; if a screen consumed it, we never reach this switch.
+            case ConsoleKey.T when key.Modifiers == 0:
+                Theme.Cycle();
+                PersistTheme(Theme.Current.Name);
+                toast = $"Theme: {Theme.Current.Name}";
+                toastShownAt = DateTimeOffset.UtcNow;
+                return ShellAction.Continue;
+            case ConsoleKey.Q when (key.Modifiers & (ConsoleModifiers.Control | ConsoleModifiers.Alt)) == 0:
                 return ShellAction.Exit;
-            case ConsoleKey.Q when key.Modifiers == 0:
-                // Plain `q` is *not* a global quit (the active screen may use it).
-                break;
         }
 
         return ShellAction.Continue;
+    }
+
+    private IModal BuildHelpOverlay()
+    {
+        var globalEntries = new List<(string Key, string Action)>
+        {
+            ($"1-{tabs.Count}", "go to tab"),
+            ("tab", "next tab"),
+            ("shift+tab", "previous tab"),
+            (":", "command palette"),
+            ("t", "cycle theme"),
+            ("q", "quit"),
+            ("ctrl+c", "cancel · quit"),
+            ("esc", "back / clear"),
+        };
+        if (options.LogBuffer is not null)
+        {
+            globalEntries.Insert(4, ("l", "logs"));
+        }
+        var sections = new List<HelpOverlay.HelpSection>
+        {
+            new("Global", globalEntries),
+        };
+        var screenEntries = new List<(string Key, string Action)>();
+        foreach (var hint in tabs[activeTab].Hints)
+        {
+            if (!string.IsNullOrWhiteSpace(hint.Value))
+            {
+                screenEntries.Add((hint.Key, hint.Value));
+            }
+        }
+        if (screenEntries.Count > 0)
+        {
+            sections.Add(new(tabs[activeTab].Title, screenEntries));
+        }
+        return new HelpOverlay(sections);
+    }
+
+    private IModal BuildCommandPalette()
+    {
+        var verbs = new List<CommandPalette.PaletteVerb>();
+        foreach (var tab in tabs)
+        {
+            verbs.Add(new(tab.Title.ToLowerInvariant(), $"go to {tab.Title}"));
+        }
+        if (options.LogBuffer is not null)
+        {
+            verbs.Add(new("logs", "open the logs overlay"));
+        }
+        foreach (var theme in Theme.Available)
+        {
+            verbs.Add(new($"theme {theme.Name.ToLowerInvariant()}", "switch theme"));
+        }
+        verbs.Add(new("help", "show the keymap"));
+        verbs.Add(new("quit", "exit the TUI"));
+        return new CommandPalette(verbs, RunPaletteVerb);
+    }
+
+    private void RunPaletteVerb(string verb)
+    {
+        var value = verb.Trim();
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            if (string.Equals(tabs[i].Title, value, StringComparison.OrdinalIgnoreCase))
+            {
+                SwitchTab(i);
+                return;
+            }
+        }
+        if (string.Equals(value, "logs", StringComparison.OrdinalIgnoreCase))
+        {
+            if (options.LogBuffer is not null)
+            {
+                logsOpen = true;
+            }
+            return;
+        }
+        if (value.StartsWith("theme ", StringComparison.OrdinalIgnoreCase))
+        {
+            var name = value["theme ".Length..].Trim();
+            try
+            {
+                Theme.Use(name);
+                PersistTheme(Theme.Current.Name);
+                ShowToast($"Theme: {Theme.Current.Name}");
+            }
+            catch (ArgumentException)
+            {
+                ShowToast($"Unknown theme '{name}'.");
+            }
+            return;
+        }
+        if (string.Equals(value, "help", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowModal(BuildHelpOverlay());
+            return;
+        }
+        if (string.Equals(value, "quit", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "exit", StringComparison.OrdinalIgnoreCase))
+        {
+            exitRequested = true;
+            return;
+        }
+        ShowToast($"Unknown command: {value}");
+    }
+
+    private void PersistTheme(string name)
+    {
+        var factory = options.ConfigServiceFactory;
+        if (factory is null)
+        {
+            return;
+        }
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var service = factory();
+                var config = await service.LoadAsync().ConfigureAwait(false);
+                await service.SaveAsync(config with { Theme = name }).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Best effort.
+            }
+        });
     }
 
     private void PollBroker()
@@ -540,8 +771,8 @@ public sealed class AppShell : IAppShellNavigator
         var screen = tabs[activeTab];
         var width = console.Profile.Width;
         var height = Math.Max(10, console.Profile.Height);
-        // Leave room for chrome (header + tabs + spacers + hint bar = ~6 rows).
-        var bodyHeight = Math.Max(5, height - 6);
+        var bodyHeight = Math.Max(5, height - 4);
+        lastBodyHeight = bodyHeight;
         lastRenderedTab = activeTab;
 
         // Choose rendering target. In a real terminal, render to a string
@@ -572,31 +803,16 @@ public sealed class AppShell : IAppShellNavigator
             target = console;
         }
 
-        // Header.
-        var headerText = BuildHeader(width);
-        target.Write(new Markup(headerText));
-        target.WriteLine();
-        target.Write(new Rule { Style = new Style(Tokens.Tokens.BorderNeutral) });
+        var paint = Tokens.Tokens.HasBackdrop;
+        var canvasColor = Tokens.Tokens.Canvas.Value;
+        var cellColor = Tokens.Tokens.CellBackground.Value;
+        var canvasFill = paint ? new Style(background: canvasColor) : Style.Plain;
+        var cellFill = paint ? new Style(background: cellColor) : Style.Plain;
+        var header = new Backdrop(new Markup(BuildHeader(width)), canvasColor, padLeft: 0, padRight: 0);
+        var spacer = new Backdrop(new Markup(string.Empty), canvasColor, padLeft: 0, padRight: 0);
 
-        // Tabs.
-        new TabStrip
-        {
-            Titles = tabs.Select(t => t.Title).ToArray(),
-            ActiveIndex = activeTab,
-            UseAscii = options.UseAscii,
-        }.Write(target);
-        target.Write(new Rule { Style = new Style(Tokens.Tokens.BorderNeutral) });
-
-        // Body: modal > logs > shell-managed loading spinner > tab screen.
-        if (activeModal is not null)
-        {
-            target.Write(activeModal.Render(width, bodyHeight));
-        }
-        else if (logsOpen && options.LogBuffer is { } buf)
-        {
-            target.Write(RenderLogsOverlay(buf, width, bodyHeight));
-        }
-        else if (screenLoadPending)
+        IRenderable bodyInner;
+        if (screenLoadPending)
         {
             // Reconcile: if the task has completed, clear pending so this
             // frame renders the actual screen content (not the spinner).
@@ -605,32 +821,60 @@ public sealed class AppShell : IAppShellNavigator
             {
                 screenLoadPending = false;
                 screenLoadTask = null;
-                target.Write(screen.Render(width, bodyHeight));
+                bodyInner = screen.Render(width - 4, bodyHeight);
             }
             else
             {
-                target.Write(RenderLoadSpinner(screen.Title));
+                bodyInner = RenderLoadSpinner(screen.Title);
             }
         }
         else
         {
-            target.Write(screen.Render(width, bodyHeight));
+            bodyInner = screen.Render(width - 4, bodyHeight);
         }
-
-        // Hint bar — global + per-screen + toast.
-        target.WriteLine();
-        target.Write(new Rule { Style = new Style(Tokens.Tokens.BorderNeutral) });
-
+        var bodySurface = new FixedHeight(
+            new Backdrop(bodyInner, cellColor, padLeft: 1, padRight: 1),
+            bodyHeight,
+            cellFill);
+        var body = new Backdrop(bodySurface, canvasColor, padLeft: 1, padRight: 1);
+        var ruleRow = new Backdrop(
+            new Markup($"[{Tokens.Tokens.BorderNeutral.Value.ToMarkup()}]{new string('─', Math.Max(1, width))}[/]"),
+            canvasColor,
+            padLeft: 0,
+            padRight: 0);
+        var status = BuildStatus();
+        var statusWidth = Math.Min(Math.Max(1, width / 2), Math.Max(1, Markup.Remove(status).Length));
+        IRenderable footerLeft;
         if (toast is not null)
         {
             var c = Tokens.Tokens.StatusWarning.Value.ToMarkup();
-            target.Write(new Markup($"[{c}] ! {Markup.Escape(toast)}[/]"));
-            target.WriteLine();
+            footerLeft = new Markup($"[{c}]! {Markup.Escape(toast)}[/]");
         }
         else
         {
-            BuildHintBar(screen).Write(target);
+            var bar = BuildHintBar(screen);
+            bar.MaxWidth = Math.Max(1, width - statusWidth - 4);
+            footerLeft = bar.Render();
         }
+        var footerRow = new SideBySide(
+            new Backdrop(footerLeft, canvasColor, padLeft: 1, padRight: 0),
+            Math.Max(1, width - statusWidth - 3),
+            2,
+            new Backdrop(new Markup(status), canvasColor, padLeft: 0, padRight: 1),
+            statusWidth + 1,
+            canvasFill);
+        IRenderable frame = new Rows(header, spacer, body, ruleRow, footerRow);
+        if (activeModal is not null)
+        {
+            var modalWidth = Math.Clamp(width - 16, 40, 76);
+            frame = new Overlay(frame, ModalSurface(activeModal.Render(modalWidth - 3, bodyHeight - 2)), modalWidth);
+        }
+        else if (logsOpen && options.LogBuffer is { } buffer)
+        {
+            var logsWidth = Math.Clamp(width - 8, 40, 110);
+            frame = new Overlay(frame, ModalSurface(RenderLogsOverlay(buffer, logsWidth - 3, bodyHeight - 2)), logsWidth);
+        }
+        target.Write(new FixedHeight(frame, height, canvasFill));
 
         // OSC 9;4 progress sequence (terminal title-bar / dock indicator).
         // Active screen may opt-in by implementing ITerminalProgressProvider.
@@ -647,9 +891,9 @@ public sealed class AppShell : IAppShellNavigator
             // so the terminal buffers all output and paints the complete frame in
             // one pass, eliminating partial-frame flicker. Terminals that don't
             // understand mode 2026 silently ignore it.
-            var frame = AltScreen.InjectEraseBeforeNewlines(sw.ToString());
+            var renderedFrame = AltScreen.InjectEraseBeforeNewlines(sw.ToString());
             Console.Out.Write(
-                $"{AltScreen.SyncStartSequence}\u001b[H{frame}\u001b[K\u001b[J{oscSequence}{AltScreen.SyncEndSequence}");
+                $"{AltScreen.SyncStartSequence}\u001b[H{renderedFrame}\u001b[K\u001b[J{oscSequence}{AltScreen.SyncEndSequence}");
             Console.Out.Flush();
         }
         else if (!string.IsNullOrEmpty(oscSequence))
@@ -665,24 +909,42 @@ public sealed class AppShell : IAppShellNavigator
         needsTimedRefresh = screenLoadPending || screen.NeedsTimedRefresh || (activeBroker?.HasPending ?? false);
     }
 
+    private TabStrip MakeTabStrip() => new()
+    {
+        Titles = tabs.Select(tab => tab.Title).ToArray(),
+        ActiveIndex = activeTab,
+        UseAscii = options.UseAscii,
+    };
+
     private string BuildHeader(int width)
     {
-        var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
+        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
+        var canvas = Tokens.Tokens.Canvas.Value.ToMarkup();
+        var pill = Tokens.Tokens.HasBackdrop
+            ? $"[{canvas} on {brand} bold] oahu [/]"
+            : "[invert bold] oahu [/]";
+        return $" {pill}  {MakeTabStrip().RenderMarkup()}";
+    }
+
+    private string BuildStatus()
+    {
         var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
         var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
-        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
 
         string profile;
         string verb;
+        bool signedIn;
 
         if (options.State is { } st)
         {
             profile = st.ProfileDisplay;
             verb = st.ActivityVerb;
+            signedIn = st.IsSignedIn;
         }
         else
         {
-            profile = string.IsNullOrEmpty(options.Profile)
+            signedIn = !string.IsNullOrEmpty(options.Profile);
+            profile = !signedIn
                 ? "(not signed in)"
                 : !string.IsNullOrEmpty(options.Region)
                     ? $"{options.Profile}@{options.Region}"
@@ -694,29 +956,39 @@ public sealed class AppShell : IAppShellNavigator
         {
             verb = "idle";
         }
-        var version = string.IsNullOrEmpty(options.Version) ? string.Empty : $"v{options.Version}";
-
-        return string.Concat(
-            $"[{brand} bold]oahu[/]",
-            $"  [{tertiary}]·[/]  ",
-            $"[{secondary}]{Markup.Escape(profile)}[/]",
-            $"  [{tertiary}]·[/]  ",
-            $"[{primary}]{Markup.Escape(verb)}[/]",
-            $"  [{tertiary}]·[/]  ",
-            $"[{tertiary}]{Markup.Escape(version)}[/]");
+        var dotColor = (signedIn ? Tokens.Tokens.StatusSuccess : Tokens.Tokens.TextTertiary).Value.ToMarkup();
+        var version = string.IsNullOrEmpty(options.Version)
+            ? string.Empty
+            : $" [{tertiary}]· v{Markup.Escape(options.Version)}[/]";
+        return $"[{dotColor}]●[/] [{secondary}]{Markup.Escape(profile)}[/] " +
+               $"[{tertiary}]· {Markup.Escape(verb)}[/]{version}";
     }
 
     private HintBar BuildHintBar(ITabScreen screen)
     {
-        var bar = new HintBar { UseAscii = options.UseAscii }
-            .Add("1-6", "tabs")
-            .Add("Tab", "next")
-            .Add("?", "help")
-            .Add("L", options.LogBuffer is not null ? "logs" : null)
-            .Add("Q", "quit")
-            .Add("Ctrl+C", "quit");
+        var bar = new HintBar { UseAscii = options.UseAscii };
         bar.AddRange(screen.Hints);
+        bar.Add(":", "commands");
+        bar.Add("?", "help");
         return bar;
+    }
+
+    private IRenderable ModalSurface(IRenderable inner)
+    {
+        if (Tokens.Tokens.HasBackdrop && !options.UseAscii)
+        {
+            return new Backdrop(
+                inner,
+                Tokens.Tokens.InputBackground.Value,
+                accent: Tokens.Tokens.Brand.Value,
+                padLeft: 1,
+                padRight: 1);
+        }
+        return new Panel(inner)
+        {
+            Border = options.UseAscii ? BoxBorder.Ascii : BoxBorder.Rounded,
+            BorderStyle = new Style(Tokens.Tokens.BorderNeutral),
+        };
     }
 
     private IRenderable RenderLogsOverlay(LogRingBuffer buf, int width, int height)
@@ -745,14 +1017,28 @@ public sealed class AppShell : IAppShellNavigator
         return new Padder(new Rows(lines)).Padding(2, 1, 2, 1);
     }
 
-    /// <summary>Shell-owned loading spinner rendered while a screen's load task is pending.</summary>
     private IRenderable RenderLoadSpinner(string screenTitle)
     {
-        var b = Tokens.Tokens.Brand.Value.ToMarkup();
         var s = Tokens.Tokens.TextSecondary.Value.ToMarkup();
+        var label = $"[{s}]Loading {Markup.Escape(screenTitle.ToLowerInvariant())}…[/]";
+        if (Tokens.Tokens.HasBackdrop && !options.UseAscii)
+        {
+            loadFrame++;
+            var brand = Tokens.Tokens.Brand.Value;
+            var scanner = new KnightRiderAnimation(
+                width: 6,
+                style: KnightRiderStyle.Blocks,
+                holdStart: 6,
+                holdEnd: 3,
+                colors: KnightRiderAnimation.DeriveTrailColors(brand),
+                defaultColor: KnightRiderAnimation.DeriveInactiveColor(brand, factor: 0.6));
+            var glyphs = scanner.RenderMarkup(loadFrame, Tokens.Tokens.CellBackground.Value);
+            return new Padder(new Rows(new IRenderable[] { new Markup($"{glyphs}  {label}") }))
+                .Padding(2, 1, 2, 1);
+        }
         return new Padder(new Rows(new IRenderable[]
         {
-            new Markup($"{loadSpinner.RenderMarkup()} [{s}]Loading {Markup.Escape(screenTitle.ToLowerInvariant())}…[/]"),
+            new Markup($"{loadSpinner.RenderMarkup()} {label}"),
         })).Padding(2, 1, 2, 1);
     }
 
@@ -793,6 +1079,148 @@ public sealed class AppShell : IAppShellNavigator
             {
                 key = default;
                 return false;
+            }
+        }
+
+        public ShellInputEvent? ReadEvent()
+        {
+            while (true)
+            {
+                if (WindowsConsoleInput.IsActive)
+                {
+                    var windowsEvent = WindowsConsoleInput.ReadEvent(-1, out _);
+                    if (windowsEvent is not null)
+                    {
+                        return windowsEvent;
+                    }
+                }
+                var key = ReadKey();
+                if (key is null)
+                {
+                    return null;
+                }
+                switch (TranslateEscape(key.Value, out var translated))
+                {
+                    case EscapeTranslation.NotMouse:
+                        return ShellInputEvent.FromKey(key.Value);
+                    case EscapeTranslation.MouseEvent:
+                        return translated;
+                    case EscapeTranslation.ConsumedIgnored:
+                        continue;
+                }
+            }
+        }
+
+        public bool TryReadEvent(int millisecondsTimeout, out ShellInputEvent inputEvent)
+        {
+            if (WindowsConsoleInput.IsActive)
+            {
+                var windowsEvent = WindowsConsoleInput.ReadEvent(millisecondsTimeout, out var timedOut);
+                if (windowsEvent is not null)
+                {
+                    inputEvent = windowsEvent.Value;
+                    return true;
+                }
+                if (timedOut)
+                {
+                    inputEvent = default;
+                    return false;
+                }
+            }
+            while (true)
+            {
+                if (!TryReadKey(millisecondsTimeout, out var key))
+                {
+                    inputEvent = default;
+                    return false;
+                }
+                switch (TranslateEscape(key, out var translated))
+                {
+                    case EscapeTranslation.NotMouse:
+                        inputEvent = ShellInputEvent.FromKey(key);
+                        return true;
+                    case EscapeTranslation.MouseEvent:
+                        inputEvent = translated;
+                        return true;
+                    case EscapeTranslation.ConsumedIgnored:
+                        continue;
+                }
+            }
+        }
+
+        private enum EscapeTranslation
+        {
+            NotMouse,
+            MouseEvent,
+            ConsumedIgnored,
+        }
+
+        private static EscapeTranslation TranslateEscape(
+            ConsoleKeyInfo key,
+            out ShellInputEvent inputEvent)
+        {
+            inputEvent = default;
+            if (key.Key != ConsoleKey.Escape || key.KeyChar != (char)27)
+            {
+                return EscapeTranslation.NotMouse;
+            }
+            if (!PendingWithin(2))
+            {
+                return EscapeTranslation.NotMouse;
+            }
+            if (NextPendingChar(5) != '[')
+            {
+                return EscapeTranslation.NotMouse;
+            }
+            if (NextPendingChar(5) != '<')
+            {
+                return EscapeTranslation.NotMouse;
+            }
+            if (!SgrMouseParser.TryParse(() => NextPendingChar(10), out var mouse) || mouse is null)
+            {
+                return EscapeTranslation.ConsumedIgnored;
+            }
+            inputEvent = ShellInputEvent.FromMouse(mouse.Value);
+            return EscapeTranslation.MouseEvent;
+        }
+
+        private static bool PendingWithin(int timeoutMs)
+        {
+            try
+            {
+                var deadline = Environment.TickCount64 + timeoutMs;
+                while (true)
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        return true;
+                    }
+                    if (Environment.TickCount64 >= deadline)
+                    {
+                        return false;
+                    }
+                    Thread.Sleep(1);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        private static char? NextPendingChar(int timeoutMs)
+        {
+            if (!PendingWithin(timeoutMs))
+            {
+                return null;
+            }
+            try
+            {
+                return Console.ReadKey(intercept: true).KeyChar;
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
             }
         }
     }

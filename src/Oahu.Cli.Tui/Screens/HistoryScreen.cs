@@ -53,10 +53,9 @@ public sealed class HistoryScreen : ITabScreen
         get
         {
             yield return new("↑↓", "navigate");
-            yield return new("PgUp/Dn", "page");
-            yield return new("Enter/j", "details");
+            yield return new("enter", "details");
             yield return new("r", "retry");
-            yield return new("Ctrl+R", "reload");
+            yield return new("ctrl+r", "reload");
         }
     }
 
@@ -121,7 +120,7 @@ public sealed class HistoryScreen : ITabScreen
                 lines.Add(new Markup($"[{tertiary}]{Markup.Escape(line.TrimEnd('\r'))}[/]"));
             }
             lines.Add(new Markup(string.Empty));
-            lines.Add(new Markup($"[{tertiary}](press j to close)[/]"));
+            lines.Add(new Markup($"[{tertiary}](Enter or Esc to close)[/]"));
             return new Padder(new Rows(lines)).Padding(2, 0, 2, 0);
         }
 
@@ -156,6 +155,16 @@ public sealed class HistoryScreen : ITabScreen
         return new Padder(new Rows(lines)).Padding(2, 0, 2, 0);
     }
 
+    public bool HandleScroll(int delta)
+    {
+        if (jsonMode || records.Count == 0)
+        {
+            return true;
+        }
+        cursor = Math.Clamp(cursor + delta, 0, records.Count - 1);
+        return true;
+    }
+
     public bool HandleKey(ConsoleKeyInfo key)
     {
         if (busy)
@@ -165,7 +174,7 @@ public sealed class HistoryScreen : ITabScreen
 
         if (jsonMode)
         {
-            if (key.Key is ConsoleKey.J or ConsoleKey.Escape or ConsoleKey.Enter)
+            if (key.Key is ConsoleKey.D or ConsoleKey.Escape or ConsoleKey.Enter)
             {
                 jsonMode = false;
                 return true;
@@ -180,6 +189,7 @@ public sealed class HistoryScreen : ITabScreen
                 cursor = Math.Max(0, cursor - 1);
                 return true;
             case ConsoleKey.DownArrow:
+            case ConsoleKey.J:
                 cursor = Math.Min(records.Count - 1, Math.Max(0, cursor + 1));
                 return true;
             case ConsoleKey.PageUp:
@@ -194,7 +204,7 @@ public sealed class HistoryScreen : ITabScreen
             case ConsoleKey.End:
                 cursor = Math.Max(0, records.Count - 1);
                 return true;
-            case ConsoleKey.J:
+            case ConsoleKey.D:
             case ConsoleKey.Enter:
                 if (records.Count > 0)
                 {

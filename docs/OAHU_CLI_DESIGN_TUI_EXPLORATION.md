@@ -1,6 +1,7 @@
 # `oahu-cli` — TUI Exploration
 
-Status: **Exploratory / Draft**
+Status: **Exploratory / Draft** — see the [2026 redesign addendum](#2026-redesign-addendum)
+below for where the shipped TUI now deliberately deviates from these mockups.
 Companion to: [`OAHU_CLI_DESIGN.md`](./OAHU_CLI_DESIGN.md)
 
 This document explores how the TUI mode of `oahu-cli` could *look and feel*.
@@ -956,3 +957,139 @@ to the screens above, useful when prioritising the widget build-out.
 If the build order follows this matrix, `HintBar`, `Tabs`, `Select`, and
 `TimelineItem` cover roughly 80% of the surface area and should be the
 first widgets implemented in `Oahu.Cli.Tui`.
+
+---
+
+## 2026 redesign addendum
+
+The shipped TUI evolved past the mockups above in a visual overhaul borrowed
+from the G# REPL's OpenCode-style rendering. Where this addendum and the
+sections above disagree, the addendum wins.
+
+### Canvas rendering
+
+The frame is no longer "text on the terminal's own background". Every frame is
+painted edge-to-edge with themed surfaces, composed from segment-level widgets
+(`Backdrop`, `FixedHeight`, `SideBySide`, `Overlay`, `SegmentGrid`):
+
+- **Canvas** — the chrome/background color (header row, margins, footer).
+- **CellBackground** — the raised body surface every screen renders on.
+- **InputBackground** — focused surfaces: modals, the palette, cursor rows.
+
+The frame always spans the full terminal height (`FixedHeight`), so the footer
+is genuinely pinned to the bottom row instead of floating under short content.
+A theme whose `Canvas` is `Color.Default` (Mono) paints **nothing** — the
+backdrop guard skips all background segments, preserving the NO_COLOR /
+screen-reader contract.
+
+### Chrome
+
+Chrome is four rows total:
+
+```
+ oahu   1 home  2 library  3 queue  4 jobs  5 history  6 settings      ← brand pill + tab strip
+                                                                       ← canvas spacer
+────────────────────────────────────────────────────────────────────   ← rule
+ / search · ↑↓ navigate · … · : commands · ? help    ● david@us · idle · v1.1.27
+```
+
+The old two-line header (title row + tab row) collapsed into one line; the
+profile/activity/version moved to a right-aligned status slot in the footer.
+The footer's left side shows only the *active screen's* keys plus the two
+discoverability anchors (`:` and `?`); the full keymap lives in the `?`
+overlay.
+
+### Streamlined keymap
+
+One consistent grammar — lowercase single keys for screen actions, no
+uppercase/Shift chords, Ctrl reserved for terminal conventions:
+
+| Key | Action |
+|-----|--------|
+| `1`–`6`, `Tab`/`Shift+Tab` | switch tabs |
+| `/` | search (screen-local) |
+| `:` | command palette (verbs: tabs, `theme <name>`, `logs`, `help`, `quit`) |
+| `?` | help overlay (global + active-screen keymap) |
+| `l` | logs overlay |
+| `t` | cycle theme |
+| `q` | quit (no screen binds `q`; Library enqueue moved to `e`) |
+| `Ctrl+C` | progressive cancel/quit (unchanged) |
+| `Esc` | back / clear |
+
+Other renames for consistency: Queue `Shift+R`→`r` (run all) and `F5`→`Ctrl+R`
+(reload, matching History); History `j`→vim-down, details toggle is
+`Enter`/`d`.
+
+### Floating overlays
+
+Modals no longer replace the body. Dialogs, the palette, help, and logs are
+composited *over* the frame (`Overlay`) on an `InputBackground` surface with a
+brand accent bar — the chrome stays visible behind them. In Mono/ASCII the
+surface falls back to a bordered panel.
+
+### Cover art
+
+The Library screen is a master/detail split at ≥ 96 columns. The detail pane
+shows the cursor title's cover rendered as truecolor half-blocks (`▀`, two
+pixels per cell) — no graphics protocol needed. Covers come from the shared
+`<data root>/img/{ASIN}.jpg` cache the GUI populates; when a cover is missing
+the TUI downloads the same 500-px asset itself in the background. Decoding is
+async (SixLabors.ImageSharp) with a placeholder while pending, and is skipped
+entirely in Mono/ASCII modes.
+
+### Themes
+
+`Default` is now the "lagoon" palette (deep ocean canvas, turquoise brand).
+New: `Sunset` (plum/coral) and `Sand` (light, warm paper). `Mono`,
+`HighContrast`, and `Colorblind` are unchanged in intent. `t` cycles at
+runtime; Settings persists the choice; `--theme` accepts all six.
+
+### Loading animation
+
+Shell-managed screen loads render the Knight-Rider scanner (ported from the
+G# REPL, colors derived from the theme's brand color) instead of the pulse
+glyph; Mono/ASCII still gets the static-safe `PulseSpinner`. The two-tier
+render loop is unchanged — idle screens still render at 0 FPS.
+
+### Mouse support
+
+The TUI accepts mouse input on all three platforms (opt out with
+`OAHU_NO_MOUSE=1`):
+
+- **macOS / Linux** — DECSET 1000+1006 is enabled on entry; the SGR reports
+  arrive through `Console.ReadKey` one character at a time and are reassembled
+  by `SgrMouseParser`. A bare Esc press is unaffected (reports always arrive
+  with their tail already buffered).
+- **Windows** — `WindowsConsoleInput` uses native `ReadConsoleInput` with
+  `ENABLE_MOUSE_INPUT` (QuickEdit disabled while the TUI runs), translating
+  `MOUSE_EVENT` records; keys flow through the same native path. On setup
+  failure it silently falls back to keyboard-only.
+
+Semantics: the wheel scrolls the active screen's cursor (3 lines per notch);
+clicking a header tab (or the brand pill → Home) switches tabs; clicking a
+Library row focuses it, and clicking the focused row toggles selection (like
+Space). The mouse is inert while a modal/logs overlay is open.
+
+### Quadrant-glyph covers
+
+Cover art renders with quadrant block glyphs (`▘▝▀▖▌▞▛…`, U+2596–259F) instead
+of plain half-blocks: each cell shows a 2×2 pixel block split into a
+bright/dark pair around the block's mean luminance, doubling horizontal
+resolution. Decoding is unchanged (background task, per-size cache).
+
+### Cover acquisition for CLI-only users
+
+The GUI downloads covers on sync; a pure-CLI install never runs it. Two
+mechanisms close the gap, both lazy: the detail pane fetches the focused
+title's missing cover on demand, and loading the Library kicks a low-priority
+background pass (`CoverArt.Prefetch`) that walks the whole library and fills
+`<data root>/img/{ASIN}.jpg` one file at a time. Both are skipped in
+Mono/ASCII modes.
+
+### Theme persistence and Home quick actions
+
+`t` (cycle) and `:theme <name>` now persist the choice to the CLI config —
+the same key the Settings screen edits — so the look survives restarts. The
+Home screen's quick actions are a real selectable list (`↑↓`/`j`/`k` +
+`Enter`, wheel-scrollable); the number/letter aliases beside each entry still
+work directly.

@@ -36,6 +36,9 @@ public sealed class HomeScreen : ITabScreen
     private CliRegion pendingRegion;
     private SignInFlow? signInFlow;
     private TuiCallbackBroker? signInBroker;
+    private int actionCursor;
+
+    private readonly record struct QuickAction(string Label, string KeyHint, string Id);
 
     public HomeScreen(AppShellState state, Func<IAuthService> authServiceFactory, Func<ILibraryService> libraryServiceFactory)
     {
@@ -61,11 +64,45 @@ public sealed class HomeScreen : ITabScreen
     {
         get
         {
+            yield return new("↑↓", "choose");
+            yield return new("enter", "run");
             if (!state.IsSignedIn)
             {
                 yield return new("s", "sign in");
             }
             yield return new("r", "refresh");
+        }
+    }
+
+    private List<QuickAction> QuickActions()
+    {
+        var actions = new List<QuickAction>();
+        if (state.IsSignedIn)
+        {
+            actions.Add(new("browse the library", "2", "library"));
+            actions.Add(new("review the download queue", "3", "queue"));
+            actions.Add(new("watch running jobs", "4", "jobs"));
+            actions.Add(new("refresh the library from Audible", "r", "refresh"));
+            actions.Add(new("open settings", "6", "settings"));
+        }
+        else
+        {
+            actions.Add(new("sign in to Audible", "s", "signin"));
+            actions.Add(new("open settings", "6", "settings"));
+        }
+        return actions;
+    }
+
+    private void RunAction(string id)
+    {
+        switch (id)
+        {
+            case "library": navigator?.SwitchToTab('2'); break;
+            case "queue": navigator?.SwitchToTab('3'); break;
+            case "jobs": navigator?.SwitchToTab('4'); break;
+            case "settings": navigator?.SwitchToTab('6'); break;
+            case "refresh": BeginRefresh(); break;
+            case "signin": BeginSignIn(); break;
         }
     }
 
@@ -90,24 +127,24 @@ public sealed class HomeScreen : ITabScreen
         var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
         var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
         var brand = Tokens.Tokens.Brand.Value.ToMarkup();
+        var success = Tokens.Tokens.StatusSuccess.Value.ToMarkup();
 
-        lines.Add(new Markup($"[{brand} bold]Aloha.[/]"));
-        lines.Add(new Markup(string.Empty));
+        var greetName = !string.IsNullOrEmpty(accountName) ? $", {accountName.Split(' ')[0]}" : string.Empty;
+        lines.Add(new Markup($"[{brand} bold]Aloha{Markup.Escape(greetName)}.[/]"));
+        lines.Add(new Markup($"[{tertiary}]Your Audible library, on the command line.[/]"));
+        lines.Add(new Markup(" "));
 
         if (state.IsSignedIn)
         {
-            lines.Add(new Markup($"[{primary}]Signed in as [bold]{Markup.Escape(state.ProfileDisplay)}[/][/]"));
-            if (!string.IsNullOrEmpty(accountName))
-            {
-                lines.Add(new Markup($"[{secondary}]{Markup.Escape(accountName)}[/]"));
-            }
-            lines.Add(new Markup(string.Empty));
-            lines.Add(new Markup($"[{secondary}]Library: {libraryCount} title{(libraryCount == 1 ? "" : "s")}[/]"));
-            lines.Add(new Markup(string.Empty));
-            lines.Add(new Markup($"[{tertiary}]Quick actions:[/]"));
-            lines.Add(new Markup($"  [{brand}]2[/] [{secondary}]Browse library[/]"));
-            lines.Add(new Markup($"  [{brand}]3[/] [{secondary}]View queue[/]"));
-            lines.Add(new Markup($"  [{brand}]6[/] [{secondary}]Settings[/]"));
+            lines.Add(new Markup($"[{secondary} bold]Account[/]"));
+            var who = string.IsNullOrEmpty(accountName) ? state.ProfileDisplay : $"{accountName} · {state.ProfileDisplay}";
+            lines.Add(new Markup($"  [{success}]●[/] [{primary}]{Markup.Escape(who)}[/]"));
+            lines.Add(new Markup($"  [{tertiary}]{libraryCount} title{(libraryCount == 1 ? "" : "s")} in your library[/]"));
+            lines.Add(new Markup(" "));
+            lines.Add(new Markup($"[{secondary} bold]Jump in[/]"));
+            AppendQuickActions(lines);
+            lines.Add(new Markup(" "));
+            lines.Add(new Markup($"[{tertiary}]: runs any command · t tries another look[/]"));
         }
         else if (signInFlow is not null)
         {
@@ -116,7 +153,7 @@ public sealed class HomeScreen : ITabScreen
             // PulseSpinner + the active verb so the home screen doesn't look
             // dead while the background task is working.
             lines.Add(new Markup($"[{secondary}]{Markup.Escape(SignInActivityMessage)}…[/]"));
-            lines.Add(new Markup(string.Empty));
+            lines.Add(new Markup(" "));
             var verb = string.IsNullOrWhiteSpace(state.ActivityVerb) || string.Equals(state.ActivityVerb, "idle", StringComparison.Ordinal)
                 ? "working"
                 : state.ActivityVerb;
@@ -125,12 +162,40 @@ public sealed class HomeScreen : ITabScreen
         else
         {
             lines.Add(new Markup($"[{secondary}]You're not signed in yet.[/]"));
-            lines.Add(new Markup(string.Empty));
-            lines.Add(new Markup($"[{secondary}]Press [{brand}]s[/] to sign in to Audible, or use a subcommand:[/]"));
-            lines.Add(new Markup($"  [{tertiary}]oahu-cli auth login --region us[/]"));
+            lines.Add(new Markup(" "));
+            AppendQuickActions(lines);
+            lines.Add(new Markup(" "));
+            lines.Add(new Markup($"[{tertiary}]or from a shell: oahu-cli auth login --region us[/]"));
         }
 
         return new Padder(new Rows(lines)).Padding(2, 1, 2, 1);
+    }
+
+    private void AppendQuickActions(List<IRenderable> lines)
+    {
+        var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
+        var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
+        var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
+        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
+        var actions = QuickActions();
+        actionCursor = Math.Clamp(actionCursor, 0, Math.Max(0, actions.Count - 1));
+        for (var i = 0; i < actions.Count; i++)
+        {
+            var isCursor = i == actionCursor;
+            var pointer = isCursor ? $"[{brand}]❯[/]" : " ";
+            var style = isCursor ? $"bold {primary}" : secondary;
+            var row = $"  {pointer} [{style}]{Markup.Escape(actions[i].Label)}[/]  " +
+                      $"[{tertiary}]{Markup.Escape(actions[i].KeyHint)}[/]";
+            lines.Add(isCursor && Tokens.Tokens.HasBackdrop
+                ? new Backdrop(new Markup(row), Tokens.Tokens.InputBackground.Value, padLeft: 0, padRight: 1)
+                : new Markup(row));
+        }
+    }
+
+    public bool HandleScroll(int delta)
+    {
+        actionCursor = Math.Clamp(actionCursor + delta, 0, Math.Max(0, QuickActions().Count - 1));
+        return true;
     }
 
     public bool HandleKey(ConsoleKeyInfo key)
@@ -139,6 +204,21 @@ public sealed class HomeScreen : ITabScreen
         {
             case ConsoleKey.Escape when signInFlow is not null:
                 signInFlow.Cancel();
+                return true;
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.K:
+                actionCursor = Math.Max(0, actionCursor - 1);
+                return true;
+            case ConsoleKey.DownArrow:
+            case ConsoleKey.J:
+                actionCursor = Math.Min(QuickActions().Count - 1, actionCursor + 1);
+                return true;
+            case ConsoleKey.Enter:
+                var actions = QuickActions();
+                if (actionCursor >= 0 && actionCursor < actions.Count)
+                {
+                    RunAction(actions[actionCursor].Id);
+                }
                 return true;
             case ConsoleKey.S when key.Modifiers == 0:
                 if (!state.IsSignedIn)

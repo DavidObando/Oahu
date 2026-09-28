@@ -25,9 +25,9 @@ public class TabStripTests : IDisposable
             ActiveIndex = 0,
         }.Write(c);
         var output = c.Output;
-        Assert.Contains("1 Home", output);
-        Assert.Contains("2 Library", output);
-        Assert.Contains("3 Queue", output);
+        Assert.Contains("1 home", output);
+        Assert.Contains("2 library", output);
+        Assert.Contains("3 queue", output);
     }
 
     [Fact]

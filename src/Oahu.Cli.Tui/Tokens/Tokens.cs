@@ -34,7 +34,15 @@ public static class Tokens
 
     public static SemanticColor BackgroundSecondary => Theme.Current.BackgroundSecondary;
 
+    public static SemanticColor Canvas => Theme.Current.Canvas;
+
+    public static SemanticColor CellBackground => Theme.Current.CellBackground;
+
+    public static SemanticColor InputBackground => Theme.Current.InputBackground;
+
     public static SemanticColor DiffAdd => Theme.Current.DiffAdd;
 
     public static SemanticColor DiffRemove => Theme.Current.DiffRemove;
+
+    public static bool HasBackdrop => Theme.Current.Canvas.Value != Spectre.Console.Color.Default;
 }

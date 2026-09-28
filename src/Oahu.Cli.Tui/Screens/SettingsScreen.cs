@@ -54,9 +54,15 @@ public sealed class SettingsScreen : ITabScreen
         get
         {
             yield return new("↑↓", "navigate");
-            yield return new("Enter/Space", "toggle");
+            yield return new("enter", "toggle");
             yield return new("s", "save");
         }
+    }
+
+    public bool HandleScroll(int delta)
+    {
+        cursor = Math.Clamp(cursor + delta, 0, FieldNames.Length - 1);
+        return true;
     }
 
     public IRenderable Render(int width, int height)

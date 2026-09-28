@@ -78,7 +78,7 @@ public static class RootCommandFactory
         };
         var themeOpt = new Option<string?>("--theme")
         {
-            Description = "Override the TUI theme for this invocation (Default | Mono | HighContrast | Colorblind).",
+            Description = "Override the TUI theme for this invocation (Default | Sunset | Sand | Mono | HighContrast | Colorblind).",
             Recursive = true,
         };
 

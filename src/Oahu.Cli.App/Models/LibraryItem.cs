@@ -26,4 +26,8 @@ public sealed record LibraryItem
     public bool IsAvailable { get; init; } = true;
 
     public bool HasMultiplePartFiles { get; init; }
+
+    public string? CoverImagePath { get; init; }
+
+    public string? CoverImageUrl { get; init; }
 }

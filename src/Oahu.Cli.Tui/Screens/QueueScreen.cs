@@ -53,13 +53,22 @@ public sealed class QueueScreen : ITabScreen
         get
         {
             yield return new("↑↓", "navigate");
-            yield return new("Shift+↑↓", "move");
+            yield return new("shift+↑↓", "move");
+            yield return new("enter", "run");
+            yield return new("r", "run all");
             yield return new("x", "remove");
-            yield return new("Enter", "run");
-            yield return new("R", "run all");
             yield return new("c", "clear");
-            yield return new("F5", "reload");
         }
+    }
+
+    public bool HandleScroll(int delta)
+    {
+        if (entries.Count == 0)
+        {
+            return true;
+        }
+        cursor = Math.Clamp(cursor + delta, 0, entries.Count - 1);
+        return true;
     }
 
     public Task? OnActivatedAsync(IAppShellNavigator navigator)
@@ -175,7 +184,10 @@ public sealed class QueueScreen : ITabScreen
             case ConsoleKey.Enter:
                 RunSelected();
                 return true;
-            case ConsoleKey.R when (key.Modifiers & ConsoleModifiers.Shift) != 0:
+            case ConsoleKey.R when (key.Modifiers & ConsoleModifiers.Control) != 0:
+                Reload();
+                return true;
+            case ConsoleKey.R:
                 RunAll();
                 return true;
             case ConsoleKey.C when key.Modifiers == 0:

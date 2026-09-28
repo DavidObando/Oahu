@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Oahu.Cli.App.Config;
 using Oahu.Cli.App.Jobs;
 using Oahu.Cli.App.Queue;
 using Oahu.Cli.Tui.Logging;
@@ -43,4 +44,6 @@ public sealed class AppShellOptions
 
     /// <summary>Resolver for the job scheduler. Phase 8+.</summary>
     public Func<IJobService>? JobServiceFactory { get; init; }
+
+    public Func<IConfigService>? ConfigServiceFactory { get; init; }
 }

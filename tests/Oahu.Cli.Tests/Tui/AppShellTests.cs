@@ -96,14 +96,44 @@ public class AppShellTests : IDisposable
     }
 
     [Fact]
-    public void Plain_Q_Is_Not_A_Global_Quit()
+    public void Mouse_Click_On_Header_Tab_Switches()
+    {
+        var shell = NewShell();
+        shell.DispatchMouse(new MouseEvent(MouseEventKind.Click, 20, 0));
+        Assert.Equal(1, shell.ActiveTab);
+        shell.DispatchMouse(new MouseEvent(MouseEventKind.Click, 3, 0));
+        Assert.Equal(0, shell.ActiveTab);
+    }
+
+    [Fact]
+    public void Mouse_Wheel_Routes_To_Active_Screen()
+    {
+        var screen = new ScrollRecordingScreen();
+        var shell = new AppShell(NewConsole(), new AppShellOptions { Tabs = new ITabScreen[] { screen } });
+        shell.DispatchMouse(new MouseEvent(MouseEventKind.WheelDown, 5, 10));
+        Assert.Equal(3, screen.LastScrollDelta);
+        shell.DispatchMouse(new MouseEvent(MouseEventKind.WheelUp, 5, 10));
+        Assert.Equal(-3, screen.LastScrollDelta);
+    }
+
+    [Fact]
+    public void Mouse_Is_Inert_While_Modal_Open()
+    {
+        var shell = NewShell();
+        shell.ShowModal(new TestModal());
+        shell.DispatchMouse(new MouseEvent(MouseEventKind.Click, 20, 0));
+        Assert.Equal(0, shell.ActiveTab);
+    }
+
+    [Fact]
+    public void Plain_Q_Is_A_Global_Quit()
     {
         // Regression: plain `q` must remain available for screens (e.g.
         // LibraryScreen "enqueue"). The shell's switch falls through with
         // ShellAction.Continue when no screen consumed the key.
         var shell = NewShell();
         var action = shell.Dispatch(Key('q', ConsoleKey.Q));
-        Assert.Equal(ShellAction.Continue, action);
+        Assert.Equal(ShellAction.Exit, action);
     }
 
     [Fact]
@@ -236,6 +266,7 @@ public class AppShellTests : IDisposable
             {
                 ReceivedL = true;
             }
+
             if (key.Key == ConsoleKey.Q)
             {
                 ReceivedQ = true;
@@ -245,6 +276,29 @@ public class AppShellTests : IDisposable
 
         public IEnumerable<KeyValuePair<string, string?>> Hints =>
             Array.Empty<KeyValuePair<string, string?>>();
+    }
+
+    private sealed class ScrollRecordingScreen : ITabScreen
+    {
+        public int LastScrollDelta { get; private set; }
+        public string Title => "Scrolly";
+        public char NumberKey => '1';
+        public IEnumerable<KeyValuePair<string, string?>> Hints => Array.Empty<KeyValuePair<string, string?>>();
+        public IRenderable Render(int width, int height) => new Markup("scroll test");
+        public bool HandleKey(ConsoleKeyInfo key) => false;
+        public bool HandleScroll(int delta)
+        {
+            LastScrollDelta = delta;
+            return true;
+        }
+    }
+
+    private sealed class TestModal : IModal
+    {
+        public bool IsComplete => false;
+        public bool WasCancelled => false;
+        public IRenderable Render(int width, int height) => new Markup("modal");
+        public bool HandleKey(ConsoleKeyInfo key) => true;
     }
 
     private sealed class ScriptedReader : AppShell.IKeyReader
