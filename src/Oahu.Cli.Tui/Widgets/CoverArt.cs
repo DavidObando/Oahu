@@ -31,15 +31,14 @@ public static class CoverArt
     private static readonly HttpClient Http = new();
     private static readonly CoverResult PendingResult = new() { State = CoverState.Pending };
     private static readonly CoverResult Failed = new() { State = CoverState.Failed };
-    private static int _prefetchRunning;
-
     private static readonly string[] QuadrantGlyphs =
     [
         " ", "▘", "▝", "▀", "▖", "▌", "▞", "▛",
         "▗", "▚", "▐", "▜", "▄", "▙", "▟", "█",
     ];
+    private static int prefetchRunning;
 
-    public static bool IsPrefetching => _prefetchRunning != 0;
+    public static bool IsPrefetching => prefetchRunning != 0;
 
     public static CoverResult TryGet(string? path, string? url, int widthCells)
     {
@@ -66,7 +65,7 @@ public static class CoverArt
     public static void Prefetch(IReadOnlyList<(string? Path, string? Url)> covers)
     {
         ArgumentNullException.ThrowIfNull(covers);
-        if (Interlocked.CompareExchange(ref _prefetchRunning, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref prefetchRunning, 1, 0) != 0)
         {
             return;
         }
@@ -104,7 +103,7 @@ public static class CoverArt
             }
             finally
             {
-                Interlocked.Exchange(ref _prefetchRunning, 0);
+                Interlocked.Exchange(ref prefetchRunning, 0);
             }
         });
     }

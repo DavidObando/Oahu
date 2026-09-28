@@ -7,12 +7,12 @@ namespace Oahu.Cli.Tui.Themes;
 
 public sealed class Theme
 {
-    private static Theme _current = Themes.Default;
+    private static Theme current = Themes.Default;
 
     public static Theme Current
     {
-        get => _current;
-        private set => _current = value;
+        get => current;
+        private set => current = value;
     }
 
     public static IReadOnlyList<Theme> Available { get; } =

@@ -38,6 +38,9 @@ namespace Oahu.Cli.Tui.Shell;
 /// </summary>
 public sealed class AppShell : IAppShellNavigator
 {
+    /// <summary>OSC 9;4 clear sequence — removes the terminal title-bar / dock progress indicator.</summary>
+    public const string TerminalProgressClearSequence = "\u001b]9;4;0;0\u001b\\";
+
     /// <summary>
     /// Source of key presses. The production path uses <see cref="ConsoleKeyReader"/>;
     /// tests inject deterministic key streams.
@@ -87,9 +90,6 @@ public sealed class AppShell : IAppShellNavigator
     private const int HeaderStripStart = 9;
     private const int BodyTop = 2;
     private const int BodyLeft = 2;
-
-    /// <summary>OSC 9;4 clear sequence — removes the terminal title-bar / dock progress indicator.</summary>
-    public const string TerminalProgressClearSequence = "\u001b]9;4;0;0\u001b\\";
 
     private readonly IAnsiConsole console;
     private readonly AppShellOptions options;

@@ -33,14 +33,14 @@ public sealed class KnightRiderAnimation
         AlphaColor.Opaque(new Color(0x33, 0x00, 0x00));
     private static readonly char[] DiamondShapes = ['⬥', '◆', '⬩', '⬪'];
 
-    private readonly int _width;
-    private readonly KnightRiderStyle _style;
-    private readonly int _holdStart;
-    private readonly int _holdEnd;
-    private readonly AlphaColor[] _trail;
-    private readonly AlphaColor _inactive;
-    private readonly bool _enableFading;
-    private readonly double _minAlpha;
+    private readonly int width;
+    private readonly KnightRiderStyle style;
+    private readonly int holdStart;
+    private readonly int holdEnd;
+    private readonly AlphaColor[] trail;
+    private readonly AlphaColor inactive;
+    private readonly bool enableFading;
+    private readonly double minAlpha;
 
     public KnightRiderAnimation(
         int width = 8,
@@ -52,15 +52,15 @@ public sealed class KnightRiderAnimation
         bool enableFading = true,
         double minAlpha = 0d)
     {
-        _width = Math.Max(1, width);
-        _style = style;
-        _holdStart = Math.Max(0, holdStart);
-        _holdEnd = Math.Max(0, holdEnd);
-        _trail = colors is { Count: > 0 } ? colors.ToArray() : DefaultTrail;
-        _inactive = defaultColor ?? DefaultInactive;
-        _enableFading = enableFading;
-        _minAlpha = Math.Clamp(minAlpha, 0d, 1d);
-        TotalFrames = _width + _holdEnd + (_width - 1) + _holdStart;
+        this.width = Math.Max(1, width);
+        this.style = style;
+        this.holdStart = Math.Max(0, holdStart);
+        this.holdEnd = Math.Max(0, holdEnd);
+        trail = colors is { Count: > 0 } ? colors.ToArray() : DefaultTrail;
+        inactive = defaultColor ?? DefaultInactive;
+        this.enableFading = enableFading;
+        this.minAlpha = Math.Clamp(minAlpha, 0d, 1d);
+        TotalFrames = this.width + this.holdEnd + (this.width - 1) + this.holdStart;
     }
 
     public int TotalFrames { get; }
@@ -74,93 +74,27 @@ public sealed class KnightRiderAnimation
         var state = GetScannerState(frame);
         var fade = ComputeFade(state);
         var builder = new StringBuilder();
-        for (var characterIndex = 0; characterIndex < _width; characterIndex++)
+        for (var characterIndex = 0; characterIndex < width; characterIndex++)
         {
             var colorIndex = CalculateColorIndex(characterIndex, state);
             char glyph;
             Color color;
-            if (colorIndex >= 0 && colorIndex < _trail.Length)
+            if (colorIndex >= 0 && colorIndex < trail.Length)
             {
-                var dot = _trail[colorIndex];
+                var dot = trail[colorIndex];
                 color = Blend(dot.Color, background, dot.Alpha);
-                glyph = _style == KnightRiderStyle.Diamonds
+                glyph = style == KnightRiderStyle.Diamonds
                     ? DiamondShapes[Math.Min(colorIndex, DiamondShapes.Length - 1)]
                     : '■';
             }
             else
             {
-                color = Blend(_inactive.Color, background, _inactive.Alpha * fade);
-                glyph = _style == KnightRiderStyle.Diamonds ? '·' : '⬝';
+                color = Blend(inactive.Color, background, inactive.Alpha * fade);
+                glyph = style == KnightRiderStyle.Diamonds ? '·' : '⬝';
             }
             builder.Append('[').Append(color.ToMarkup()).Append(']').Append(glyph).Append("[/]");
         }
         return builder.ToString();
-    }
-
-    private readonly record struct ScannerState(
-        int ActivePosition,
-        bool IsHolding,
-        int HoldProgress,
-        int HoldTotal,
-        int MovementProgress,
-        int MovementTotal,
-        bool IsMovingForward);
-
-    private ScannerState GetScannerState(int frameIndex)
-    {
-        var forwardFrames = _width;
-        var backwardFrames = _width - 1;
-        if (frameIndex < forwardFrames)
-        {
-            return new(frameIndex, false, 0, 0, frameIndex, forwardFrames, true);
-        }
-        if (frameIndex < forwardFrames + _holdEnd)
-        {
-            return new(_width - 1, true, frameIndex - forwardFrames, _holdEnd, 0, 0, true);
-        }
-        if (frameIndex < forwardFrames + _holdEnd + backwardFrames)
-        {
-            var backwardIndex = frameIndex - forwardFrames - _holdEnd;
-            return new(_width - 2 - backwardIndex, false, 0, 0, backwardIndex, backwardFrames, false);
-        }
-        return new(0, true, frameIndex - forwardFrames - _holdEnd - backwardFrames, _holdStart, 0, 0, false);
-    }
-
-    private int CalculateColorIndex(int characterIndex, ScannerState state)
-    {
-        var directionalDistance = state.IsMovingForward
-            ? state.ActivePosition - characterIndex
-            : characterIndex - state.ActivePosition;
-        if (state.IsHolding)
-        {
-            return directionalDistance + state.HoldProgress;
-        }
-        if (directionalDistance > 0 && directionalDistance < _trail.Length)
-        {
-            return directionalDistance;
-        }
-        return directionalDistance == 0 ? 0 : -1;
-    }
-
-    private double ComputeFade(ScannerState state)
-    {
-        if (!_enableFading)
-        {
-            return 1d;
-        }
-        if (state.IsHolding && state.HoldTotal > 0)
-        {
-            var progress = Math.Min((double)state.HoldProgress / state.HoldTotal, 1d);
-            return Math.Max(_minAlpha, 1d - (progress * (1d - _minAlpha)));
-        }
-        if (!state.IsHolding && state.MovementTotal > 0)
-        {
-            var progress = Math.Min(
-                (double)state.MovementProgress / Math.Max(1, state.MovementTotal - 1),
-                1d);
-            return _minAlpha + (progress * (1d - _minAlpha));
-        }
-        return 1d;
     }
 
     public static AlphaColor[] DeriveTrailColors(Color brightColor, int steps = 6)
@@ -192,6 +126,72 @@ public sealed class KnightRiderAnimation
 
     public static AlphaColor DeriveInactiveColor(Color brightColor, double factor = 0.2d) =>
         new(brightColor, Math.Clamp(factor, 0d, 1d));
+
+    private readonly record struct ScannerState(
+        int ActivePosition,
+        bool IsHolding,
+        int HoldProgress,
+        int HoldTotal,
+        int MovementProgress,
+        int MovementTotal,
+        bool IsMovingForward);
+
+    private ScannerState GetScannerState(int frameIndex)
+    {
+        var forwardFrames = width;
+        var backwardFrames = width - 1;
+        if (frameIndex < forwardFrames)
+        {
+            return new(frameIndex, false, 0, 0, frameIndex, forwardFrames, true);
+        }
+        if (frameIndex < forwardFrames + holdEnd)
+        {
+            return new(width - 1, true, frameIndex - forwardFrames, holdEnd, 0, 0, true);
+        }
+        if (frameIndex < forwardFrames + holdEnd + backwardFrames)
+        {
+            var backwardIndex = frameIndex - forwardFrames - holdEnd;
+            return new(width - 2 - backwardIndex, false, 0, 0, backwardIndex, backwardFrames, false);
+        }
+        return new(0, true, frameIndex - forwardFrames - holdEnd - backwardFrames, holdStart, 0, 0, false);
+    }
+
+    private int CalculateColorIndex(int characterIndex, ScannerState state)
+    {
+        var directionalDistance = state.IsMovingForward
+            ? state.ActivePosition - characterIndex
+            : characterIndex - state.ActivePosition;
+        if (state.IsHolding)
+        {
+            return directionalDistance + state.HoldProgress;
+        }
+        if (directionalDistance > 0 && directionalDistance < trail.Length)
+        {
+            return directionalDistance;
+        }
+        return directionalDistance == 0 ? 0 : -1;
+    }
+
+    private double ComputeFade(ScannerState state)
+    {
+        if (!enableFading)
+        {
+            return 1d;
+        }
+        if (state.IsHolding && state.HoldTotal > 0)
+        {
+            var progress = Math.Min((double)state.HoldProgress / state.HoldTotal, 1d);
+            return Math.Max(minAlpha, 1d - (progress * (1d - minAlpha)));
+        }
+        if (!state.IsHolding && state.MovementTotal > 0)
+        {
+            var progress = Math.Min(
+                (double)state.MovementProgress / Math.Max(1, state.MovementTotal - 1),
+                1d);
+            return minAlpha + (progress * (1d - minAlpha));
+        }
+        return 1d;
+    }
 
     private static Color Scale(Color color, double factor) => new(
         (byte)Math.Min(255d, color.R * factor),

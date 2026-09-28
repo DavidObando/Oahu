@@ -8,26 +8,26 @@ namespace Oahu.Cli.Tui.Widgets;
 
 public sealed class Overlay : IRenderable
 {
-    private readonly IRenderable _baseFrame;
-    private readonly IRenderable _modal;
-    private readonly int _modalWidth;
+    private readonly IRenderable baseFrame;
+    private readonly IRenderable modal;
+    private readonly int modalWidth;
 
     public Overlay(IRenderable baseFrame, IRenderable modal, int modalWidth)
     {
-        _baseFrame = baseFrame ?? throw new ArgumentNullException(nameof(baseFrame));
-        _modal = modal ?? throw new ArgumentNullException(nameof(modal));
-        _modalWidth = Math.Max(1, modalWidth);
+        this.baseFrame = baseFrame ?? throw new ArgumentNullException(nameof(baseFrame));
+        this.modal = modal ?? throw new ArgumentNullException(nameof(modal));
+        this.modalWidth = Math.Max(1, modalWidth);
     }
 
     public Measurement Measure(RenderOptions options, int maxWidth) => new(maxWidth, maxWidth);
 
     public IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var baseLines = Segment.SplitLines(_baseFrame.Render(options, maxWidth))
+        var baseLines = Segment.SplitLines(baseFrame.Render(options, maxWidth))
             .Select(line => new List<Segment>(line))
             .ToList();
-        var width = Math.Min(_modalWidth, maxWidth);
-        var modalLines = Segment.SplitLines(_modal.Render(options, width));
+        var width = Math.Min(modalWidth, maxWidth);
+        var modalLines = Segment.SplitLines(modal.Render(options, width));
         var left = Math.Max(0, (maxWidth - width) / 2);
         var top = Math.Max(0, (baseLines.Count - modalLines.Count) / 2);
         for (var row = 0; row < modalLines.Count; row++)

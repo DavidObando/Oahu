@@ -14,11 +14,11 @@ public sealed class HelpOverlay : IModal
         string Title,
         IReadOnlyList<(string Key, string Action)> Entries);
 
-    private readonly IReadOnlyList<HelpSection> _sections;
+    private readonly IReadOnlyList<HelpSection> sections;
 
     public HelpOverlay(IReadOnlyList<HelpSection> sections)
     {
-        _sections = sections ?? throw new ArgumentNullException(nameof(sections));
+        this.sections = sections ?? throw new ArgumentNullException(nameof(sections));
     }
 
     public bool IsComplete { get; private set; }
@@ -39,7 +39,7 @@ public sealed class HelpOverlay : IModal
         var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
         var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
         var rows = new List<IRenderable> { new Markup($"[{brand} bold]Keys[/]") };
-        foreach (var section in _sections)
+        foreach (var section in sections)
         {
             rows.Add(new Markup(" "));
             rows.Add(new Markup($"[{secondary} bold]{Markup.Escape(section.Title)}[/]"));

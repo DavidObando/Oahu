@@ -132,6 +132,151 @@ public sealed class LibraryScreen : ITabScreen
         return new SideBySide(list, listWidth, 1, pane, detailWidth);
     }
 
+    public bool HandleScroll(int delta)
+    {
+        if (filtered.Count == 0)
+        {
+            return true;
+        }
+        cursor = Math.Clamp(cursor + delta, 0, filtered.Count - 1);
+        return true;
+    }
+
+    public bool HandleClick(int x, int y)
+    {
+        if (x >= lastListWidth)
+        {
+            return false;
+        }
+        var index = scrollOffset + y - lastListTop;
+        if (y < lastListTop || index < 0 || index >= filtered.Count || index >= scrollOffset + lastListHeight)
+        {
+            return false;
+        }
+        if (index == cursor)
+        {
+            var asin = filtered[index].Asin;
+            if (!selected.Remove(asin))
+            {
+                selected.Add(asin);
+            }
+        }
+        else
+        {
+            cursor = index;
+        }
+        return true;
+    }
+
+    public bool HandleKey(ConsoleKeyInfo key)
+    {
+        if (searchMode)
+        {
+            switch (key.Key)
+            {
+                case ConsoleKey.Enter:
+                    searchMode = false;
+                    ApplyFilter();
+                    return true;
+                case ConsoleKey.Escape:
+                    searchMode = false;
+                    searchInput.Text = string.Empty;
+                    ApplyFilter();
+                    return true;
+                default:
+                    return searchInput.HandleKey(key);
+            }
+        }
+
+        switch (key.Key)
+        {
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.K:
+                cursor = Math.Max(0, cursor - 1);
+                return true;
+            case ConsoleKey.DownArrow:
+            case ConsoleKey.J:
+                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + 1));
+                return true;
+            case ConsoleKey.PageUp:
+                cursor = Math.Max(0, cursor - lastListHeight);
+                return true;
+            case ConsoleKey.PageDown:
+                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + lastListHeight));
+                return true;
+            case ConsoleKey.Home:
+                cursor = 0;
+                return true;
+            case ConsoleKey.End:
+                cursor = Math.Max(0, filtered.Count - 1);
+                return true;
+            case ConsoleKey.Spacebar:
+                if (cursor >= 0 && cursor < filtered.Count)
+                {
+                    var asin = filtered[cursor].Asin;
+                    if (!selected.Remove(asin))
+                    {
+                        selected.Add(asin);
+                    }
+                }
+                return true;
+            case ConsoleKey.A when key.Modifiers == 0:
+                if (selected.Count == filtered.Count)
+                {
+                    selected.Clear();
+                }
+                else
+                {
+                    foreach (var item in filtered)
+                    {
+                        selected.Add(item.Asin);
+                    }
+                }
+                return true;
+            case ConsoleKey.Escape:
+                if (!string.IsNullOrEmpty(searchInput.Text))
+                {
+                    searchInput.Text = string.Empty;
+                    ApplyFilter();
+                    return true;
+                }
+                if (selected.Count > 0)
+                {
+                    selected.Clear();
+                    return true;
+                }
+                break;
+            case ConsoleKey.E when key.Modifiers == 0:
+                return EnqueueSelection();
+        }
+
+        if (key.KeyChar == '/')
+        {
+            searchMode = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Load library items synchronously (used by tests and explicit refresh).</summary>
+    public void Reload()
+    {
+        try
+        {
+            var lib = libraryServiceFactory();
+            allItems = lib.ListAsync().GetAwaiter().GetResult();
+            loaded = true;
+            ApplyFilter();
+            PrefetchCovers();
+        }
+        catch
+        {
+            loaded = true;
+            // Swallow to keep TUI stable.
+        }
+    }
+
     private IRenderable RenderList(int width, int height)
     {
         var lines = new List<IRenderable>();
@@ -287,151 +432,6 @@ public sealed class LibraryScreen : ITabScreen
         lines.Add(new Markup(" "));
         lines.Add(new Markup($"[{brand}]e[/] [{tertiary}]enqueue for download[/]"));
         return new Rows(lines);
-    }
-
-    public bool HandleScroll(int delta)
-    {
-        if (filtered.Count == 0)
-        {
-            return true;
-        }
-        cursor = Math.Clamp(cursor + delta, 0, filtered.Count - 1);
-        return true;
-    }
-
-    public bool HandleClick(int x, int y)
-    {
-        if (x >= lastListWidth)
-        {
-            return false;
-        }
-        var index = scrollOffset + y - lastListTop;
-        if (y < lastListTop || index < 0 || index >= filtered.Count || index >= scrollOffset + lastListHeight)
-        {
-            return false;
-        }
-        if (index == cursor)
-        {
-            var asin = filtered[index].Asin;
-            if (!selected.Remove(asin))
-            {
-                selected.Add(asin);
-            }
-        }
-        else
-        {
-            cursor = index;
-        }
-        return true;
-    }
-
-    public bool HandleKey(ConsoleKeyInfo key)
-    {
-        if (searchMode)
-        {
-            switch (key.Key)
-            {
-                case ConsoleKey.Enter:
-                    searchMode = false;
-                    ApplyFilter();
-                    return true;
-                case ConsoleKey.Escape:
-                    searchMode = false;
-                    searchInput.Text = string.Empty;
-                    ApplyFilter();
-                    return true;
-                default:
-                    return searchInput.HandleKey(key);
-            }
-        }
-
-        switch (key.Key)
-        {
-            case ConsoleKey.UpArrow:
-            case ConsoleKey.K:
-                cursor = Math.Max(0, cursor - 1);
-                return true;
-            case ConsoleKey.DownArrow:
-            case ConsoleKey.J:
-                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + 1));
-                return true;
-            case ConsoleKey.PageUp:
-                cursor = Math.Max(0, cursor - lastListHeight);
-                return true;
-            case ConsoleKey.PageDown:
-                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + lastListHeight));
-                return true;
-            case ConsoleKey.Home:
-                cursor = 0;
-                return true;
-            case ConsoleKey.End:
-                cursor = Math.Max(0, filtered.Count - 1);
-                return true;
-            case ConsoleKey.Spacebar:
-                if (cursor >= 0 && cursor < filtered.Count)
-                {
-                    var asin = filtered[cursor].Asin;
-                    if (!selected.Remove(asin))
-                    {
-                        selected.Add(asin);
-                    }
-                }
-                return true;
-            case ConsoleKey.A when key.Modifiers == 0:
-                if (selected.Count == filtered.Count)
-                {
-                    selected.Clear();
-                }
-                else
-                {
-                    foreach (var item in filtered)
-                    {
-                        selected.Add(item.Asin);
-                    }
-                }
-                return true;
-            case ConsoleKey.Escape:
-                if (!string.IsNullOrEmpty(searchInput.Text))
-                {
-                    searchInput.Text = string.Empty;
-                    ApplyFilter();
-                    return true;
-                }
-                if (selected.Count > 0)
-                {
-                    selected.Clear();
-                    return true;
-                }
-                break;
-            case ConsoleKey.E when key.Modifiers == 0:
-                return EnqueueSelection();
-        }
-
-        if (key.KeyChar == '/')
-        {
-            searchMode = true;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>Load library items synchronously (used by tests and explicit refresh).</summary>
-    public void Reload()
-    {
-        try
-        {
-            var lib = libraryServiceFactory();
-            allItems = lib.ListAsync().GetAwaiter().GetResult();
-            loaded = true;
-            ApplyFilter();
-            PrefetchCovers();
-        }
-        catch
-        {
-            loaded = true;
-            // Swallow to keep TUI stable.
-        }
     }
 
     /// <summary>Load library items asynchronously (returned to shell for tracking).</summary>

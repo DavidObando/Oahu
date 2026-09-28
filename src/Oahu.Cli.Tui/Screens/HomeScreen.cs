@@ -74,38 +74,6 @@ public sealed class HomeScreen : ITabScreen
         }
     }
 
-    private List<QuickAction> QuickActions()
-    {
-        var actions = new List<QuickAction>();
-        if (state.IsSignedIn)
-        {
-            actions.Add(new("browse the library", "2", "library"));
-            actions.Add(new("review the download queue", "3", "queue"));
-            actions.Add(new("watch running jobs", "4", "jobs"));
-            actions.Add(new("refresh the library from Audible", "r", "refresh"));
-            actions.Add(new("open settings", "6", "settings"));
-        }
-        else
-        {
-            actions.Add(new("sign in to Audible", "s", "signin"));
-            actions.Add(new("open settings", "6", "settings"));
-        }
-        return actions;
-    }
-
-    private void RunAction(string id)
-    {
-        switch (id)
-        {
-            case "library": navigator?.SwitchToTab('2'); break;
-            case "queue": navigator?.SwitchToTab('3'); break;
-            case "jobs": navigator?.SwitchToTab('4'); break;
-            case "settings": navigator?.SwitchToTab('6'); break;
-            case "refresh": BeginRefresh(); break;
-            case "signin": BeginSignIn(); break;
-        }
-    }
-
     public Task? OnActivatedAsync(IAppShellNavigator navigator)
     {
         this.navigator = navigator;
@@ -169,27 +137,6 @@ public sealed class HomeScreen : ITabScreen
         }
 
         return new Padder(new Rows(lines)).Padding(2, 1, 2, 1);
-    }
-
-    private void AppendQuickActions(List<IRenderable> lines)
-    {
-        var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
-        var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
-        var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
-        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
-        var actions = QuickActions();
-        actionCursor = Math.Clamp(actionCursor, 0, Math.Max(0, actions.Count - 1));
-        for (var i = 0; i < actions.Count; i++)
-        {
-            var isCursor = i == actionCursor;
-            var pointer = isCursor ? $"[{brand}]❯[/]" : " ";
-            var style = isCursor ? $"bold {primary}" : secondary;
-            var row = $"  {pointer} [{style}]{Markup.Escape(actions[i].Label)}[/]  " +
-                      $"[{tertiary}]{Markup.Escape(actions[i].KeyHint)}[/]";
-            lines.Add(isCursor && Tokens.Tokens.HasBackdrop
-                ? new Backdrop(new Markup(row), Tokens.Tokens.InputBackground.Value, padLeft: 0, padRight: 1)
-                : new Markup(row));
-        }
     }
 
     public bool HandleScroll(int delta)
@@ -260,6 +207,59 @@ public sealed class HomeScreen : ITabScreen
         {
             loaded = true;
             // Swallow — the TUI must not crash.
+        }
+    }
+
+    private List<QuickAction> QuickActions()
+    {
+        var actions = new List<QuickAction>();
+        if (state.IsSignedIn)
+        {
+            actions.Add(new("browse the library", "2", "library"));
+            actions.Add(new("review the download queue", "3", "queue"));
+            actions.Add(new("watch running jobs", "4", "jobs"));
+            actions.Add(new("refresh the library from Audible", "r", "refresh"));
+            actions.Add(new("open settings", "6", "settings"));
+        }
+        else
+        {
+            actions.Add(new("sign in to Audible", "s", "signin"));
+            actions.Add(new("open settings", "6", "settings"));
+        }
+        return actions;
+    }
+
+    private void RunAction(string id)
+    {
+        switch (id)
+        {
+            case "library": navigator?.SwitchToTab('2'); break;
+            case "queue": navigator?.SwitchToTab('3'); break;
+            case "jobs": navigator?.SwitchToTab('4'); break;
+            case "settings": navigator?.SwitchToTab('6'); break;
+            case "refresh": BeginRefresh(); break;
+            case "signin": BeginSignIn(); break;
+        }
+    }
+
+    private void AppendQuickActions(List<IRenderable> lines)
+    {
+        var primary = Tokens.Tokens.TextPrimary.Value.ToMarkup();
+        var secondary = Tokens.Tokens.TextSecondary.Value.ToMarkup();
+        var tertiary = Tokens.Tokens.TextTertiary.Value.ToMarkup();
+        var brand = Tokens.Tokens.Brand.Value.ToMarkup();
+        var actions = QuickActions();
+        actionCursor = Math.Clamp(actionCursor, 0, Math.Max(0, actions.Count - 1));
+        for (var i = 0; i < actions.Count; i++)
+        {
+            var isCursor = i == actionCursor;
+            var pointer = isCursor ? $"[{brand}]❯[/]" : " ";
+            var style = isCursor ? $"bold {primary}" : secondary;
+            var row = $"  {pointer} [{style}]{Markup.Escape(actions[i].Label)}[/]  " +
+                      $"[{tertiary}]{Markup.Escape(actions[i].KeyHint)}[/]";
+            lines.Add(isCursor && Tokens.Tokens.HasBackdrop
+                ? new Backdrop(new Markup(row), Tokens.Tokens.InputBackground.Value, padLeft: 0, padRight: 1)
+                : new Markup(row));
         }
     }
 

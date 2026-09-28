@@ -39,15 +39,34 @@ internal static class WindowsConsoleInput
         public MouseEventRecord Mouse;
     }
 
-    private static nint _stdInHandle;
-    private static uint _originalMode;
-    private static bool _active;
+    private const int StdInputHandle = -10;
+    private const uint EnableQuickEditMode = 0x0040;
+    private const uint EnableExtendedFlags = 0x0080;
+    private const uint EnableMouseInput = 0x0010;
+    private const uint EnableVirtualTerminalInput = 0x0200;
+    private const ushort KeyEventType = 0x0001;
+    private const ushort MouseEventType = 0x0002;
+    private const uint MouseWheeled = 0x0004;
+    private const uint DoubleClick = 0x0002;
+    private const uint FromLeft1stButtonPressed = 0x0001;
+    private const uint ShiftPressed = 0x0010;
+    private const uint LeftAltPressed = 0x0002;
+    private const uint RightAltPressed = 0x0001;
+    private const uint LeftCtrlPressed = 0x0008;
+    private const uint RightCtrlPressed = 0x0004;
+    private const uint WaitObject0 = 0;
+    private const uint Infinite = 0xffffffff;
 
-    public static bool IsActive => _active;
+    private static readonly nint InvalidHandleValue = -1;
+    private static nint stdInHandle;
+    private static uint originalMode;
+    private static bool active;
+
+    public static bool IsActive => active;
 
     public static bool TrySetup()
     {
-        if (_active)
+        if (active)
         {
             return true;
         }
@@ -57,24 +76,24 @@ internal static class WindowsConsoleInput
         }
         try
         {
-            _stdInHandle = GetStdHandle(StdInputHandle);
-            if (_stdInHandle == 0 || _stdInHandle == InvalidHandleValue)
+            stdInHandle = GetStdHandle(StdInputHandle);
+            if (stdInHandle == 0 || stdInHandle == InvalidHandleValue)
             {
                 return false;
             }
-            if (!GetConsoleMode(_stdInHandle, out _originalMode))
+            if (!GetConsoleMode(stdInHandle, out originalMode))
             {
                 return false;
             }
-            var mode = _originalMode;
+            var mode = originalMode;
             mode |= EnableExtendedFlags;
             mode |= EnableMouseInput;
             mode &= ~(EnableQuickEditMode | EnableVirtualTerminalInput);
-            if (!SetConsoleMode(_stdInHandle, mode))
+            if (!SetConsoleMode(stdInHandle, mode))
             {
                 return false;
             }
-            _active = true;
+            active = true;
             return true;
         }
         catch
@@ -85,14 +104,14 @@ internal static class WindowsConsoleInput
 
     public static void Restore()
     {
-        if (!_active)
+        if (!active)
         {
             return;
         }
-        _active = false;
+        active = false;
         try
         {
-            SetConsoleMode(_stdInHandle, _originalMode);
+            SetConsoleMode(stdInHandle, originalMode);
         }
         catch
         {
@@ -109,13 +128,13 @@ internal static class WindowsConsoleInput
             var remaining = timeoutMs < 0
                 ? Infinite
                 : (uint)Math.Max(0L, deadline - Environment.TickCount64);
-            var wait = WaitForSingleObject(_stdInHandle, remaining);
+            var wait = WaitForSingleObject(stdInHandle, remaining);
             if (wait != WaitObject0)
             {
                 timedOut = true;
                 return null;
             }
-            if (!ReadConsoleInput(_stdInHandle, out var record, 1, out var read) || read == 0)
+            if (!ReadConsoleInput(stdInHandle, out var record, 1, out var read) || read == 0)
             {
                 return null;
             }
@@ -162,25 +181,6 @@ internal static class WindowsConsoleInput
         var value = (int)virtualKey;
         return value is 0x10 or 0x11 or 0x12 or 0x14 or 0x90 or 0x91 or 0x5b or 0x5c;
     }
-
-    private const int StdInputHandle = -10;
-    private static readonly nint InvalidHandleValue = -1;
-    private const uint EnableQuickEditMode = 0x0040;
-    private const uint EnableExtendedFlags = 0x0080;
-    private const uint EnableMouseInput = 0x0010;
-    private const uint EnableVirtualTerminalInput = 0x0200;
-    private const ushort KeyEventType = 0x0001;
-    private const ushort MouseEventType = 0x0002;
-    private const uint MouseWheeled = 0x0004;
-    private const uint DoubleClick = 0x0002;
-    private const uint FromLeft1stButtonPressed = 0x0001;
-    private const uint ShiftPressed = 0x0010;
-    private const uint LeftAltPressed = 0x0002;
-    private const uint RightAltPressed = 0x0001;
-    private const uint LeftCtrlPressed = 0x0008;
-    private const uint RightCtrlPressed = 0x0004;
-    private const uint WaitObject0 = 0;
-    private const uint Infinite = 0xffffffff;
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern nint GetStdHandle(int nStdHandle);

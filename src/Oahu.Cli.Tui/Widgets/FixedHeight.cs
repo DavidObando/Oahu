@@ -8,33 +8,33 @@ namespace Oahu.Cli.Tui.Widgets;
 
 public sealed class FixedHeight : IRenderable
 {
-    private readonly IRenderable _child;
-    private readonly int _height;
-    private readonly Style? _fill;
+    private readonly IRenderable child;
+    private readonly int height;
+    private readonly Style? fill;
 
     public FixedHeight(IRenderable child, int height, Style? fill = null)
     {
-        _child = child ?? throw new ArgumentNullException(nameof(child));
-        _height = Math.Max(1, height);
-        _fill = fill;
+        this.child = child ?? throw new ArgumentNullException(nameof(child));
+        this.height = Math.Max(1, height);
+        this.fill = fill;
     }
 
     public Measurement Measure(RenderOptions options, int maxWidth) => new(maxWidth, maxWidth);
 
     public IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var lines = Segment.SplitLines(_child.Render(options, maxWidth))
-            .Select(line => SegmentGrid.PadLine(line, maxWidth, _fill))
+        var lines = Segment.SplitLines(child.Render(options, maxWidth))
+            .Select(line => SegmentGrid.PadLine(line, maxWidth, fill))
             .ToList();
-        if (lines.Count > _height)
+        if (lines.Count > height)
         {
-            lines = lines.Take(_height).ToList();
+            lines = lines.Take(height).ToList();
         }
         else
         {
-            while (lines.Count < _height)
+            while (lines.Count < height)
             {
-                lines.Add(SegmentGrid.PadLine(Array.Empty<Segment>(), maxWidth, _fill));
+                lines.Add(SegmentGrid.PadLine(Array.Empty<Segment>(), maxWidth, fill));
             }
         }
 

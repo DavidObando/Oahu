@@ -12,23 +12,23 @@ public sealed class CommandPalette : IModal
 {
     public readonly record struct PaletteVerb(string Verb, string Help);
 
-    private readonly IReadOnlyList<PaletteVerb> _verbs;
-    private readonly Action<string> _run;
-    private string _query = string.Empty;
-    private int _cursor;
+    private readonly IReadOnlyList<PaletteVerb> verbs;
+    private readonly Action<string> run;
+    private string query = string.Empty;
+    private int cursor;
 
     public CommandPalette(IReadOnlyList<PaletteVerb> verbs, Action<string> run)
     {
-        _verbs = verbs ?? throw new ArgumentNullException(nameof(verbs));
-        _run = run ?? throw new ArgumentNullException(nameof(run));
+        this.verbs = verbs ?? throw new ArgumentNullException(nameof(verbs));
+        this.run = run ?? throw new ArgumentNullException(nameof(run));
     }
 
     public bool IsComplete { get; private set; }
 
     public bool WasCancelled { get; private set; }
 
-    private List<PaletteVerb> Filtered => _verbs
-        .Where(verb => verb.Verb.Contains(_query, StringComparison.OrdinalIgnoreCase))
+    private List<PaletteVerb> Filtered => verbs
+        .Where(verb => verb.Verb.Contains(query, StringComparison.OrdinalIgnoreCase))
         .ToList();
 
     public bool HandleKey(ConsoleKeyInfo key)
@@ -38,12 +38,12 @@ public sealed class CommandPalette : IModal
         {
             case ConsoleKey.Enter:
                 var chosen = matches.Count > 0
-                    ? matches[Math.Clamp(_cursor, 0, matches.Count - 1)].Verb
-                    : _query;
+                    ? matches[Math.Clamp(cursor, 0, matches.Count - 1)].Verb
+                    : query;
                 IsComplete = true;
                 if (!string.IsNullOrWhiteSpace(chosen))
                 {
-                    _run(chosen.Trim());
+                    run(chosen.Trim());
                 }
                 else
                 {
@@ -55,30 +55,30 @@ public sealed class CommandPalette : IModal
                 WasCancelled = true;
                 return true;
             case ConsoleKey.UpArrow:
-                _cursor = Math.Max(0, _cursor - 1);
+                cursor = Math.Max(0, cursor - 1);
                 return true;
             case ConsoleKey.DownArrow:
-                _cursor = Math.Min(Math.Max(0, matches.Count - 1), _cursor + 1);
+                cursor = Math.Min(Math.Max(0, matches.Count - 1), cursor + 1);
                 return true;
             case ConsoleKey.Tab:
                 if (matches.Count > 0)
                 {
-                    _query = matches[Math.Clamp(_cursor, 0, matches.Count - 1)].Verb;
-                    _cursor = 0;
+                    query = matches[Math.Clamp(cursor, 0, matches.Count - 1)].Verb;
+                    cursor = 0;
                 }
                 return true;
             case ConsoleKey.Backspace:
-                if (_query.Length > 0)
+                if (query.Length > 0)
                 {
-                    _query = _query[..^1];
+                    query = query[..^1];
                 }
-                _cursor = 0;
+                cursor = 0;
                 return true;
             default:
                 if (key.KeyChar >= ' ' && !char.IsControl(key.KeyChar))
                 {
-                    _query += key.KeyChar;
-                    _cursor = 0;
+                    query += key.KeyChar;
+                    cursor = 0;
                 }
                 return true;
         }
@@ -92,7 +92,7 @@ public sealed class CommandPalette : IModal
         var rows = new List<IRenderable>
         {
             new Markup($"[{brand} bold]Commands[/]"),
-            new Markup($"[{brand}]:[/] [{primary}]{Markup.Escape(_query)}[/][{tertiary}]▏[/]"),
+            new Markup($"[{brand}]:[/] [{primary}]{Markup.Escape(query)}[/][{tertiary}]▏[/]"),
             new Markup(" "),
         };
         var matches = Filtered;
@@ -102,11 +102,11 @@ public sealed class CommandPalette : IModal
         }
 
         var maxRows = Math.Max(3, height - 7);
-        var first = _cursor >= maxRows ? _cursor - maxRows + 1 : 0;
+        var first = cursor >= maxRows ? cursor - maxRows + 1 : 0;
         var visible = Math.Min(matches.Count - first, maxRows);
         for (var i = first; i < first + visible; i++)
         {
-            var selected = i == _cursor;
+            var selected = i == cursor;
             var caret = selected ? $"[{brand}]❯[/] " : "  ";
             var nameStyle = selected ? $"bold {primary}" : primary;
             rows.Add(new Markup(

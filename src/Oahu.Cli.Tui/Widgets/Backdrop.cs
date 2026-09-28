@@ -8,14 +8,14 @@ namespace Oahu.Cli.Tui.Widgets;
 public sealed class Backdrop : IRenderable
 {
     private const string AccentGlyph = "▏";
-    private readonly IRenderable _child;
-    private readonly Color _background;
-    private readonly Color? _accent;
-    private readonly int _padLeft;
-    private readonly int _padRight;
-    private readonly int _padTop;
-    private readonly int _padBottom;
-    private readonly int _minHeight;
+    private readonly IRenderable child;
+    private readonly Color background;
+    private readonly Color? accent;
+    private readonly int padLeft;
+    private readonly int padRight;
+    private readonly int padTop;
+    private readonly int padBottom;
+    private readonly int minHeight;
 
     public Backdrop(
         IRenderable child,
@@ -27,30 +27,30 @@ public sealed class Backdrop : IRenderable
         int padBottom = 0,
         int minHeight = 0)
     {
-        _child = child ?? throw new ArgumentNullException(nameof(child));
-        _background = background;
-        _accent = accent;
-        _padLeft = Math.Max(0, padLeft);
-        _padRight = Math.Max(0, padRight);
-        _padTop = Math.Max(0, padTop);
-        _padBottom = Math.Max(0, padBottom);
-        _minHeight = Math.Max(0, minHeight);
+        this.child = child ?? throw new ArgumentNullException(nameof(child));
+        this.background = background;
+        this.accent = accent;
+        this.padLeft = Math.Max(0, padLeft);
+        this.padRight = Math.Max(0, padRight);
+        this.padTop = Math.Max(0, padTop);
+        this.padBottom = Math.Max(0, padBottom);
+        this.minHeight = Math.Max(0, minHeight);
     }
 
     public Measurement Measure(RenderOptions options, int maxWidth) => new(maxWidth, maxWidth);
 
     public IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var paint = _background != Color.Default;
-        var backgroundStyle = paint ? new Style(background: _background) : Style.Plain;
-        var barStyle = _accent is { } accent
-            ? new Style(foreground: accent, background: paint ? _background : Color.Default)
+        var paint = background != Color.Default;
+        var backgroundStyle = paint ? new Style(background: background) : Style.Plain;
+        var barStyle = accent is { } accentColor
+            ? new Style(foreground: accentColor, background: paint ? background : Color.Default)
             : backgroundStyle;
-        var barWidth = _accent is null ? 0 : 1;
-        var innerWidth = Math.Max(1, maxWidth - barWidth - _padLeft - _padRight);
-        var lines = Segment.SplitLines(_child.Render(options, innerWidth));
+        var barWidth = this.accent is null ? 0 : 1;
+        var innerWidth = Math.Max(1, maxWidth - barWidth - padLeft - padRight);
+        var lines = Segment.SplitLines(child.Render(options, innerWidth));
         var output = new List<List<Segment>>();
-        for (var i = 0; i < _padTop; i++)
+        for (var i = 0; i < padTop; i++)
         {
             output.Add(FrameLine(maxWidth, barWidth, barStyle, backgroundStyle));
         }
@@ -63,9 +63,9 @@ public sealed class Backdrop : IRenderable
                 row.Add(new Segment(AccentGlyph, barStyle));
             }
 
-            if (_padLeft > 0)
+            if (padLeft > 0)
             {
-                row.Add(new Segment(new string(' ', _padLeft), backgroundStyle));
+                row.Add(new Segment(new string(' ', padLeft), backgroundStyle));
             }
 
             var used = 0;
@@ -75,7 +75,7 @@ public sealed class Backdrop : IRenderable
                 used += segment.CellCount();
             }
 
-            var fill = maxWidth - barWidth - _padLeft - used;
+            var fill = maxWidth - barWidth - padLeft - used;
             if (fill > 0)
             {
                 row.Add(new Segment(new string(' ', fill), backgroundStyle));
@@ -84,12 +84,12 @@ public sealed class Backdrop : IRenderable
             output.Add(row);
         }
 
-        for (var i = 0; i < _padBottom; i++)
+        for (var i = 0; i < padBottom; i++)
         {
             output.Add(FrameLine(maxWidth, barWidth, barStyle, backgroundStyle));
         }
 
-        while (output.Count < _minHeight)
+        while (output.Count < minHeight)
         {
             output.Add(FrameLine(maxWidth, barWidth, barStyle, backgroundStyle));
         }
