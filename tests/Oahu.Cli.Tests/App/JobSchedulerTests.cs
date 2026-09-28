@@ -119,7 +119,20 @@ public class JobSchedulerTests : IDisposable
         // Two parallel workers; submit four jobs; verify peak concurrent in-flight is <= 2.
         int active = 0, peak = 0;
         var executor = new ProbeExecutor(
-            onStart: () => peak = Math.Max(peak, Interlocked.Increment(ref active)),
+            onStart: () =>
+            {
+                var current = Interlocked.Increment(ref active);
+                var recorded = Volatile.Read(ref peak);
+                while (current > recorded)
+                {
+                    var previous = Interlocked.CompareExchange(ref peak, current, recorded);
+                    if (previous == recorded)
+                    {
+                        break;
+                    }
+                    recorded = previous;
+                }
+            },
             onEnd: () => Interlocked.Decrement(ref active));
 
         await using var sched = new JobScheduler(executor, options: new JobSchedulerOptions { MaxParallelism = 2 });
@@ -128,9 +141,10 @@ public class JobSchedulerTests : IDisposable
         var done = new TaskCompletionSource();
         var seenCompletions = 0;
         var observeCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var updates = sched.ObserveAll(observeCts.Token);
         _ = Task.Run(async () =>
         {
-            await foreach (var u in sched.ObserveAll(observeCts.Token))
+            await foreach (var u in updates)
             {
                 if (u.Phase == JobPhase.Completed && Interlocked.Increment(ref seenCompletions) == 4)
                 {
@@ -139,7 +153,6 @@ public class JobSchedulerTests : IDisposable
             }
         });
 
-        await Task.Delay(50);
         foreach (var r in ids)
         {
             await sched.SubmitAsync(r);

@@ -231,16 +231,31 @@ public class SignInFlowTests : IDisposable
     }
 
     [Fact]
-    public void SignInFlow_Start_Sets_State()
+    public async Task SignInFlow_Start_Sets_State()
     {
         var state = new AppShellState();
         var broker = new TuiCallbackBroker();
-        var flow = new SignInFlow(new FakeAuthService(), new FakeLibraryService(), broker, state);
+        var gate = new TaskCompletionSource<AuthSession>();
+        var authService = new FakeAuthService(gate.Task);
+        var flow = new SignInFlow(authService, new FakeLibraryService(), broker, state);
 
         Assert.False(flow.IsRunning);
         flow.Start(CliRegion.Us, new AuthCredentials("alice@example.com", "secret"));
         Assert.True(flow.IsRunning);
         Assert.Equal("signing in…", state.ActivityVerb);
+
+        gate.SetResult(new AuthSession
+        {
+            ProfileAlias = "test",
+            Region = CliRegion.Us,
+            AccountId = "acct-1",
+        });
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (flow.IsRunning)
+        {
+            Assert.True(DateTime.UtcNow < deadline, "SignInFlow did not finish within the expected timeout.");
+            await Task.Delay(10);
+        }
     }
 
     [Fact]
@@ -324,6 +339,13 @@ public class SignInFlowTests : IDisposable
 
     private sealed class FakeAuthService : IAuthService
     {
+        private readonly Task<AuthSession>? credentialsLogin;
+
+        public FakeAuthService(Task<AuthSession>? credentialsLogin = null)
+        {
+            this.credentialsLogin = credentialsLogin;
+        }
+
         public Task<IReadOnlyList<AuthSession>> ListSessionsAsync(CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<AuthSession>>(Array.Empty<AuthSession>());
 
@@ -340,6 +362,19 @@ public class SignInFlowTests : IDisposable
                 AccountId = "acct-1",
             });
         }
+
+        public Task<AuthSession> LoginWithCredentialsAsync(
+            CliRegion region,
+            IAuthCallbackBroker broker,
+            AuthCredentials credentials,
+            bool preAmazonUsername = false,
+            CancellationToken ct = default)
+            => credentialsLogin ?? Task.FromResult(new AuthSession
+            {
+                ProfileAlias = "test",
+                Region = region,
+                AccountId = "acct-1",
+            });
 
         public Task LogoutAsync(string profileAlias, CancellationToken ct = default)
             => Task.CompletedTask;
