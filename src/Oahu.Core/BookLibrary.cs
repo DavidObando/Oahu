@@ -304,7 +304,14 @@ namespace Oahu.Core
     public void SaveFileNameSuffix(Conversion conversion, string suffix)
     {
       // run in main thread, to channel DbContext.SaveChanges() invocations
-      syncContext.Send(SaveFileNameSuffix, conversion, suffix);
+      if (syncContext is not null)
+      {
+        syncContext.Send(SaveFileNameSuffix, conversion, suffix);
+      }
+      else
+      {
+        SaveFileNameSuffix(conversion, suffix);
+      }
 
       void SaveFileNameSuffix(Conversion conversion, string suffix)
       {
@@ -320,7 +327,14 @@ namespace Oahu.Core
     public void SavePersistentState(Conversion conversion, EConversionState state)
     {
       // run in main thread, to channel DbContext.SaveChanges() invocations
-      syncContext.Send(SavePersistentState, conversion, state);
+      if (syncContext is not null)
+      {
+        syncContext.Send(SavePersistentState, conversion, state);
+      }
+      else
+      {
+        SavePersistentState(conversion, state);
+      }
 
       void SavePersistentState(Conversion conversion, EConversionState state)
       {
