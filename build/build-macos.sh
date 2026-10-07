@@ -155,13 +155,18 @@ if [[ -n "$CODESIGN_IDENTITY" ]]; then
   fi
 
   # Sign all nested binaries and dylibs first (deep sign)
-  find "$APP_BUNDLE" -type f \( -name "*.dylib" -o -perm +111 \) -not -name "*.plist" -not -name "*.json" | while read -r bin; do
-    codesign --force --options runtime \
-      --entitlements "$ENTITLEMENTS" \
-      --sign "$CODESIGN_IDENTITY" \
-      --timestamp \
-      "$bin" 2>/dev/null || true
-  done
+  # Skip the main executable (the bundle signature below covers it; signing it
+  # alone fails because the rest of the bundle is not signed yet) and anything
+  # that is not Mach-O. Errors are not swallowed: any failure stops the build.
+  while IFS= read -r bin; do
+    if [[ "$bin" != "$MACOS_DIR/$EXECUTABLE_NAME" ]] && file "$bin" | grep -q "Mach-O"; then
+      codesign --force --options runtime \
+        --entitlements "$ENTITLEMENTS" \
+        --sign "$CODESIGN_IDENTITY" \
+        --timestamp \
+        "$bin"
+    fi
+  done < <(find "$APP_BUNDLE" -type f \( -name "*.dylib" -o -perm +111 \))
 
   # Create the Homebrew tarball BEFORE bundle signing.
   # Bundle signing (codesign --deep on the .app) re-signs the main executable
@@ -234,11 +239,18 @@ if [[ "$NOTARIZE" == "true" ]]; then
   fi
 
   echo "==> Submitting DMG for notarization..."
-  xcrun notarytool submit "$DMG_PATH" \
-    --apple-id "$APPLE_ID" \
-    --password "$APPLE_ID_PASSWORD" \
-    --team-id "$APPLE_TEAM_ID" \
-    --wait
+  NOTARY_ARGS=(--apple-id "$APPLE_ID" --password "$APPLE_ID_PASSWORD" --team-id "$APPLE_TEAM_ID")
+  NOTARY_OUTPUT="$(xcrun notarytool submit "$DMG_PATH" "${NOTARY_ARGS[@]}" --wait 2>&1)" || true
+  echo "$NOTARY_OUTPUT"
+
+  if ! grep -q "status: Accepted" <<< "$NOTARY_OUTPUT"; then
+    echo "  Error: notarization was not accepted"
+    SUBMISSION_ID="$(awk '/^ *id:/ {print $2; exit}' <<< "$NOTARY_OUTPUT")"
+    if [[ -n "$SUBMISSION_ID" ]]; then
+      xcrun notarytool log "$SUBMISSION_ID" "${NOTARY_ARGS[@]}" || true
+    fi
+    exit 1
+  fi
 
   echo "==> Stapling notarization ticket..."
   xcrun stapler staple "$DMG_PATH"
