@@ -1,7 +1,14 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Oahu.App.Avalonia.App"
+             Name="Oahu"
              RequestedThemeVariant="Default">
+
+  <NativeMenu.Menu>
+    <NativeMenu>
+      <NativeMenuItem Header="About Oahu" Click="OnAboutClick" />
+    </NativeMenu>
+  </NativeMenu.Menu>
 
   <Application.Styles>
     <FluentTheme />
