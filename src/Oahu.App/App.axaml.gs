@@ -1,7 +1,9 @@
 package Oahu.App.Avalonia
 
 import Avalonia
+import Avalonia.Controls
 import Avalonia.Controls.ApplicationLifetimes
+import Avalonia.Layout
 import Avalonia.Markup.Xaml
 import Oahu.Aux
 import Oahu.Aux.Logging
@@ -15,6 +17,22 @@ import System.Globalization
 partial class App : Application {
     override func Initialize() {
         AvaloniaXamlLoader.Load(this)
+    }
+
+    func OnAboutClick(sender object?, e EventArgs) {
+        let panel = StackPanel{Spacing: 8, Margin: Thickness(24), HorizontalAlignment: HorizontalAlignment.Center}
+        panel.Children.Add(TextBlock{Text: "Oahu", FontSize: 24, FontWeight: Avalonia.Media.FontWeight.Bold, HorizontalAlignment: HorizontalAlignment.Center})
+        panel.Children.Add(TextBlock{Text: "Version ${ApplEnv.AssemblyVersion}", HorizontalAlignment: HorizontalAlignment.Center})
+        panel.Children.Add(TextBlock{Text: "Copyright © 2026 DavidObando", HorizontalAlignment: HorizontalAlignment.Center})
+        let about = Window{
+            Title: "About Oahu",
+            Content: panel,
+            Width: 320,
+            SizeToContent: SizeToContent.Height,
+            CanResize: false,
+            WindowStartupLocation: WindowStartupLocation.CenterScreen
+        }
+        about.Show()
     }
 
     override func OnFrameworkInitializationCompleted() {
