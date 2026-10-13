@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Oahu.Aux;
 using Oahu.CommonTypes;
@@ -72,6 +74,43 @@ namespace Oahu.App.Avalonia
       }
 
       throw new PlatformNotSupportedException();
+    }
+
+    private void OnAboutClick(object sender, EventArgs e)
+    {
+      var panel = new StackPanel
+      {
+        Spacing = 8,
+        Margin = new Thickness(24),
+        HorizontalAlignment = HorizontalAlignment.Center,
+      };
+      panel.Children.Add(new TextBlock
+      {
+        Text = "Oahu",
+        FontSize = 24,
+        FontWeight = global::Avalonia.Media.FontWeight.Bold,
+        HorizontalAlignment = HorizontalAlignment.Center,
+      });
+      panel.Children.Add(new TextBlock
+      {
+        Text = $"Version {ApplEnv.AssemblyVersion}",
+        HorizontalAlignment = HorizontalAlignment.Center,
+      });
+      panel.Children.Add(new TextBlock
+      {
+        Text = "Copyright \u00A9 2026 DavidObando",
+        HorizontalAlignment = HorizontalAlignment.Center,
+      });
+      var about = new Window
+      {
+        Title = "About Oahu",
+        Content = panel,
+        Width = 320,
+        SizeToContent = SizeToContent.Height,
+        CanResize = false,
+        WindowStartupLocation = WindowStartupLocation.CenterScreen,
+      };
+      about.Show();
     }
   }
 }
