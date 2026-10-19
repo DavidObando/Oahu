@@ -24,7 +24,7 @@ internal class Program {
         private func RunSmokeTest() int32 {
             let directory = Path.Combine(Path.GetTempPath(), "oahu-app-smoke-" + Guid.NewGuid().ToString("N"))
             try {
-                return if BookDbContext.StartupAsync(directory, "smoke.db")!!.GetAwaiter().GetResult() {
+                return if BookDbContext.StartupAsync(directory, "smoke.db").GetAwaiter().GetResult() {
                     0
                 } else {
                     1

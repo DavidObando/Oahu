@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><Project Sdk="Gsharp.NET.Sdk/0.4.591">
+<?xml version="1.0" encoding="utf-8"?><Project Sdk="Gsharp.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

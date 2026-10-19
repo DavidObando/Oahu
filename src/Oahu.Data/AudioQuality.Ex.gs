@@ -20,7 +20,7 @@ class ExCodec {
 
 func (codec Codec) ToQuality() AudioQuality? -> codec.Name.ToQuality()
 
-func extension(codec ECodec) ToQuality() AudioQuality? {
+func (codec ECodec) ToQuality() AudioQuality? {
     return switch codec {
         case ECodec.Aax2232: AudioQuality(22050, 32)
         case ECodec.Aax2264: AudioQuality(22050, 64)

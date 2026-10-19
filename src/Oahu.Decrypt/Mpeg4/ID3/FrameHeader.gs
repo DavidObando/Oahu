@@ -5,17 +5,16 @@ import System.IO
 import System.Text
 
 class FrameHeader : Header {
+    private let identifier string
+
     init(frameID string, flags uint16, version uint16, size int32 = 0) {
         Version = version
-        Identifier = frameID
+        identifier = frameID
         Flags = Flags(flags)
         Size = size
     }
 
-    override prop Identifier string {
-        get;
-        init;
-    }
+    override prop Identifier string -> identifier
 
     prop Flags Flags {
         get;

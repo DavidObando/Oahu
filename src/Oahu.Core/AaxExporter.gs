@@ -82,7 +82,7 @@ class AaxExporter {
         )
         if !flattenedChapters.IsNullOrEmpty() {
             let chapters = List[Oahu.Audible.Json.Chapter]()
-            for chapter in flattenedChapters!! {
+            for chapter in flattenedChapters {
                 if chapters.Count == 0 && SkipChapter(chapter) {
                     continue
                 }

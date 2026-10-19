@@ -274,7 +274,7 @@ class ServerHost {
                 // real error from the inner block.
                 if !string.IsNullOrEmpty(options.UnixSocketPath) {
                     try {
-                        File.Delete(options.UnixSocketPath!!)
+                        File.Delete(options.UnixSocketPath)
                     } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
             }

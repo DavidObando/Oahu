@@ -1,8 +1,5 @@
 package Oahu.Cli.Tui.Widgets
 
-import SixLabors.ImageSharp
-import SixLabors.ImageSharp.PixelFormats
-import SixLabors.ImageSharp.Processing
 import Spectre.Console
 import System
 import System.Collections.Concurrent
@@ -13,9 +10,8 @@ import System.Text
 import System.Threading
 import System.Threading.Tasks
 
-/// Renders book cover art as truecolor half-block (`▀`) rows — two image pixels
-/// per terminal cell — which works in any truecolor terminal without graphics
-/// protocols.
+/// Renders book cover art as truecolor quadrant rows, with a 2x2 pixel block
+/// per terminal cell, without requiring terminal graphics protocols.
 ///
 /// Decoding (and, when needed, downloading) happens on a background task; the
 /// caller polls (cref:TryGet) each frame and keeps its screen's timed refresh
@@ -60,7 +56,7 @@ class CoverArt {
                 return hit
             }
             if cache.TryAdd(key, PendingResult) {
-                let _ = Task.Run(() -> Produce(key, path!!, url, w))
+                let _ = Task.Run(() -> Produce(key, path, url, w))
             }
             return cache[key]
         }
@@ -100,7 +96,7 @@ class CoverArt {
                                 let bytes = await http.GetByteArrayAsync(url!!).ConfigureAwait(false)
                                 let dir = Path.GetDirectoryName(path)
                                 if !string.IsNullOrEmpty(dir) {
-                                    Directory.CreateDirectory(dir!!)
+                                    Directory.CreateDirectory(dir)
                                 }
                                 File.WriteAllBytes(path!!, bytes)
                                 await Task.Delay(150).ConfigureAwait(false)
@@ -131,10 +127,10 @@ class CoverArt {
                     // Cache-fill for CLI-only users: the GUI normally downloads
                     // covers; when it hasn't, fetch the same 500-px asset into
                     // the shared image cache.
-                    let bytes = http.GetByteArrayAsync(url!!).GetAwaiter().GetResult()
+                    let bytes = http.GetByteArrayAsync(url).GetAwaiter().GetResult()
                     let dir = Path.GetDirectoryName(path)
                     if !string.IsNullOrEmpty(dir) {
-                        Directory.CreateDirectory(dir!!)
+                        Directory.CreateDirectory(dir)
                     }
                     File.WriteAllBytes(path, bytes)
                 }
@@ -165,41 +161,35 @@ class CoverArt {
             "█"
         }
 
-        private func Decode(path string, widthCells int32) CoverResult {
-            let image = Image.Load[Rgba32](path)
-            try {
-                // Quadrant rendering packs a 2×2 pixel block into each cell
-                // (each cell shows two colors split along the quadrant glyph),
-                // doubling horizontal resolution over the classic half-block.
-                // A terminal cell is ~1:2 (w:h), so a square cover maps to
-                // widthCells columns × widthCells/2 rows ⇒ a pixel grid of
-                // (2·widthCells) × widthCells.
-                let rows = (widthCells + 1) / 2
-                let pxWidth = widthCells * 2
-                let pxHeight = rows * 2
-                image.Mutate((ctx IImageProcessingContext) -> ctx.Resize(pxWidth, pxHeight))
-                let pixels = [pxWidth * pxHeight]Rgba32
-                image.CopyPixelDataTo(pixels)
-                let lines = List[string](rows)
-                for var row = 0; row < rows; row++ {
-                    let sb = StringBuilder(widthCells * 28)
-                    for var cx = 0; cx < widthCells; cx++ {
-                        AppendQuadrantCell(sb, pixels, pxWidth, cx, row)
-                    }
-                    lines.Add(sb.ToString())
+        internal func Decode(path string, widthCells int32) CoverResult {
+            let image = CoverImage.Load(path)
+            // Quadrant rendering packs a 2×2 pixel block into each cell
+            // (each cell shows two colors split along the quadrant glyph),
+            // doubling horizontal resolution over the classic half-block.
+            // A terminal cell is ~1:2 (w:h), so a square cover maps to
+            // widthCells columns × widthCells/2 rows ⇒ a pixel grid of
+            // (2·widthCells) × widthCells.
+            let rows = (widthCells + 1) / 2
+            let pxWidth = widthCells * 2
+            let pxHeight = rows * 2
+            let pixels = CoverImage.Resize(image.Pixels, image.Width, image.Height, pxWidth, pxHeight)
+            let lines = List[string](rows)
+            for var row = 0; row < rows; row++ {
+                let sb = StringBuilder(widthCells * 28)
+                for var cx = 0; cx < widthCells; cx++ {
+                    AppendQuadrantCell(sb, pixels, pxWidth, cx, row)
                 }
-                return CoverResult{State: CoverState.Ready, Lines: lines}
-            } finally {
-                image.Dispose()
+                lines.Add(sb.ToString())
             }
+            return CoverResult{State: CoverState.Ready, Lines: lines}
         }
 
         /// Renders one terminal cell from its 2×2 pixel block: pixels are split
         /// into a bright and a dark group around the block's mean luminance,
         /// the matching quadrant glyph is drawn with the bright group as the
         /// foreground color and the dark group as the background.
-        private func AppendQuadrantCell(sb StringBuilder, pixels[]Rgba32, pxWidth int32, cx int32, row int32) {
-            let quad = []Rgba32{
+        private func AppendQuadrantCell(sb StringBuilder, pixels[]CoverPixel, pxWidth int32, cx int32, row int32) {
+            let quad = []CoverPixel{
                 pixels[(row * 2 * pxWidth) + (cx * 2)],
                 pixels[(row * 2 * pxWidth) + (cx * 2) + 1],
                 pixels[((row * 2 + 1) * pxWidth) + (cx * 2)],

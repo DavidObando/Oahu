@@ -204,7 +204,7 @@ class CoreAuthService : IAuthService {
             // Filter to the region we just signed into so we don't accidentally
             // load a different region's profile when several are registered.
             let aliasKeyHint = ProfileAliasKey(newKey!!.Region, accountAlias: nil)
-            await client.ConfigFromFileAsync(aliasKeyHint, SetDefaultAlias)!!.ConfigureAwait(false)
+            await client.ConfigFromFileAsync(aliasKeyHint, SetDefaultAlias).ConfigureAwait(false)
             // Mirror src/Oahu.App/MainWindow.axaml.gs:167 — wire the alias
             // callback onto the API so AudibleApi.EnsureAccountId() can install
             // the alias on the local Accounts row the first time it's queried

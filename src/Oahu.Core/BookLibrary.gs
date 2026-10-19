@@ -759,14 +759,10 @@ internal class BookLibrary : IBookLibrary {
         let latest = dbContext
             .Books
             .Where(
-            (b Book) -> (b.PurchaseDate != nil) &&
-                b
-                .Conversion
-                .AccountId == profileId.AccountId &&
-                b
-                .Conversion
-                .Region == profileId.Region
-        )
+                (b Book) -> b.PurchaseDate != nil &&
+                    b.Conversion!!.AccountId == profileId.AccountId &&
+                    b.Conversion!!.Region == profileId.Region
+            )
             .Select((b Book) -> b.PurchaseDate.Value)
             .OrderBy((b DateTime) -> b)
             .LastOrDefault()
@@ -985,7 +981,7 @@ internal class BookLibrary : IBookLibrary {
             accuChapters?.Add(List[ChapterExtract]())
         }
         let accu List[ChapterExtract]? = accuChapters?[level]
-        for ch in source!! {
+        for ch in source {
             dest.Add(Oahu.BooksDatabase.Chapter(ch))
             accu?.Add(ChapterExtract(ch.Title!!, ch.LengthMs))
             GetChaptersFlattened(ch.Chapters, dest, accuChapters, level)

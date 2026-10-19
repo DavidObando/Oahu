@@ -227,7 +227,7 @@ class LibraryScreen : ITabScreen {
             let coverWidth = Math.Min(width, 26)
             let cover = Widgets.CoverArt.TryGet(item.CoverImagePath, item.CoverImageUrl, coverWidth)
             if cover.State == Widgets.CoverArt.CoverState.Ready && cover.Lines != nil {
-                for line in cover.Lines!! {
+                for line in cover.Lines {
                     lines.Add(Markup(line))
                 }
                 lines.Add(Markup(" "))

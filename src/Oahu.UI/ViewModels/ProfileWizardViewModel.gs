@@ -375,7 +375,7 @@ partial class ProfileWizardViewModel : ObservableObject {
 
     @RelayCommand
     private func CancelChallenge() {
-        challengeTcs?.TrySetResult(nil)
+        challengeTcs?.TrySetCanceled()
         ShowChallenge = false
     }
 
