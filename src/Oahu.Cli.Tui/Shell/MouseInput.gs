@@ -92,14 +92,14 @@ class SgrMouseParser {
                     return false
                 }
                 if c >= '0' && c <= '9' {
-                    value = (value * 10) + (int32(c!!) - int32('0'))
+                    value = (value * 10) + (int32(c) - int32('0'))
                     digits++
                     if digits > 5 {
                         return false
                     }
                     continue
                 }
-                terminator = c!!
+                terminator = c
                 return digits > 0
             }
         }

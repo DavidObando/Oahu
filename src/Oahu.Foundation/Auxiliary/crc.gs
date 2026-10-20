@@ -43,7 +43,7 @@ open class Crc32 : HashAlgorithm {
     }
 
     protected open override func HashFinal()[]uint8 {
-        let hashBuffer = UInt32ToBigEndianBytes(^hash)
+        let hashBuffer = UInt32ToBigEndianBytes(~hash)
         HashValue = hashBuffer
         return hashBuffer
     }
@@ -62,7 +62,7 @@ open class Crc32 : HashAlgorithm {
         }
 
         func Compute(polynomial uint32, seed uint32, buffer[]uint8) uint32 {
-            return ^CalculateHash(InitializeTable(polynomial), seed, buffer, 0, buffer.Length)
+            return ~CalculateHash(InitializeTable(polynomial), seed, buffer, 0, buffer.Length)
         }
 
         private func InitializeTable(polynomial uint32)[]?uint32 {

@@ -281,7 +281,7 @@ class AppShell : IAppShellNavigator {
                 if inputEv == nil {
                     return ExitCodes.Success
                 }
-                let action = DispatchEvent(inputEv!!)
+                let action = DispatchEvent(inputEv)
                 if exitRequested {
                     return ExitCodes.Success
                 }
@@ -616,7 +616,7 @@ class AppShell : IAppShellNavigator {
         let _ = Task.Run(
             async () -> {
                 try {
-                    let svc = factory!!()
+                    let svc = factory()
                     let cfg = await svc.LoadAsync().ConfigureAwait(false)
                     await svc.SaveAsync(cfg with{Theme = name}).ConfigureAwait(false)
                 } catch {
@@ -1061,7 +1061,7 @@ class AppShell : IAppShellNavigator {
             if !parsed || mouse == nil {
                 return EscapeTranslation.ConsumedIgnored
             }
-            ev = ShellInputEvent.FromMouse(mouse!!)
+            ev = ShellInputEvent.FromMouse(mouse)
             return EscapeTranslation.MouseEvent
         }
 

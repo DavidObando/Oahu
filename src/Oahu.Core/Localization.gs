@@ -37,7 +37,7 @@ internal class Locale {
     }
 }
 
-func extension(countryCode ERegion) FromCountryCode() ILocale? {
+func (countryCode ERegion) FromCountryCode() ILocale? {
     let succ = Locale.LocaleTemplates.TryGetValue(countryCode, out var locale)
     if !succ {
         return nil

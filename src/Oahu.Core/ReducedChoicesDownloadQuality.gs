@@ -7,14 +7,14 @@ enum EDownloadQualityReducedChoices {
     High
 }
 
-func extension(value EDownloadQualityReducedChoices) ToFullChoices() EDownloadQuality {
+func (value EDownloadQualityReducedChoices) ToFullChoices() EDownloadQuality {
     return switch value {
         case EDownloadQualityReducedChoices.High: EDownloadQuality.High
         default: EDownloadQuality.Normal
     }
 }
 
-func extension(value EDownloadQuality) ToReducedChoices() EDownloadQualityReducedChoices {
+func (value EDownloadQuality) ToReducedChoices() EDownloadQualityReducedChoices {
     return switch value {
         case EDownloadQuality.Extreme: EDownloadQualityReducedChoices.High
         case EDownloadQuality.High: EDownloadQualityReducedChoices.High

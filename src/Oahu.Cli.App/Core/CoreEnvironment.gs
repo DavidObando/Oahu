@@ -64,7 +64,7 @@ class CoreEnvironment {
         /// when the database is reachable afterwards.
         func InitializeDatabaseAsync() Task[bool] {
             EnsureInitialized()
-            return BookDbContextLazyLoad.StartupAsync()!!
+            return BookDbContextLazyLoad.StartupAsync()
         }
 
         /// Returns the long-lived (cref:AudibleClient) singleton. Lazily
@@ -83,7 +83,7 @@ class CoreEnvironment {
                     // AudibleClient. .GetAwaiter().GetResult() is safe here: this
                     // path is called from the CLI main thread (no sync context) or
                     // from tests on the thread pool, never from a UI dispatcher.
-                    BookDbContextLazyLoad.StartupAsync()!!.GetAwaiter().GetResult()
+                    BookDbContextLazyLoad.StartupAsync().GetAwaiter().GetResult()
                     settings = SettingsManager.GetUserSettings[OahuUserSettings]()
                     // dbDir = null => AudibleClient/BookLibrary/BookDbContext use
                     // ApplEnv.LocalApplDirectory derivatives (now routed to the
@@ -127,7 +127,7 @@ class CoreEnvironment {
             let loaded IProfileAliasKey? = await c.ConfigFromFileAsync(
                 aliasKey,
                 (_ AccountAliasContext) -> true
-            )!!.ConfigureAwait(false)
+            ).ConfigureAwait(false)
             return loaded != nil
         }
 

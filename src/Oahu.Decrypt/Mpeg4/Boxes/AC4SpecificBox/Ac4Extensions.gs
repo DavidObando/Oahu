@@ -28,7 +28,7 @@ class Ac4Extensions {
     }
 }
 
-func extension(ac4DsiV1 Ac4DsiV1?) SampleRate() int32? -> if ac4DsiV1 == nil {
+func (ac4DsiV1 Ac4DsiV1?) SampleRate() int32? -> if ac4DsiV1 == nil {
     nil
 } else {
     (
@@ -40,7 +40,7 @@ func extension(ac4DsiV1 Ac4DsiV1?) SampleRate() int32? -> if ac4DsiV1 == nil {
     )
 }
 
-func extension(ac4DsiV1 Ac4DsiV1?) AverageBitrate() uint32? {
+func (ac4DsiV1 Ac4DsiV1?) AverageBitrate() uint32? {
     if ac4DsiV1 == nil {
         return nil
     }
@@ -58,7 +58,7 @@ func extension(ac4DsiV1 Ac4DsiV1?) AverageBitrate() uint32? {
     return nil
 }
 
-func extension(ac4DsiV1 Ac4DsiV1?) Channels() ChannelGroups? {
+func (ac4DsiV1 Ac4DsiV1?) Channels() ChannelGroups? {
     if ac4DsiV1 == nil {
         return nil
     }
@@ -75,7 +75,7 @@ func extension(ac4DsiV1 Ac4DsiV1?) Channels() ChannelGroups? {
     return nil
 }
 
-func extension(channels ChannelGroups) ChannelCount() int32 {
+func (channels ChannelGroups) ChannelCount() int32 {
     var channelCount = 0
     for var g = 0;
     g <= 18;

@@ -30,7 +30,7 @@ class Flags {
             if value {
                 flags[index / 8] |= uint8((1 << (7 - (index % 8))))
             } else {
-                flags[index / 8] &= uint8(^(1 << (7 - (index % 8))))
+                flags[index / 8] &= uint8(~(1 << (7 - (index % 8))))
             }
         }
     }

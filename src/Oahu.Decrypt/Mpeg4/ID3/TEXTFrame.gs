@@ -43,7 +43,7 @@ class TEXTFrame : Frame {
     shared {
         func Create(parent Frame, frameId string, text string) TEXTFrame {
             let tit2 = TEXTFrame(FrameHeader(frameId, 0, parent.Version), parent){Text = text}
-            parent?.Children.Add(tit2)
+            parent.Children.Add(tit2)
             return tit2
         }
     }
