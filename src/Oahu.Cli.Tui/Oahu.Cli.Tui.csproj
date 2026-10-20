@@ -11,7 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="BitMiracle.LibTiff.NET" />
+    <PackageReference Include="StbImageSharp" />
     <PackageReference Include="Spectre.Console" />
   </ItemGroup>
 

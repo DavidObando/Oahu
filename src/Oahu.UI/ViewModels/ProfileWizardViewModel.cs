@@ -456,7 +456,7 @@ namespace Oahu.Core.UI.Avalonia.ViewModels
     [RelayCommand]
     private void CancelChallenge()
     {
-      challengeTcs?.TrySetResult(null);
+      challengeTcs?.TrySetCanceled();
       ShowChallenge = false;
     }
 

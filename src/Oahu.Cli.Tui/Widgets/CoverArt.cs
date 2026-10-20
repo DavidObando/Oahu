@@ -6,9 +6,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace Oahu.Cli.Tui.Widgets;
 
@@ -108,6 +105,26 @@ public static class CoverArt
         });
     }
 
+    internal static CoverResult Decode(string path, int widthCells)
+    {
+        var image = CoverImage.Load(path);
+        var rows = (widthCells + 1) / 2;
+        var pixelWidth = widthCells * 2;
+        var pixelHeight = rows * 2;
+        var pixels = CoverImage.Resize(image.Pixels, image.Width, image.Height, pixelWidth, pixelHeight);
+        var lines = new List<string>(rows);
+        for (var row = 0; row < rows; row++)
+        {
+            var builder = new StringBuilder(widthCells * 28);
+            for (var column = 0; column < widthCells; column++)
+            {
+                AppendQuadrantCell(builder, pixels, pixelWidth, column, row);
+            }
+            lines.Add(builder.ToString());
+        }
+        return new CoverResult { State = CoverState.Ready, Lines = lines };
+    }
+
     private static void Produce(string key, string path, string? url, int widthCells)
     {
         try
@@ -135,31 +152,9 @@ public static class CoverArt
         }
     }
 
-    private static CoverResult Decode(string path, int widthCells)
-    {
-        using var image = Image.Load<Rgba32>(path);
-        var rows = (widthCells + 1) / 2;
-        var pixelWidth = widthCells * 2;
-        var pixelHeight = rows * 2;
-        image.Mutate(context => context.Resize(pixelWidth, pixelHeight));
-        var pixels = new Rgba32[pixelWidth * pixelHeight];
-        image.CopyPixelDataTo(pixels);
-        var lines = new List<string>(rows);
-        for (var row = 0; row < rows; row++)
-        {
-            var builder = new StringBuilder(widthCells * 28);
-            for (var column = 0; column < widthCells; column++)
-            {
-                AppendQuadrantCell(builder, pixels, pixelWidth, column, row);
-            }
-            lines.Add(builder.ToString());
-        }
-        return new CoverResult { State = CoverState.Ready, Lines = lines };
-    }
-
     private static void AppendQuadrantCell(
         StringBuilder builder,
-        Rgba32[] pixels,
+        CoverPixel[] pixels,
         int pixelWidth,
         int column,
         int row)
