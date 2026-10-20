@@ -49,12 +49,13 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.7" />
     <PackageVersion Include="System.Management" Version="9.0.4" />
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.10" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup Label="CLI / TUI / MCP">
     <PackageVersion Include="ModelContextProtocol" Version="1.2.0" />
-    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageVersion Include="BitMiracle.LibTiff.NET" Version="2.4.660" />
+    <PackageVersion Include="StbImageSharp" Version="2.30.16" />
     <PackageVersion Include="Spectre.Console" Version="0.55.2" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.55.2" />
   </ItemGroup>
