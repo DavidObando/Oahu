@@ -165,19 +165,24 @@ class TerminalGraphicsTests {
     }
 
     @Fact
-    func Kitty_Reuses_Uploads_And_Deletes_Images_When_Leaving_The_Screen() {
+    func Kitty_Reuses_Uploads_On_Selection_Redraw_And_Deletes_When_Leaving_The_Screen() {
         let graphics = TerminalGraphics()
         graphics.Configure(KittyReply, "auto", 100, 40)
         let placement = ImagePlacement(TerminalImage(1, 1, []CoverPixel{CoverPixel(255, 0, 0, 255)}), 4, 1, default(CoverPixel))
-        let frame = "\u001B[H" + TerminalGraphics.Marker(0, 4) + "\u001B[K\u001B[J"
+        let frame = "\u001B[H0 selected\n" + TerminalGraphics.Marker(0, 4) + "\u001B[K\u001B[J"
         let first = graphics.Paint(frame, placement)
         Assert.Contains("a=t,", first)
         Assert.Contains("a=p,", first)
         Assert.Contains("r=1,C=1", first)
         Assert.DoesNotContain("c=4,r=1", first)
-        let second = graphics.Paint(frame, placement)
+        let second = graphics.Paint(frame.Replace("0 selected", "1 selected"), placement)
         Assert.DoesNotContain("a=t,", second)
-        Assert.Contains("d=i,", second)
+        Assert.DoesNotContain("a=d,", second)
+        Assert.Contains("a=p,", second)
+        let deselected = graphics.Paint(frame, placement)
+        Assert.DoesNotContain("a=t,", deselected)
+        Assert.DoesNotContain("a=d,", deselected)
+        Assert.Contains("a=p,", deselected)
         Assert.Contains("d=I,", graphics.Paint("home", nil))
         Assert.Equal(string.Empty, graphics.Delete())
     }
@@ -195,6 +200,7 @@ class TerminalGraphicsTests {
         Assert.Contains("c=4,C=1", replacement)
         let resized = graphics.Paint(TerminalGraphics.Marker(0, 4), ImagePlacement(blue, 4, 1, default(CoverPixel)))
         Assert.DoesNotContain("a=t,", resized)
+        Assert.DoesNotContain("a=d,", resized)
         Assert.Contains("r=1,C=1", resized)
         let hidden = graphics.Paint("dialog", ImagePlacement(blue, 4, 1, default(CoverPixel)))
         Assert.Contains("d=I,", hidden)
