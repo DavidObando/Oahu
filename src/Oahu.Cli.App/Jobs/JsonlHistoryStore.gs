@@ -8,7 +8,6 @@ import System
 import System.Collections.Generic
 import System.IO
 import System.Linq
-import System.Runtime.CompilerServices
 import System.Text.Json
 import System.Threading
 import System.Threading.Tasks
@@ -38,42 +37,113 @@ class JsonlHistoryStore {
         stream.Flush(flushToDisk: true)
     }
 
-    async func ReadAllAsync(
-        @EnumeratorCancellation cancellationToken CancellationToken = default(CancellationToken)
-    ) IAsyncEnumerable[JobRecord] {
-        if !File.Exists(path) {
-            yield break
+    func ReadAllAsync(
+        cancellationToken CancellationToken = default(CancellationToken)
+    ) IAsyncEnumerable[JobRecord] -> HistoryEnumerable(this, cancellationToken)
+
+    private func ParseRecord(line string, lineNumber int32) JobRecord? {
+        try {
+            return JsonSerializer.Deserialize[JobRecord](line, options)
+        } catch (ex JsonException) {
+            // Skip torn records, but surface repeated corruption to operators.
+            logger.LogWarning(
+                ex,
+                "Skipping malformed history record at {Path}:{LineNumber}: {Reason}",
+                path,
+                lineNumber,
+                ex.Message
+            )
+            return nil
         }
-        using let reader = StreamReader(
-            FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)
-        )
-        var lineNumber = 0
-        while true {
-            cancellationToken.ThrowIfCancellationRequested()
-            let line string? = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)
-            if line == nil {
-                yield break
+    }
+
+    private class HistoryEnumerable : IAsyncEnumerable[JobRecord] {
+        private let store JsonlHistoryStore
+        private let cancellationToken CancellationToken
+
+        init(store JsonlHistoryStore, cancellationToken CancellationToken) {
+            this.store = store
+            this.cancellationToken = cancellationToken
+        }
+
+        func GetAsyncEnumerator(cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerator[JobRecord] ->
+            HistoryEnumerator(store, this.cancellationToken, cancellationToken)
+    }
+
+    // Explicit ownership avoids generated iterator cleanup racing a resumed MoveNextAsync.
+    private class HistoryEnumerator : IAsyncEnumerator[JobRecord] {
+        private let store JsonlHistoryStore
+        private let cancellationToken CancellationToken
+        private let linkedCancellation CancellationTokenSource?
+        private var reader StreamReader?
+        private var current JobRecord?
+        private var lineNumber int32 = 0
+        private var started bool = false
+        private var finished bool = false
+
+        init(store JsonlHistoryStore, initialToken CancellationToken, enumeratorToken CancellationToken) {
+            this.store = store
+            if !initialToken.CanBeCanceled {
+                cancellationToken = enumeratorToken
+            } else if !enumeratorToken.CanBeCanceled || initialToken == enumeratorToken {
+                cancellationToken = initialToken
+            } else {
+                let linked = CancellationTokenSource.CreateLinkedTokenSource(initialToken, enumeratorToken)
+                linkedCancellation = linked
+                cancellationToken = linked.Token
             }
-            lineNumber++
-            if string.IsNullOrWhiteSpace(line) {
-                continue
-            }
-            var rec JobRecord? = nil
+        }
+
+        prop Current JobRecord -> current!!
+
+        func MoveNextAsync() ValueTask[bool] -> ValueTask[bool](ReadNextAsync())
+
+        private async func ReadNextAsync() bool {
+            if finished { return false }
             try {
-                rec = JsonSerializer.Deserialize[JobRecord](line, options)
-            } catch (ex JsonException) {
-                // Skip torn records; the design's "append-only" guarantee tolerates a single torn tail line.
-                // Still surface the issue so operators can detect repeated corruption.
-                logger.LogWarning(
-                    ex,
-                    "Skipping malformed history record at {Path}:{LineNumber}: {Reason}",
-                    path,
-                    lineNumber,
-                    ex.Message
-                )
+                if !started {
+                    started = true
+                    if !File.Exists(store.path) {
+                        Complete()
+                        return false
+                    }
+                    reader = StreamReader(
+                        FileStream(store.path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)
+                    )
+                }
+                while true {
+                    cancellationToken.ThrowIfCancellationRequested()
+                    let line string? = await reader!!.ReadLineAsync(cancellationToken).ConfigureAwait(false)
+                    if line == nil {
+                        Complete()
+                        return false
+                    }
+                    lineNumber++
+                    if string.IsNullOrWhiteSpace(line) { continue }
+                    let record = store.ParseRecord(line, lineNumber)
+                    if record != nil {
+                        current = record
+                        return true
+                    }
+                }
+            } catch {
+                Complete()
+                rethrow
             }
-            if rec != nil {
-                yield rec
+        }
+
+        func DisposeAsync() ValueTask {
+            Complete()
+            return default(ValueTask)
+        }
+
+        private func Complete() {
+            if finished { return }
+            finished = true
+            try {
+                reader?.Dispose()
+            } finally {
+                linkedCancellation?.Dispose()
             }
         }
     }
