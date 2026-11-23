@@ -24,6 +24,7 @@ class TuiHost {
         func Run(options AppShellOptions? = nil, registerRestore((() -> void) -> void)? = nil) int32 {
             let console = AnsiConsole.Console
             let shell = AppShell(console, options)
+            let reader = AppShell.ConsoleKeyReader()
             var prevTreatCtrlC = false
             var altEntered = false
             var mouseEnabled = false
@@ -37,6 +38,7 @@ class TuiHost {
                     mouseEnabled = false
                 }
                 if altEntered {
+                    shell.RestoreGraphics()
                     AltScreen.Leave()
                     altEntered = false
                 }
@@ -58,6 +60,7 @@ class TuiHost {
                 }
                 AltScreen.Enter()
                 altEntered = true
+                shell.InitializeGraphics(reader)
                 // Mouse reporting (wheel + click). Opt out with OAHU_NO_MOUSE=1.
                 if !string.Equals(Environment.GetEnvironmentVariable("OAHU_NO_MOUSE"), "1", StringComparison.Ordinal) {
                     if OperatingSystem.IsWindows() {
@@ -67,7 +70,7 @@ class TuiHost {
                         mouseEnabled = true
                     }
                 }
-                return shell.Run(AppShell.ConsoleKeyReader())
+                return shell.Run(reader)
             } finally {
                 restore()
             }

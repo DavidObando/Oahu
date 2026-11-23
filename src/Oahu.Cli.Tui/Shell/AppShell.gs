@@ -86,6 +86,7 @@ class AppShell : IAppShellNavigator {
     private let tabs IReadOnlyList[ITabScreen]
     private let ctrlC CtrlCState
     private let loadSpinner PulseSpinner = PulseSpinner()
+    private let graphics TerminalGraphics = TerminalGraphics()
     private var loadFrame int32
     private var activeTab int32
     private var lastRenderedTab int32 = -1
@@ -121,6 +122,17 @@ class AppShell : IAppShellNavigator {
     prop LogsOpen bool -> logsOpen
     prop Tabs IReadOnlyList[ITabScreen] -> tabs
     prop ActiveModal IModal? -> activeModal
+
+    internal func InitializeGraphics(reader ConsoleKeyReader) -> graphics.Probe(reader)
+
+    internal func RestoreGraphics() {
+        try {
+            Console.Out.Write(graphics.Delete())
+            Console.Out.Flush()
+        } catch {
+            // Terminal restoration must continue even if stdout has closed.
+        }
+    }
 
     /// Show a modal overlay. Keys route to the modal until it completes.
     func ShowModal(modal IModal) {
@@ -298,6 +310,7 @@ class AppShell : IAppShellNavigator {
                 }
             }
         } finally {
+            RestoreGraphics()
             // Run lifecycle teardown for every tab (give every screen a chance
             // to cancel observers, dispose handles, clear OSC, etc.).
             for var i = 0; i < tabs.Count; i++ {
@@ -658,6 +671,12 @@ class AppShell : IAppShellNavigator {
 
     private func Render() {
         let screen = tabs[activeTab]
+        let imageScreen = screen as LibraryScreen
+        if imageScreen != nil {
+            imageScreen.NativeProtocol = if Console.IsOutputRedirected || options.UseAscii { ImageProtocol.Quadrant } else { graphics.Protocol }
+            imageScreen.CellWidth = graphics.CellWidth
+            imageScreen.CellHeight = graphics.CellHeight
+        }
         let width = console.Profile.Width
         let height = Math.Max(10, console.Profile.Height)
         // Chrome is exactly four rows: header, spacer, footer rule, footer.
@@ -776,9 +795,11 @@ class AppShell : IAppShellNavigator {
             // so the terminal buffers all output and paints the complete frame in
             // one pass, eliminating partial-frame flicker. Terminals that don't
             // understand mode 2026 silently ignore it.
-            let frame = AltScreen.InjectEraseBeforeNewlines(sw.ToString())
+            let textFrame = AltScreen.InjectEraseBeforeNewlines(sw.ToString())
+            let placement = if screenLoadPending { nil } else { imageScreen?.NativePlacement }
+            let frame = graphics.Paint("\u001B[H$textFrame\u001B[K\u001B[J$oscSequence", placement)
             Console.Out.Write(
-                "${AltScreen.SyncStartSequence}\u001B[H$frame\u001B[K\u001B[J$oscSequence${AltScreen.SyncEndSequence}"
+                "${AltScreen.SyncStartSequence}$frame${AltScreen.SyncEndSequence}"
             )
             Console.Out.Flush()
         } else if !string.IsNullOrEmpty(oscSequence) {
@@ -936,7 +957,12 @@ class AppShell : IAppShellNavigator {
     /// Windows, the native (cref:WindowsConsoleInput) path is used when it
     /// could be set up, surfacing wheel/click records directly.
     class ConsoleKeyReader : IKeyReader {
+        private let pending Queue[ConsoleKeyInfo] = Queue[ConsoleKeyInfo]()
+
+        internal func PushBack(key ConsoleKeyInfo) -> pending.Enqueue(key)
+
         func ReadKey() ConsoleKeyInfo? {
+            if pending.Count > 0 { return pending.Dequeue() }
             try {
                 return Console.ReadKey(intercept: true)
             } catch (InvalidOperationException) {
@@ -946,6 +972,10 @@ class AppShell : IAppShellNavigator {
         }
 
         func TryReadKey(millisecondsTimeout int32, out key ConsoleKeyInfo) bool {
+            if pending.Count > 0 {
+                key = pending.Dequeue()
+                return true
+            }
             try {
                 let deadline = Environment.TickCount64 + int64(millisecondsTimeout)
                 while Environment.TickCount64 < deadline {
@@ -964,6 +994,7 @@ class AppShell : IAppShellNavigator {
         }
 
         func ReadEvent() ShellInputEvent? {
+            if pending.Count > 0 { return ShellInputEvent.FromKey(pending.Dequeue()) }
             while true {
                 if WindowsConsoleInput.IsActive {
                     let ev = WindowsConsoleInput.ReadEvent(-1, out var _)
@@ -992,6 +1023,10 @@ class AppShell : IAppShellNavigator {
         }
 
         func TryReadEvent(millisecondsTimeout int32, out ev ShellInputEvent) bool {
+            if pending.Count > 0 {
+                ev = ShellInputEvent.FromKey(pending.Dequeue())
+                return true
+            }
             if WindowsConsoleInput.IsActive {
                 let winEv = WindowsConsoleInput.ReadEvent(millisecondsTimeout, out var timedOut)
                 if winEv != nil {

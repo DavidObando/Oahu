@@ -39,6 +39,15 @@ A single binary that operates in three modes:
 | **Command** | `oahu-cli <subcommand>` | Scriptable one-shot commands with JSON output, exit codes, and pipe-friendly behaviour. |
 | **Server** | `oahu-cli serve` | Long-lived process exposing MCP (stdio) and/or loopback HTTP+SSE transports for AI hosts and local tooling. |
 
+The TUI's library detail pane displays native cover images using Kitty graphics
+when supported, or Sixel with an adaptive 256-color palette when the terminal
+reports support and its cell dimensions can be measured. Other terminals retain
+the truecolor quadrant-glyph renderer. To compare backends, launch with
+`OAHU_IMAGE_PROTOCOL=auto`, `kitty`, `sixel`, or `quadrant` (default: `auto`);
+explicit protocols still require terminal support. Inside tmux/screen, Oahu uses
+quadrants. Native graphics are disabled in screen-reader mode; Mono/ASCII modes
+retain their existing text-only behavior.
+
 #### Available commands
 
 ```

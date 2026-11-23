@@ -36,33 +36,49 @@ class CoverArt {
             get;
             init;
         }
+
+        internal prop Image TerminalImage? { get; init; }
     }
 
     shared {
         private let cache ConcurrentDictionary[string, CoverResult] = ConcurrentDictionary[string, CoverResult]()
         private let http HttpClient = HttpClient()
+        private let nativeKeys ConcurrentQueue[string] = ConcurrentQueue[string]()
 
         /// Look up (or start producing) the cover for [`path`](paramref) at
         /// [`widthCells`](paramref) terminal columns. Returns a Pending result
         /// until the background decode finishes; callers should re-render while
         /// pending (the shell's timed-refresh loop covers this).
-        func TryGet(path string?, url string?, widthCells int32) CoverResult {
+        func TryGet(path string?, url string?, widthCells int32) CoverResult -> Request(path, url, widthCells, false)
+
+        internal func TryGetNative(path string?, url string?) CoverResult -> Request(path, url, 0, true)
+
+        private func Request(path string?, url string?, widthCells int32, native bool) CoverResult {
             if string.IsNullOrWhiteSpace(path) {
                 return Failed
             }
             let w = Math.Clamp(widthCells, 6, 60)
-            let key = "$path|$w"
+            let key = if native { "$path|native" } else { "$path|$w" }
             if cache.TryGetValue(key, out var hit) && hit != nil {
                 return hit
             }
             if cache.TryAdd(key, PendingResult) {
-                let _ = Task.Run(() -> Produce(key, path, url, w))
+                if native {
+                    nativeKeys.Enqueue(key)
+                    while nativeKeys.Count > 8 && nativeKeys.TryDequeue(out var oldKey) {
+                        cache.TryRemove(oldKey, out var _)
+                    }
+                }
+                let _ = Task.Run(() -> Produce(key, path, url, w, native))
             }
-            return cache[key]
+            return if cache.TryGetValue(key, out var result) { result } else { PendingResult }
         }
 
         /// Drop every cached rendering (used by tests).
-        func ClearCache() -> cache.Clear()
+        func ClearCache() {
+            cache.Clear()
+            nativeKeys.Clear()
+        }
 
         private var prefetchRunning int32
 
@@ -117,11 +133,11 @@ class CoverArt {
 
         private let Failed CoverResult = CoverResult{State: CoverState.Failed, Lines: nil}
 
-        private func Produce(key string, path string, url string?, widthCells int32) {
+        private func Produce(key string, path string, url string?, widthCells int32, native bool) {
             try {
                 if !File.Exists(path) {
                     if string.IsNullOrWhiteSpace(url) {
-                        cache[key] = Failed
+                        cache.TryUpdate(key, Failed, PendingResult)
                         return
                     }
                     // Cache-fill for CLI-only users: the GUI normally downloads
@@ -134,9 +150,19 @@ class CoverArt {
                     }
                     File.WriteAllBytes(path, bytes)
                 }
-                cache[key] = Decode(path, widthCells)
+                var result CoverResult
+                if native {
+                    let image = CoverImage.Load(path)
+                    result = CoverResult{
+                        State: CoverState.Ready,
+                        Image: TerminalImage(image.Width, image.Height, image.Pixels)
+                    }
+                } else {
+                    result = Decode(path, widthCells)
+                }
+                cache.TryUpdate(key, result, PendingResult)
             } catch {
-                cache[key] = Failed
+                cache.TryUpdate(key, Failed, PendingResult)
             }
         }
 
