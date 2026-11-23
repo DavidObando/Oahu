@@ -97,8 +97,6 @@ internal class TerminalGraphics {
                 sb.Append(Delete())
                 sb.Append(TerminalImageEncoder.Kitty(placement.Image, imageId))
                 uploaded = placement.Image
-            } else {
-                sb.Append("\u001B_Ga=d,d=i,i=$imageId,q=2;\u001B\\")
             }
         }
         sb.Append(resolved.Frame)
@@ -108,6 +106,7 @@ internal class TerminalGraphics {
             let ch = if CellHeight > 0 { CellHeight } else { 2 }
             let fitsWidth = int64(placement.Columns) * cw * placement.Image.Height <= int64(placement.Rows) * ch * placement.Image.Width
             let size = if fitsWidth { "c=${placement.Columns}" } else { "r=${placement.Rows}" }
+            // Replace p=1 in place; deleting it first can evict the cached pixels in iTerm.
             sb.Append("\u001B_Ga=p,i=$imageId,p=1,$size,C=1,q=2;\u001B\\")
         } else if Protocol == ImageProtocol.Sixel {
             let scale = Math.Min(float64(placement.Columns * CellWidth) / placement.Image.Width,

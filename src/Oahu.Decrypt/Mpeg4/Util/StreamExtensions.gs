@@ -75,11 +75,7 @@ async func (inputStream Stream) ReadNextChunkAsync(
     token CancellationToken
 ) {
     await inputStream.SeekToOffsetAsync(chunkOffset, token)
-    if await inputStream.ReadAsync(chunkBuffer, token) != chunkBuffer.Length {
-        throw EndOfStreamException(
-            "Stream ended at position ${inputStream.Position} before all ${chunkBuffer.Length} bytes were read."
-        )
-    }
+    await inputStream.ReadExactlyAsync(chunkBuffer, token)
 }
 
 func (stream Stream) WriteType(type string) {

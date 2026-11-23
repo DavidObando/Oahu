@@ -248,12 +248,16 @@ class QueueCommand {
                         )
                         return ExitCodes.Success
                     }
-                    if !force && CliEnvironment.IsStdinTty && CliEnvironment.IsStdoutTty {
+                    if !force {
+                        if !CliEnvironment.IsStdinTty || !CliEnvironment.IsStdoutTty {
+                            CliEnvironment.Error.WriteLine("oahu-cli: pass --force to clear the queue in non-interactive mode.")
+                            return ExitCodes.UsageError
+                        }
                         CliEnvironment.Out.Write("Clear the entire queue? [y/N] ")
                         let line = Console.ReadLine()
                         if !string.Equals(line?.Trim(), "y", StringComparison.OrdinalIgnoreCase) {
                             CliEnvironment.Error.WriteLine("Aborted.")
-                            return ExitCodes.Success
+                            return ExitCodes.Cancelled
                         }
                     }
                     await svc.ClearAsync(ct).ConfigureAwait(false)

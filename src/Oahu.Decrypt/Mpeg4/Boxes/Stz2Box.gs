@@ -14,7 +14,7 @@ open class Stz2Box : FullBox, IStszBox {
         file.ReadExactly(reserved)
         FieldSize = reserved[3]
         let sampleCount = file.ReadUInt32BE()
-        if FieldSize is not(8 or 16) {
+        if FieldSize is not(4 or 8 or 16) {
             throw InvalidDataException("Stsz field size ($FieldSize). Valid values are 4, 8, or 16.")
         }
         if sampleCount > uint32(int32.MaxValue) {
@@ -29,6 +29,11 @@ open class Stz2Box : FullBox, IStszBox {
             file.ReadExactly(MemoryMarshal.AsBytes(shortSpan))
             if BitConverter.IsLittleEndian {
                 BinaryPrimitives.ReverseEndianness(shortSpan, shortSpan)
+            }
+        } else if FieldSize == 4 {
+            let bytes = file.ReadBlock(int32((int64(sampleCount) + int64(1)) / int64(2)))
+            for var i = 0; i < int32(sampleCount); i++ {
+                shortSpan[i] = uint16(if i % 2 == 0 { bytes[i / 2] >> 4 } else { bytes[i / 2] & 15 })
             }
         } else {
             let bytes Span[uint8] = file.ReadBlock(int32(sampleCount))
@@ -52,7 +57,7 @@ open class Stz2Box : FullBox, IStszBox {
 
     open override prop RenderSize int64 -> base.RenderSize +
         int64(8) +
-        int64(SampleCount * FieldSize / 8) +
+        (int64(SampleCount) * int64(FieldSize) / int64(8)) +
         int64(
         (
             if FieldSize == 4 && SampleCount % 2 == 1 {
@@ -84,23 +89,19 @@ open class Stz2Box : FullBox, IStszBox {
     protected open override func Render(file Stream) {
         base.Render(file)
         let fieldSize = stackalloc[4]uint8
-        let shortSpan = CollectionsMarshal.AsSpan(SampleSizes)
-        fieldSize[3] = uint8(
-            (
-                if shortSpan.AllLessThanOrEqual(uint16(uint8.MaxValue)) {
-                    8
-                } else {
-                    16
-                }
-            )
-        )
+        fieldSize.Clear()
+        fieldSize[3] = uint8(FieldSize)
         file.Write(fieldSize)
         file.WriteInt32BE(SampleSizes.Count)
         if fieldSize[3] == uint8(16) {
-            if BitConverter.IsLittleEndian {
-                BinaryPrimitives.ReverseEndianness(shortSpan, shortSpan)
+            for size in SampleSizes {
+                file.WriteUInt16BE(size)
             }
-            file.Write(MemoryMarshal.AsBytes(shortSpan))
+        } else if FieldSize == 4 {
+            for var i = 0; i < SampleSizes.Count; i += 2 {
+                let low = if i + 1 < SampleSizes.Count { int32(SampleSizes[i + 1]) } else { 0 }
+                file.WriteByte(uint8((int32(SampleSizes[i]) << 4) | low))
+            }
         } else {
             for size in SampleSizes {
                 file.WriteByte(uint8(size))

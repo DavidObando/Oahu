@@ -15,4 +15,4 @@ open data class InteractionMessage(Type ECallbackType, Message string) { }
 
 open data class InteractionMessage[T](Type ECallbackType, Message string?, Custom T) : Oahu
     .Aux
-    .InteractionMessage(Type, Message!!) { }
+    .InteractionMessage(Type, Message ?? string.Empty) { }

@@ -144,7 +144,7 @@ class QueueScreen : ITabScreen {
                 return true
             }
             case ConsoleKey.DownArrow, ConsoleKey.J {
-                cursor = Math.Min(entries.Count - 1, Math.Max(0, cursor + 1))
+                cursor = Math.Clamp(cursor + 1, 0, Math.Max(0, entries.Count - 1))
                 return true
             }
             case ConsoleKey.PageUp {
@@ -152,7 +152,7 @@ class QueueScreen : ITabScreen {
                 return true
             }
             case ConsoleKey.PageDown {
-                cursor = Math.Min(entries.Count - 1, Math.Max(0, cursor + lastListHeight))
+                cursor = Math.Clamp(cursor + lastListHeight, 0, Math.Max(0, entries.Count - 1))
                 return true
             }
             case ConsoleKey.Home {
@@ -200,7 +200,7 @@ class QueueScreen : ITabScreen {
                 try {
                     let svc = queueServiceFactory()
                     entries = await svc.ListAsync().ConfigureAwait(false)
-                    cursor = Math.Min(cursor, Math.Max(0, entries.Count - 1))
+                    cursor = Math.Clamp(cursor, 0, Math.Max(0, entries.Count - 1))
                 } catch (ex Exception) {
                     statusMessage = "Failed to load queue: ${ex.Message}"
                     entries = Array.Empty[QueueEntry]()

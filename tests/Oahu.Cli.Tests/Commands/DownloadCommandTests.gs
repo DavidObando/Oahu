@@ -4,8 +4,10 @@ import Microsoft.Extensions.Logging
 import Microsoft.Extensions.Logging.Abstractions
 import Oahu.Cli
 import Oahu.Cli.App.Jobs
+import Oahu.Cli.App.Library
 import Oahu.Cli.App.Models
 import Oahu.Cli.Commands
+import Oahu.Cli.Output
 import System
 import System.Collections.Generic
 import System.IO
@@ -43,6 +45,16 @@ class DownloadCommandTests : IDisposable {
         let (exit, _, stderr) = await RunAsync("download")
         Assert.Equal(2, exit)
         Assert.Contains("no ASINs", stderr, StringComparison.OrdinalIgnoreCase)
+    }
+
+    @Fact
+    async func AllNew_With_No_New_Items_Succeeds_And_Preserves_Json_Output() {
+        UseScheduler(FakeJobExecutor())
+        CliServiceFactory.LibraryServiceFactory = () -> FakeLibraryService(Array.Empty[LibraryItem]())
+        let (exit, output, _) = await RunAsync("download", "--all-new", "--json")
+        Assert.Equal(0, exit)
+        Assert.Contains("\"resource\": \"download-summary\"", output)
+        Assert.Contains("\"completed\": 0", output)
     }
 
     @Fact
@@ -86,6 +98,50 @@ class DownloadCommandTests : IDisposable {
         let (exit, stdout, _) = await RunAsync("download", "B0001", "B0002", "B0003", "--json")
         Assert.Equal(0, exit)
         Assert.Contains("\"completed\": 3", stdout)
+    }
+
+    @Theory
+    @InlineData("first")
+    @InlineData("last")
+    async func Submission_Failure_Does_Not_Stop_Observation_Of_Accepted_Jobs(failedAsin string) {
+        await using let scheduler = JobScheduler(FakeJobExecutor(TimeSpan.FromMilliseconds(20)))
+        CliServiceFactory.JobServiceFactory = () -> RejectingService(scheduler, failedAsin)
+        let (exit, stdout, _) = await RunAsync("download", "first", "middle", "last", "--json")
+        Assert.Equal(1, exit)
+        Assert.Contains("\"completed\": 2", stdout)
+        Assert.Contains("\"failed\": 1", stdout)
+    }
+
+    private class RejectingService : IJobService {
+        private let inner IJobService
+        private let failedAsin string
+        init(inner IJobService, failedAsin string) {
+            this.inner = inner
+            this.failedAsin = failedAsin
+        }
+        func SubmitAsync(request JobRequest, cancellationToken CancellationToken = default(CancellationToken)) Task {
+            if request.Asin == failedAsin { throw IOException("rejected") }
+            return inner.SubmitAsync(request, cancellationToken)
+        }
+        func ObserveAll(cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[JobUpdate] -> inner.ObserveAll(cancellationToken)
+        func ObserveAsync(jobId string, cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[JobUpdate] -> inner.ObserveAsync(jobId, cancellationToken)
+        func Cancel(jobId string) bool -> inner.Cancel(jobId)
+        func GetSnapshot(jobId string) JobSnapshot? -> inner.GetSnapshot(jobId)
+        func ListActive() IReadOnlyList[JobSnapshot] -> inner.ListActive()
+        func ReadHistoryAsync(cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[JobRecord] -> inner.ReadHistoryAsync(cancellationToken)
+    }
+
+    @Fact
+    async func Caller_Cancellation_Propagates_After_Observer_Cleanup() {
+        await using let scheduler = JobScheduler(FakeJobExecutor(TimeSpan.FromMinutes(1)))
+        using let cancellation = CancellationTokenSource(TimeSpan.FromMilliseconds(100))
+        let requests = []JobRequest{JobRequest{Asin: "cancel", Title: "Cancel"}}
+        using let output = StringWriter()
+        let writer = JsonOutputWriter(OutputContext(OutputFormat.Json, false, false, false), output)
+        await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> {
+            await DownloadCommand.RunAsync(scheduler, requests, writer, cancellation.Token).WaitAsync(TimeSpan.FromSeconds(5))
+        })
+        Assert.DoesNotContain("\"resource\": \"download-summary\"", output.ToString())
     }
 
     @Fact

@@ -37,6 +37,7 @@ internal class ProgrammaticLogin {
         // GET the OAuth sign-in page directly (cookies frc/map-md/sid + UA are sufficient)
         Log(3, this, () -> "Getting OAuth page: $oauthUri")
         let (authCodeUri, response) = await GetFollowingRedirectsAsync(client, oauthUri, loginBaseUri)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -66,6 +67,7 @@ internal class ProgrammaticLogin {
         Log(3, this, () -> "Submitting credentials...")
         // Submit and process result
         let (authCodeUri, response) = await SubmitFormAsync(client, baseUri, action, method, inputs)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -178,6 +180,7 @@ internal class ProgrammaticLogin {
         }
         inputs!!["metadata1"] = GenerateEncryptedMetadata(locale, baseUri)
         let (authCodeUri, response) = await SubmitFormAsync(client, baseUri, action, method, inputs)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -206,6 +209,7 @@ internal class ProgrammaticLogin {
         inputs!!["otpCode"] = code
         inputs!!["metadata1"] = GenerateEncryptedMetadata(locale, baseUri)
         let (authCodeUri, response) = await SubmitFormAsync(client, baseUri, action, method, inputs)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -240,6 +244,7 @@ internal class ProgrammaticLogin {
             inputs!!["cvf_challenge_response"] = code
         }
         let (authCodeUri, response) = await SubmitFormAsync(client, baseUri, action, method, inputs)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -261,6 +266,7 @@ internal class ProgrammaticLogin {
             throw InvalidOperationException("Could not parse approval form")
         }
         let (authCodeUri, response) = await SubmitFormAsync(client, baseUri, action, method, inputs)
+        using let ownedResponse = response
         if authCodeUri != nil {
             return authCodeUri
         }
@@ -317,22 +323,18 @@ internal class ProgrammaticLogin {
             try {
                 ip = NetworkInterface
                     .GetAllNetworkInterfaces()
-                    .Select((i NetworkInterface) -> i.GetIPProperties())
-                    .SelectMany(
-                    func (p IPInterfaceProperties) IEnumerable[IPAddress] {
-                        return p
-                            .DnsAddresses
-                            .Concat(p.GatewayAddresses.Select((a GatewayIPAddressInformation) -> a.Address))
-                            .Concat(p.UnicastAddresses.Select((a UnicastIPAddressInformation) -> a.Address))
-                    }
-                )
+                    .Where((i NetworkInterface) -> i.OperationalStatus == OperationalStatus.Up)
+                    .SelectMany((i NetworkInterface) -> i.GetIPProperties().UnicastAddresses.Select(
+                        (a UnicastIPAddressInformation) -> a.Address
+                    ))
                     .Where(
-                    (a IPAddress) -> (a.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6)
+                    (a IPAddress) -> !IPAddress.IsLoopback(a) &&
+                        (a.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6)
                 )
-                    .OrderBy((a IPAddress) -> a.AddressFamily != AddressFamily.InterNetworkV6)
                     .OrderByDescending(
                     (a IPAddress) -> !a.IsIPv6LinkLocal && !a.IsIPv6SiteLocal && !a.IsIPv6UniqueLocal
                 )
+                    .ThenBy((a IPAddress) -> a.AddressFamily != AddressFamily.InterNetworkV6)
                     .FirstOrDefault() ??
                     IPAddress.IPv6Any
             } catch {
@@ -401,10 +403,12 @@ internal class ProgrammaticLogin {
                     } else {
                         Uri(baseUri, location)
                     }
+                    response.Dispose()
                     response = await client.GetAsync(target)
                     redirects++
                 }
                 let cookies = client.CookieContainer.GetCookies(baseUri)
+                response.Dispose()
                 if cookies.Cast[Cookie]().Any(
                     (c Cookie) -> c.Name.Equals("session-token", StringComparison.OrdinalIgnoreCase)
                 ) {
@@ -447,7 +451,10 @@ internal class ProgrammaticLogin {
                         ) -> "${Uri.EscapeDataString(kvp.Key)}=${Uri.EscapeDataString(kvp.Value)}"
                     )
                 )
-                response = await client.GetAsync(Uri("$requestUri?$query"))
+                let uriBuilder = UriBuilder(requestUri)
+                let existing = uriBuilder.Query.TrimStart('?')
+                uriBuilder.Query = if string.IsNullOrEmpty(existing) { query } else { "$existing&$query" }
+                response = await client.GetAsync(uriBuilder.Uri)
             }
             return await FollowRedirectsAsync(client, response, baseUri)
         }
@@ -474,6 +481,7 @@ internal class ProgrammaticLogin {
                 ) {
                     return (absoluteUri, response)
                 }
+                response.Dispose()
                 response = await client.GetAsync(absoluteUri)
                 redirectCount++
             }

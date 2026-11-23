@@ -6,6 +6,7 @@ import Oahu.Cli
 import Oahu.Cli.App.Auth
 import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Models
+import Oahu.Cli.App.Queue
 import Oahu.Cli.Commands
 import System
 import System.Collections.Generic
@@ -116,6 +117,36 @@ class GlobalFlagsTests : IDisposable {
         Assert.Contains("\"resource\": \"auth-logout-plan\"", stdout)
         Assert.Contains("\"wouldLogout\":", stdout)
         Assert.Single(await auth.ListSessionsAsync())
+    }
+
+    @Fact
+    async func Noninteractive_Queue_Clear_Requires_Force_Unless_DryRun() {
+        let queue = InMemoryQueueService()
+        await queue.AddAsync(QueueEntry{Asin: "one", Title: "One"})
+        CliServiceFactory.QueueServiceFactory = () -> queue
+        let priorInput = CliEnvironment.IsStdinTty
+        try {
+            typeof(CliEnvironment).GetProperty("IsStdinTty")!!.SetValue(nil, false)
+            let (declined, _, error) = await RunAsync("queue", "clear")
+            Assert.Equal(2, declined)
+            Assert.Contains("--force", error)
+            Assert.Single(await queue.ListAsync())
+            let (planned, _, _) = await RunAsync("queue", "clear", "--dry-run", "--json")
+            Assert.Equal(0, planned)
+            Assert.Single(await queue.ListAsync())
+            let (cleared, _, _) = await RunAsync("queue", "clear", "--force")
+            Assert.Equal(0, cleared)
+            Assert.Empty(await queue.ListAsync())
+        } finally {
+            typeof(CliEnvironment).GetProperty("IsStdinTty")!!.SetValue(nil, priorInput)
+        }
+    }
+
+    @Fact
+    async func Invalid_History_Status_Is_A_Usage_Error() {
+        let (exit, _, error) = await RunAsync("history", "list", "--status", "completde")
+        Assert.Equal(2, exit)
+        Assert.Contains("--status", error)
     }
 
     private func UseScheduler(executor IJobExecutor) {

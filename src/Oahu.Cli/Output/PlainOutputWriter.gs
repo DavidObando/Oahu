@@ -7,7 +7,9 @@ import System.IO
 import System.Linq
 import System.Text
 
-/// Tab-separated, no escapes, no colour, no Unicode borders.
+/// Tab-separated, no ANSI escapes, no colour, no Unicode borders.
+/// Backslashes, tabs, CR and LF are backslash-escaped within fields.
+/// Collections are comma-joined display values; use JSON for lossless arrays.
 /// Suitable for piping into awk/cut/jq-without-jq workflows.
 class PlainOutputWriter : IOutputWriter {
     private let writer TextWriter

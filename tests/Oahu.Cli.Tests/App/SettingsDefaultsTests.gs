@@ -5,6 +5,20 @@ import Xunit
 
 class SettingsDefaultsTests {
     @Fact
+    func UserSettings_Init_Repairs_Null_Sections_And_Can_Be_Repeated() {
+        let settings = Oahu.App.Avalonia.UserSettings{DownloadSettings: nil, ExportSettings: nil}
+        settings.Init()
+        Assert.NotNull(settings.DownloadSettings)
+        Assert.NotNull(settings.ExportSettings)
+        Assert.Equal(SettingsDefaults.DefaultDownloadDirectory, settings.DownloadSettings!!.DownloadDirectory)
+        let download = settings.DownloadSettings
+        let export = settings.ExportSettings
+        settings.Init()
+        Assert.Same(download, settings.DownloadSettings)
+        Assert.Same(export, settings.ExportSettings)
+    }
+
+    @Fact
     func ApplyDefaults_FillsMissingDownloadDirectory() {
         let dl = DownloadSettings()
         let ex = ExportSettings()

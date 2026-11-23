@@ -1,6 +1,7 @@
 package Oahu.Foundation.Tests
 
 import Oahu.Aux
+import Oahu.Aux.Extensions
 import Oahu.Common.Util
 import System
 import System.IO
@@ -33,6 +34,44 @@ class LogTmpFileMaintenanceTests {
         )
         Assert.Contains("#files=2/0/2", contents)
         Assert.Contains("size=3/0/3 kB", contents)
+    }
+
+    @Fact
+    func Cleanup_Preserves_The_One_Remaining_File_Newer_Than_The_Cutoff() {
+        RunCleanup((appName string) -> {
+            let fresh = Path.Combine(ApplEnv.TempDirectory, "recent.tmp")
+            File.WriteAllText(fresh, "keep")
+            File.SetLastWriteTime(fresh, DateTime.Today.AddDays(-1))
+            WriteOldFile(Path.Combine(ApplEnv.TempDirectory, "old-one.tmp"), 1024)
+            WriteOldFile(Path.Combine(ApplEnv.TempDirectory, "old-two.tmp"), 1024)
+            LogTmpFileMaintenance.Instance!!.Cleanup()
+            Assert.True(File.Exists(fresh))
+        })
+    }
+
+    @Fact
+    func ProcessList_Rejects_Add_After_Dispose() {
+        using let process = System.Diagnostics.Process()
+        let list = ProcessList()
+        list.Dispose()
+        Assert.Throws[ObjectDisposedException](() -> list.Add(process))
+    }
+
+    @Fact
+    func Unix_Long_Paths_Are_Not_Rewritten_As_Windows_Unc_Paths() {
+        if OperatingSystem.IsWindows() { return }
+        let path = "/tmp/" + System.String('x', 260)
+        Assert.Equal(path, path.AsUncIfLong())
+        Assert.Equal(path, path.AsUnc())
+    }
+
+    @Fact
+    func Typed_Interaction_Message_Accepts_Its_Nullable_Message() {
+        let message = InteractionMessage[string](ECallbackType.Question3, nil, "custom")
+        let baseMessage InteractionMessage = message
+        Assert.Null(message.Message)
+        Assert.Equal(string.Empty, baseMessage.Message)
+        Assert.Equal("custom", message.Custom)
     }
 
     shared {

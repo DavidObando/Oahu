@@ -60,6 +60,16 @@ class OutputWriterTests {
     }
 
     @Fact
+    func Plain_Escapes_Collection_Elements_Exactly_Once_Without_Extra_Tsv_Columns() {
+        let output = StringWriter()
+        let writer = PlainOutputWriter(OutputContext(OutputFormat.Plain, false, false, false), output)
+        writer.WriteCollection("test", []IReadOnlyDictionary[string, object?]{
+            Dictionary[string, object?]{["values"] = []string{"a,b", "c\td", "e\nf", "g\\h"}}
+        }, []OutputColumn{OutputColumn("values", "VALUES")})
+        Assert.Equal("VALUES" + Environment.NewLine + "a,b,c\\td,e\\nf,g\\\\h" + Environment.NewLine, output.ToString())
+    }
+
+    @Fact
     func Pretty_WritesTableWithoutThrowing() {
         let console = TestConsoleExtensions.EmitAnsiSequences(TestConsole())
         let w = PrettyOutputWriter(OutputContext(OutputFormat.Pretty, false, true, false), console)

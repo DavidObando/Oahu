@@ -39,7 +39,12 @@ class UserSettings : IUserSettings, IInitSettings {
     }
 
     func Init() {
+        DownloadSettings ??= DownloadSettings()
+        ExportSettings ??= ExportSettings()
         SettingsDefaults.ApplyDefaults(DownloadSettings, ExportSettings)
+        this.DownloadSettings!!.ChangedSettings -= OnChangedSettings
+        this.ConfigSettings.ChangedSettings -= OnChangedSettings
+        this.ExportSettings!!.ChangedSettings -= OnChangedSettings
         this.DownloadSettings!!.ChangedSettings += OnChangedSettings
         this.ConfigSettings.ChangedSettings += OnChangedSettings
         this.ExportSettings!!.ChangedSettings += OnChangedSettings

@@ -36,7 +36,7 @@ class CoreAuthService : IAuthService {
         if profiles == nil {
             return Array.Empty[AuthSession]()
         }
-        let aliases = client.GetAccountAliases()?.ToDictionary(
+        let aliases = client.GetAccountAliases()?.DistinctBy((a AccountAlias) -> a.AccountId).ToDictionary(
             (a AccountAlias) -> a.AccountId,
             (a AccountAlias) -> a.Alias,
             StringComparer.Ordinal

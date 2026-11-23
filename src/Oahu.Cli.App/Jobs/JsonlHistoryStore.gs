@@ -12,13 +12,11 @@ import System.Runtime.CompilerServices
 import System.Text.Json
 import System.Threading
 import System.Threading.Tasks
-import SystemObject = System.Object
 
 /// Append-only JSONL history store. Records are written one-per-line so a partial
 /// record on crash can be skipped without corrupting the rest of the file.
 class JsonlHistoryStore {
     private let path string
-    private let writeLock object = SystemObject()
     private let options JsonSerializerOptions
     private let logger ILogger
 
@@ -32,17 +30,12 @@ class JsonlHistoryStore {
 
     func Append(record JobRecord) {
         ArgumentNullException.ThrowIfNull(record)
-        lock writeLock {
-            let dir = Path.GetDirectoryName(path)
-            if !string.IsNullOrEmpty(dir) {
-                Directory.CreateDirectory(dir)
-            }
-            using let stream = FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read)
-            using let writer = StreamWriter(stream)
-            writer.WriteLine(JsonSerializer.Serialize(record, options))
-            writer.Flush()
-            stream.Flush(flushToDisk: true)
-        }
+        using let mutationLock = AcquireMutationLockAsync(CancellationToken.None).GetAwaiter().GetResult()
+        using let stream = FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read)
+        using let writer = StreamWriter(stream)
+        writer.WriteLine(JsonSerializer.Serialize(record, options))
+        writer.Flush()
+        stream.Flush(flushToDisk: true)
     }
 
     async func ReadAllAsync(
@@ -98,6 +91,7 @@ class JsonlHistoryStore {
         keep int32? = nil,
         cancellationToken CancellationToken = default(CancellationToken)
     ) int32 {
+        using let mutationLock = await AcquireMutationLockAsync(cancellationToken).ConfigureAwait(false)
         if !File.Exists(path) {
             return 0
         }
@@ -126,25 +120,38 @@ class JsonlHistoryStore {
                 .OrderBy((r JobRecord) -> r.CompletedAt)
                 .ToList()
         }
-        lock writeLock {
-            let dir = Path.GetDirectoryName(path)
-            if !string.IsNullOrEmpty(dir) {
-                Directory.CreateDirectory(dir)
-            }
-            let tmp = path + ".tmp." + Guid.NewGuid().ToString("n")
+        let tmp = path + ".tmp." + Guid.NewGuid().ToString("n")
+        {
+            using let fs = FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None)
             {
-                using let fs = FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None)
-                {
-                    using let writer = StreamWriter(fs)
-                    for rec in kept {
-                        writer.WriteLine(JsonSerializer.Serialize(rec, options))
-                    }
-                    writer.Flush()
-                    fs.Flush(flushToDisk: true)
+                using let writer = StreamWriter(fs)
+                for rec in kept {
+                    writer.WriteLine(JsonSerializer.Serialize(rec, options))
                 }
+                writer.Flush()
+                fs.Flush(flushToDisk: true)
             }
-            File.Move(tmp, path, overwrite: true)
         }
+        File.Move(tmp, path, overwrite: true)
         return all.Count - kept.Count
+    }
+
+    private async func AcquireMutationLockAsync(cancellationToken CancellationToken) FileStream {
+        let lockPath = System.IO.Path.GetFullPath(path) + ".lock"
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(lockPath)!!)
+        while true {
+            cancellationToken.ThrowIfCancellationRequested()
+            try {
+                // Keep the lock inode stable so other instances/processes share the same lease.
+                return FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
+            } catch (ex IOException) when (
+                (OperatingSystem.IsWindows() && (ex.HResult & 0xffff) == 32) ||
+                (OperatingSystem.IsMacOS() && ex.HResult == 35) ||
+                (OperatingSystem.IsLinux() && ex.HResult == 11)
+            ) {
+                // Windows sharing violation; Unix EAGAIN (Darwin 35, Linux 11).
+                await Task.Delay(10, cancellationToken).ConfigureAwait(false)
+            }
+        }
     }
 }

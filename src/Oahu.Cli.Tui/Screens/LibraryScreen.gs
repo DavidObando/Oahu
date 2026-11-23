@@ -388,8 +388,10 @@ class LibraryScreen : ITabScreen {
                 return true
             }
             case ConsoleKey.A when key.Modifiers == 0 {
-                if selected.Count == filtered.Count {
-                    selected.Clear()
+                if filtered.Count > 0 && filtered.All((item LibraryItem) -> selected.Contains(item.Asin)) {
+                    for item in filtered {
+                        selected.Remove(item.Asin)
+                    }
                 } else {
                     for item in filtered {
                         selected.Add(item.Asin)

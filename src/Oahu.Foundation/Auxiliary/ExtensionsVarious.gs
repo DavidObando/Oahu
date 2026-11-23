@@ -278,6 +278,9 @@ func (path string) IsUnc() bool {
 }
 
 func (path string) AsUncIfLong() string {
+    if !OperatingSystem.IsWindows() {
+        return path
+    }
     var path = path
     if path.IsUnc() {
         return path
@@ -290,6 +293,9 @@ func (path string) AsUncIfLong() string {
 }
 
 func (path string) AsUnc() string {
+    if !OperatingSystem.IsWindows() {
+        return path
+    }
     if path.IsUnc() {
         return path
     } else {

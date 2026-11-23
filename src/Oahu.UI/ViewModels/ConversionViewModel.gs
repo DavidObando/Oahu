@@ -37,6 +37,9 @@ partial class ConversionViewModel : ObservableObject {
     event CancelRequested Action
 
     func AddConversion(book Book) {
+        if book.Conversion == nil {
+            return
+        }
         // Avoid duplicates
         if Conversions.Any((c ConversionItemViewModel) -> c.Asin == book.Asin) {
             return

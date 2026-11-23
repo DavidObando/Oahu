@@ -69,16 +69,7 @@ class HistoryCommand {
                     let historyPath = Path.Combine(CliPaths.SharedUserDataDir, "history.jsonl")
                     let store = JsonlHistoryStore(historyPath)
                     if globals.DryRun {
-                        var wouldDelete = 0
-                        await for rec in store.ReadAllAsync(ct).ConfigureAwait(false) {
-                            let matchesAsin = asins.Length > 0 && asins.Any(
-                                (a string) -> string.Equals(a, rec.Asin, StringComparison.OrdinalIgnoreCase)
-                            )
-                            let matchesBefore = before is {} b && rec.CompletedAt < b
-                            if matchesAsin || matchesBefore {
-                                wouldDelete++
-                            }
-                        }
+                        let wouldDelete = await CountDeletionsAsync(store, asins, before, keep, ct).ConfigureAwait(false)
                         let dryWriter = OutputWriterFactory.Create(ConfigCommand.BuildContext(globals))
                         dryWriter.WriteResource(
                             "history-delete-result",
@@ -97,6 +88,27 @@ class HistoryCommand {
                 }
             )
             return c
+        }
+
+        private async func CountDeletionsAsync(
+            store JsonlHistoryStore,
+            asins[]string,
+            before DateTimeOffset?,
+            keep int32?,
+            ct CancellationToken
+        ) int32 {
+            var matched = 0
+            var remaining = 0
+            await for rec in store.ReadAllAsync(ct).ConfigureAwait(false) {
+                let matchesAsin = asins.Any((a string) -> string.Equals(a, rec.Asin, StringComparison.OrdinalIgnoreCase))
+                let matchesBefore = before is {} b && rec.CompletedAt < b
+                if matchesAsin || matchesBefore {
+                    matched++
+                } else {
+                    remaining++
+                }
+            }
+            return matched + (if keep is {} n { Math.Max(0, remaining - n) } else { 0 })
         }
 
         func ToDictionary(record JobRecord) IReadOnlyDictionary[string, object?] -> Dictionary[string, object?]{
@@ -135,6 +147,12 @@ class HistoryCommand {
                         since = parsed
                     }
                     let status = parse.GetValue(statusOpt)
+                    if !string.IsNullOrEmpty(status) && !([]string{
+                        "all", "completed", "failed", "canceled", "cancelled"
+                    }).Contains(status, StringComparer.OrdinalIgnoreCase) {
+                        CliEnvironment.Error.WriteLine("oahu-cli: invalid --status. Use completed|failed|canceled|all.")
+                        return ExitCodes.UsageError
+                    }
                     let limit = parse.GetValue(limitOpt)
                     let store = JsonlHistoryStore(HistoryPath())
                     var records = List[JobRecord]()

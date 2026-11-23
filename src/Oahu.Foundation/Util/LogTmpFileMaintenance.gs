@@ -100,7 +100,7 @@ class LogTmpFileMaintenance {
                 File.Delete(fi.FullName)
                 numFiles++
                 totalSize += fi.Length
-                oldest = if i > 1 {
+                oldest = if i > 0 {
                     files[i - 1].LastWriteTime
                 } else {
                     default(DateTime)

@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../src/Oahu.App/UserSettings.gs" Link="App/UserSettings.gs" />
     <ProjectReference Include="../../src/Oahu.Cli/Oahu.Cli.gsproj" />
     <ProjectReference Include="../../src/Oahu.Cli.App/Oahu.Cli.App.gsproj" />
     <ProjectReference Include="../../src/Oahu.Cli.Tui/Oahu.Cli.Tui.gsproj" />
