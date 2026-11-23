@@ -288,6 +288,7 @@ class DownloadCommand {
                     await observerTask.ConfigureAwait(false)
                 } catch (OperationCanceledException) { }
             }
+            cancellationToken.ThrowIfCancellationRequested()
             WriteSummary(writer, requests, terminals)
             let anyFailed = terminals.Values.Any((u JobUpdate) -> u.Phase == JobPhase.Failed)
             let anyCanceled = terminals.Values.Any((u JobUpdate) -> u.Phase == JobPhase.Canceled)

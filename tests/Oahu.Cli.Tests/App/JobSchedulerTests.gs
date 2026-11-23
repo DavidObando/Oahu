@@ -22,6 +22,7 @@ class JobSchedulerTests : IDisposable {
         if File.Exists(tempHistory) {
             File.Delete(tempHistory)
         }
+        File.Delete(tempHistory + ".lock")
     }
 
     @Fact
@@ -111,6 +112,25 @@ class JobSchedulerTests : IDisposable {
     }
 
     @Fact
+    async func Canceled_Submission_Removes_Persisted_State_Before_Disposal() {
+        let state = tempHistory + ".active"
+        let scheduler = JobScheduler(FakeJobExecutor(), options: JobSchedulerOptions{ActiveJobsStatePath: state})
+        using let cancellation = CancellationTokenSource()
+        cancellation.Cancel()
+        let request = Req()
+        try {
+            await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> {
+                await scheduler.SubmitAsync(request, cancellation.Token)
+            })
+            Assert.Null(scheduler.GetSnapshot(request.Id))
+            Assert.Equal("[]", File.ReadAllText(state).Trim())
+        } finally {
+            await scheduler.DisposeAsync()
+            File.Delete(state)
+        }
+    }
+
+    @Fact
     async func Completed_Job_Is_Not_Recovered_As_Interrupted_On_Restart() {
         let state = tempHistory + ".active"
         let store = JsonlHistoryStore(tempHistory)
@@ -137,21 +157,57 @@ class JobSchedulerTests : IDisposable {
     }
 
     @Fact
-    async func History_Delete_Does_Not_Lose_Concurrent_Appends() {
+    async func History_Delete_Does_Not_Lose_Concurrent_Appends_Across_Independent_Stores() {
         let store = JsonlHistoryStore(tempHistory)
+        let writer = JsonlHistoryStore(tempHistory)
         for var i = 0; i < 200; i++ {
             store.Append(JobRecord{Id: "seed-$i", Asin: "seed-$i", Title: "Seed", TerminalPhase: JobPhase.Completed})
         }
         let delete = Task.Run(async () -> await store.DeleteAsync(keep: 10000))
         let append = Task.Run(() -> {
             for var i = 0; i < 40; i++ {
-                store.Append(JobRecord{Id: "added-$i", Asin: "added-$i", Title: "Added", TerminalPhase: JobPhase.Completed})
+                writer.Append(JobRecord{Id: "added-$i", Asin: "added-$i", Title: "Added", TerminalPhase: JobPhase.Completed})
             }
         })
         await Task.WhenAll(delete, append)
         let records = List[JobRecord]()
         await for record in store.ReadAllAsync() { records.Add(record) }
         Assert.Equal(240, records.Count)
+    }
+
+    @Fact
+    async func History_Delete_Can_Be_Canceled_While_Another_Owner_Holds_The_Path_Lock() {
+        using let owner = FileStream(tempHistory + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
+        using let cancellation = CancellationTokenSource(TimeSpan.FromMilliseconds(100))
+        let store = JsonlHistoryStore(tempHistory)
+        await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> {
+            await store.DeleteAsync(cancellationToken: cancellation.Token)
+        })
+        Assert.False(File.Exists(tempHistory))
+    }
+
+    @Fact
+    async func History_Append_Waits_For_Another_Owner_Of_The_Path_Lock() {
+        let owner = FileStream(tempHistory + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
+        using let started = ManualResetEventSlim()
+        let writer = JsonlHistoryStore(tempHistory)
+        let append = Task.Run(() -> {
+            started.Set()
+            writer.Append(JobRecord{Id: "added", Asin: "added", Title: "Added", TerminalPhase: JobPhase.Completed})
+        })
+        var completedEarly = false
+        try {
+            Assert.True(started.Wait(TimeSpan.FromSeconds(5)))
+            await Task.Delay(50)
+            completedEarly = append.IsCompleted
+        } finally {
+            owner.Dispose()
+        }
+        await append.WaitAsync(TimeSpan.FromSeconds(5))
+        Assert.False(completedEarly)
+        let records = List[JobRecord]()
+        await for record in writer.ReadAllAsync() { records.Add(record) }
+        Assert.Single(records)
     }
 
     private class FloodExecutor : IJobExecutor {

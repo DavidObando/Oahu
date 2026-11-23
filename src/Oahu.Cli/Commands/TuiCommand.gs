@@ -125,7 +125,8 @@ class TuiCommand {
                 Version: ResolveVersion(),
                 Tabs: tabs,
                 State: state,
-                ConfigServiceFactory: () -> CliServiceFactory.ConfigServiceFactory()
+                ConfigServiceFactory: () -> CliServiceFactory.ConfigServiceFactory(),
+                JobServiceFactory: CliServiceFactory.JobServiceFactory
             }
             return Launcher(opts)
         }

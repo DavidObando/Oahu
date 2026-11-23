@@ -233,6 +233,7 @@ internal class AudibleApi : IAudibleApi {
                 async () -> await CopyStreams(conversion, rdr, wrtr, progressAction, cancToken),
                 cancToken
             )
+            cancToken.ThrowIfCancellationRequested()
             let succ = accusize == sourceFileSize
             if !succ {
                 conversion.State = EConversionState.DownloadError
@@ -730,9 +731,7 @@ internal class AudibleApi : IAudibleApi {
             var accusize int64 = 0
             let buffer = [BUF_SIZE]uint8
             while true {
-                if cancToken.IsCancellationRequested {
-                    return -1
-                }
+                cancToken.ThrowIfCancellationRequested()
                 let size = await rdr.ReadAsync(buffer, 0, BUF_SIZE, cancToken)
                 if size == 0 {
                     break

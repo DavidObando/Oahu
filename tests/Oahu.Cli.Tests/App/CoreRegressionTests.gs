@@ -54,6 +54,38 @@ class CoreRegressionTests : IDisposable {
     }
 
     @Fact
+    async func CopyStreams_Throws_For_Caller_Cancellation_Instead_Of_Returning_A_Size_Sentinel() {
+        using let cancellation = CancellationTokenSource()
+        cancellation.Cancel()
+        using let source = BufferedStream(MemoryStream([]uint8{1}))
+        using let destination = BufferedStream(MemoryStream())
+        let copy = cast[Task[int64]](api.GetType().GetMethod("CopyStreams", BindingFlags.Static | BindingFlags.NonPublic)!!
+            .Invoke(nil, []object{
+                Conversion(), source, destination, Action[Conversion, int64]((_ Conversion, _ int64) -> { }),
+                cancellation.Token
+            })!!)
+        await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> { await copy })
+    }
+
+    @Fact
+    async func Download_Canceled_At_End_Of_Stream_Throws_And_Preserves_A_Retryable_State() {
+        using let cancellation = CancellationTokenSource()
+        handler.Content = StreamContent(CancelAtEndStream(cancellation))
+        let conversion = Conversion{
+            Book: Book{Asin: "cancel-at-eof", FileSizeBytes: 2L},
+            DownloadFileName: Path.Combine(directory, "cancel-at-eof"),
+            DownloadUrl: "https://example.invalid/book"
+        }
+        await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> {
+            await cast[Task[bool]](Invoke(api, "DownloadAsync", []object{
+                conversion, Action[Conversion, int64]((_ Conversion, _ int64) -> { }), cancellation.Token
+            }))
+        })
+        Assert.True(cancellation.IsCancellationRequested)
+        Assert.Equal(EConversionState.Download, conversion.State)
+    }
+
+    @Fact
     async func Download_Truncates_Previous_Output_Even_When_New_Download_Is_Incomplete() {
         let stub = Path.Combine(directory, "book")
         File.WriteAllBytes(stub + ".aaxc", [20]uint8)
@@ -304,17 +336,35 @@ class CoreRegressionTests : IDisposable {
                 .Invoke(target, args) ?? System.Object()
     }
 
+    private class CancelAtEndStream : MemoryStream {
+        private let cancellation CancellationTokenSource
+        init(cancellation CancellationTokenSource) : base([]uint8{1}) {
+            this.cancellation = cancellation
+        }
+        override func ReadAsync(buffer Memory[uint8], cancellationToken CancellationToken = default(CancellationToken)) ValueTask[int32] {
+            let count = base.Read(buffer.Span)
+            if count == 0 { cancellation.Cancel() }
+            return ValueTask[int32](count)
+        }
+        override func ReadAsync(buffer[]uint8, offset int32, count int32, cancellationToken CancellationToken) Task[int32] {
+            let read = base.Read(buffer, offset, count)
+            if read == 0 { cancellation.Cancel() }
+            return Task.FromResult(read)
+        }
+    }
+
     private class RecordingHandler : HttpMessageHandler {
         init() { Bytes = []uint8{1} }
         prop Bytes[]uint8
         prop Fail bool
         prop Url string?
         prop Authorization string?
+        prop Content HttpContent?
         protected override func SendAsync(request HttpRequestMessage, cancellationToken CancellationToken) Task[HttpResponseMessage] {
             if Fail { throw HttpRequestException("test transport failure") }
             Url = request.RequestUri!!.ToString()
             Authorization = request.Headers.Authorization?.ToString()
-            return Task.FromResult(HttpResponseMessage(HttpStatusCode.OK){Content = ByteArrayContent(Bytes)})
+            return Task.FromResult(HttpResponseMessage(HttpStatusCode.OK){Content = Content ?? ByteArrayContent(Bytes)})
         }
     }
 }

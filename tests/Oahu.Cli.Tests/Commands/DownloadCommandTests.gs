@@ -7,6 +7,7 @@ import Oahu.Cli.App.Jobs
 import Oahu.Cli.App.Library
 import Oahu.Cli.App.Models
 import Oahu.Cli.Commands
+import Oahu.Cli.Output
 import System
 import System.Collections.Generic
 import System.IO
@@ -128,6 +129,19 @@ class DownloadCommandTests : IDisposable {
         func GetSnapshot(jobId string) JobSnapshot? -> inner.GetSnapshot(jobId)
         func ListActive() IReadOnlyList[JobSnapshot] -> inner.ListActive()
         func ReadHistoryAsync(cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[JobRecord] -> inner.ReadHistoryAsync(cancellationToken)
+    }
+
+    @Fact
+    async func Caller_Cancellation_Propagates_After_Observer_Cleanup() {
+        await using let scheduler = JobScheduler(FakeJobExecutor(TimeSpan.FromMinutes(1)))
+        using let cancellation = CancellationTokenSource(TimeSpan.FromMilliseconds(100))
+        let requests = []JobRequest{JobRequest{Asin: "cancel", Title: "Cancel"}}
+        using let output = StringWriter()
+        let writer = JsonOutputWriter(OutputContext(OutputFormat.Json, false, false, false), output)
+        await Assert.ThrowsAnyAsync[OperationCanceledException](async () -> {
+            await DownloadCommand.RunAsync(scheduler, requests, writer, cancellation.Token).WaitAsync(TimeSpan.FromSeconds(5))
+        })
+        Assert.DoesNotContain("\"resource\": \"download-summary\"", output.ToString())
     }
 
     @Fact

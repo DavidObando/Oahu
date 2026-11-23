@@ -288,7 +288,7 @@ class JobScheduler : IJobService, IAsyncDisposable {
                 ch.Writer.TryComplete()
             }
         }
-        if phaseChanged {
+        if phaseChanged || IsTerminal(update.Phase) {
             PersistActiveJobs()
         }
         await Task.CompletedTask.ConfigureAwait(false)
