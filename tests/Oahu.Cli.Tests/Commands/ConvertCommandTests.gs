@@ -93,6 +93,23 @@ class ConvertCommandTests : IDisposable {
             Requests = List[JobRequest]()
         }
 
+        @Fact
+        async func Stdin_Asins_Are_Expanded_And_Deduplicated() {
+            let executor = CapturingExecutor()
+            await using let scheduler = JobScheduler(executor)
+            CliServiceFactory.JobServiceFactory = () -> scheduler
+            let original = Console.In
+            try {
+                Console.SetIn(StringReader("B000000001\nB000000002\nB000000001\n"))
+                let (exit, _, _) = await RunAsync("convert", "-", "--json")
+                Assert.Equal(0, exit)
+                Assert.Equal(2, executor.Requests.Count)
+                Assert.DoesNotContain(executor.Requests, (r JobRequest) -> r.Asin == "-")
+            } finally {
+                Console.SetIn(original)
+            }
+        }
+
         prop Requests List[JobRequest] {
             get;
             init;

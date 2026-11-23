@@ -157,6 +157,7 @@ class DownloadCommand {
                         ct
                     ).ConfigureAwait(false)
                     let requests = resolved.Requests
+                    let writer = OutputWriterFactory.Create(ConfigCommand.BuildContext(globals))
                     if requests.Count == 0 {
                         if resolved.SkippedUnavailable > 0 {
                             // The per-title reasons have already gone to stderr.
@@ -165,7 +166,14 @@ class DownloadCommand {
                             )
                             return ExitCodes.GenericFailure
                         }
-                        if fromQueue {
+                        if allNew {
+                            if globals.DryRun {
+                                EmitDryRunPlan(writer, requests)
+                            } else {
+                                WriteSummary(writer, requests, Dictionary[string, JobUpdate]())
+                            }
+                            return ExitCodes.Success
+                        } else if fromQueue {
                             CliEnvironment.Error.WriteLine("oahu-cli: queue is empty.")
                         } else {
                             CliEnvironment.Error.WriteLine(
@@ -174,7 +182,6 @@ class DownloadCommand {
                         }
                         return ExitCodes.UsageError
                     }
-                    let writer = OutputWriterFactory.Create(ConfigCommand.BuildContext(globals))
                     if globals.DryRun {
                         EmitDryRunPlan(writer, requests)
                         return ExitCodes.Success
@@ -248,7 +255,7 @@ class DownloadCommand {
                         EmitUpdate(writer, u, asinsById, titlesById)
                         lastPhase[u.JobId] = u.Phase
                         if IsTerminal(u.Phase) {
-                            terminals[u.JobId] = u
+                            terminals.TryAdd(u.JobId, u)
                             if terminals.Count >= ids.Count {
                                 break
                             }
@@ -261,20 +268,25 @@ class DownloadCommand {
                 try {
                     await jobService.SubmitAsync(req, cancellationToken).ConfigureAwait(false)
                 } catch (ex Exception) {
-                    // Submission failure (e.g. scheduler disposed, channel closed). Cancel the
-                    // observer so we don't hang waiting for terminals that will never arrive,
-                    // and surface the failure for this request.
                     terminals[req.Id] = JobUpdate{JobId: req.Id, Phase: JobPhase.Failed, Message: ex.Message}
-                    observerCts.Cancel()
                 }
             }
+            if terminals.Count >= ids.Count {
+                observerCts.Cancel()
+            }
             try {
-                await observerTask.ConfigureAwait(false)
+                while !observerTask.IsCompleted && terminals.Count < ids.Count {
+                    await Task.WhenAny(observerTask, Task.Delay(50, cancellationToken)).ConfigureAwait(false)
+                    cancellationToken.ThrowIfCancellationRequested()
+                }
             } catch (OperationCanceledException) {
                 // expected if we cancelled above
 
             } finally {
                 observerCts.Cancel()
+                try {
+                    await observerTask.ConfigureAwait(false)
+                } catch (OperationCanceledException) { }
             }
             WriteSummary(writer, requests, terminals)
             let anyFailed = terminals.Values.Any((u JobUpdate) -> u.Phase == JobPhase.Failed)
@@ -621,7 +633,7 @@ class DownloadCommand {
             OutputDir: outputDir
         }
 
-        private func ExpandStdin(inputs[]string) sequence[string] {
+        internal func ExpandStdin(inputs[]string) sequence[string] {
             for input in inputs {
                 if input == "-" {
                     // Read entire stdin synchronously up-front. We are inside a synchronous

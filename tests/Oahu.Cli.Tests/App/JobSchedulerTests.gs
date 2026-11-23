@@ -51,6 +51,120 @@ class JobSchedulerTests : IDisposable {
     }
 
     @Fact
+    async func Slow_Observer_Retains_Terminals_After_Progress_Flood() {
+        await using let scheduler = JobScheduler(FloodExecutor())
+        using let timeout = CancellationTokenSource(TimeSpan.FromSeconds(5))
+        let stream = scheduler.ObserveAll(timeout.Token)
+        let first = Req("first")
+        let second = Req("second")
+        await scheduler.SubmitAsync(first)
+        await scheduler.SubmitAsync(second)
+        while scheduler.ListActive().Count > 0 {
+            await Task.Delay(10, timeout.Token)
+        }
+        let completed = HashSet[string]()
+        await for update in stream {
+            if update.Phase == JobPhase.Completed {
+                completed.Add(update.JobId)
+                if completed.Count == 2 { break }
+            }
+        }
+        Assert.Contains(first.Id, completed)
+        Assert.Contains(second.Id, completed)
+    }
+
+    @Fact
+    async func Per_Job_Observer_Completes_After_Terminal() {
+        await using let scheduler = JobScheduler(FakeJobExecutor())
+        using let timeout = CancellationTokenSource(TimeSpan.FromSeconds(5))
+        let request = Req()
+        let stream = scheduler.ObserveAsync(request.Id, timeout.Token)
+        await scheduler.SubmitAsync(request)
+        let phases = List[JobPhase]()
+        await for update in stream {
+            phases.Add(update.Phase)
+        }
+        Assert.Equal(JobPhase.Completed, phases[^1])
+    }
+
+    @Fact
+    async func Dispose_Cancels_Running_And_Queued_Jobs_And_Clears_Recovery_State() {
+        let state = tempHistory + ".active"
+        let store = JsonlHistoryStore(tempHistory)
+        let scheduler = JobScheduler(
+            FakeJobExecutor(delayPerPhase: TimeSpan.FromMinutes(1)), store,
+            JobSchedulerOptions{ActiveJobsStatePath: state}
+        )
+        try {
+            await scheduler.SubmitAsync(Req("running"))
+            await scheduler.SubmitAsync(Req("queued"))
+            await scheduler.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5))
+            let records = List[JobRecord]()
+            await for record in store.ReadAllAsync() { records.Add(record) }
+            Assert.Equal(2, records.Count)
+            Assert.All(records, (r JobRecord) -> Assert.Equal(JobPhase.Canceled, r.TerminalPhase))
+            Assert.Equal("[]", File.ReadAllText(state).Trim())
+        } finally {
+            await scheduler.DisposeAsync()
+            File.Delete(state)
+        }
+    }
+
+    @Fact
+    async func Completed_Job_Is_Not_Recovered_As_Interrupted_On_Restart() {
+        let state = tempHistory + ".active"
+        let store = JsonlHistoryStore(tempHistory)
+        try {
+            {
+                await using let scheduler = JobScheduler(
+                    FakeJobExecutor(), store, JobSchedulerOptions{ActiveJobsStatePath: state}
+                )
+                await scheduler.SubmitAsync(Req())
+                await WaitForFile(tempHistory, 1)
+            }
+            {
+                await using let restarted = JobScheduler(
+                    FakeJobExecutor(), store, JobSchedulerOptions{ActiveJobsStatePath: state}
+                )
+            }
+            let records = List[JobRecord]()
+            await for record in store.ReadAllAsync() { records.Add(record) }
+            Assert.Single(records)
+            Assert.Equal(JobPhase.Completed, records[0].TerminalPhase)
+        } finally {
+            File.Delete(state)
+        }
+    }
+
+    @Fact
+    async func History_Delete_Does_Not_Lose_Concurrent_Appends() {
+        let store = JsonlHistoryStore(tempHistory)
+        for var i = 0; i < 200; i++ {
+            store.Append(JobRecord{Id: "seed-$i", Asin: "seed-$i", Title: "Seed", TerminalPhase: JobPhase.Completed})
+        }
+        let delete = Task.Run(async () -> await store.DeleteAsync(keep: 10000))
+        let append = Task.Run(() -> {
+            for var i = 0; i < 40; i++ {
+                store.Append(JobRecord{Id: "added-$i", Asin: "added-$i", Title: "Added", TerminalPhase: JobPhase.Completed})
+            }
+        })
+        await Task.WhenAll(delete, append)
+        let records = List[JobRecord]()
+        await for record in store.ReadAllAsync() { records.Add(record) }
+        Assert.Equal(240, records.Count)
+    }
+
+    private class FloodExecutor : IJobExecutor {
+        async func ExecuteAsync(request JobRequest, @EnumeratorCancellation cancellationToken CancellationToken) IAsyncEnumerable[JobUpdate] {
+            for var i = 0; i < 1000; i++ {
+                yield JobUpdate{JobId: request.Id, Phase: JobPhase.Downloading, Progress: float64(i) / 1000.0}
+            }
+            await Task.Yield()
+            yield JobUpdate{JobId: request.Id, Phase: JobPhase.Completed}
+        }
+    }
+
+    @Fact
     async func History_Receives_Terminal_Records() {
         let history = JsonlHistoryStore(tempHistory)
         {

@@ -54,6 +54,7 @@ class ServeCommand {
             cmd.Options.Add(unattendedOpt)
             cmd.SetAction(
                 async (parse ParseResult, ct CancellationToken) -> {
+                    let globals = resolveGlobals(parse)
                     var enableStdio = parse.GetValue(mcpOpt)
                     var enableHttp = parse.GetValue(httpOpt)
                     let listenRaw = parse.GetValue(listenOpt)
@@ -95,7 +96,7 @@ class ServeCommand {
                         Library: CliServiceFactory.LibraryServiceFactory,
                         Queue: CliServiceFactory.QueueServiceFactory,
                         Job: CliServiceFactory.JobServiceFactory,
-                        Config: () -> JsonConfigService(CliPaths.ConfigFile),
+                        Config: () -> JsonConfigService(ConfigCommand.ResolveConfigFile(globals)),
                         Doctor: () -> DoctorService()
                     }
                     return await ServerHost.RunAsync(options, factories, ct).ConfigureAwait(false)

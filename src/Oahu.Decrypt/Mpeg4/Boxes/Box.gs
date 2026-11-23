@@ -35,7 +35,7 @@ open class Box : IBox {
         init;
     }
 
-    open prop RenderSize int64 -> int64(8) + Children.Sum((b IBox) -> b.RenderSize)
+    open prop RenderSize int64 -> int64(Header.HeaderSize) + Children.Sum((b IBox) -> b.RenderSize)
     protected prop Disposed bool -> disposed != 0
 
     func GetChild[T IBox]() T? {

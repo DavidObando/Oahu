@@ -141,15 +141,8 @@ class ServerHost {
                 builder.Logging.AddSimpleConsole()
             }
             if useUnix {
-                // Remove any stale socket file from a previous run; the server owns
-                // this path while it holds the user-data lock.
-                try {
-                    if File.Exists(options.UnixSocketPath!!) {
-                        File.Delete(options.UnixSocketPath!!)
-                    }
-                } catch (IOException) {
-                    // Best-effort: a stuck socket will surface as a Kestrel bind error below.
-
+                if Path.Exists(options.UnixSocketPath!!) {
+                    throw IOException("Unix socket path already exists; refusing to remove it: ${options.UnixSocketPath}")
                 }
                 builder.WebHost.ConfigureKestrel(
                     (kestrel KestrelServerOptions) -> {
@@ -157,6 +150,11 @@ class ServerHost {
                     }
                 )
             }
+            builder.WebHost.ConfigureKestrel(
+                (kestrel KestrelServerOptions) -> {
+                    kestrel.Limits.MaxRequestBodySize = 256L * 1024L
+                }
+            )
             RegisterShared(builder.Services, options, factories, ServerTransport.Http)
             let app = builder.Build()
             if useUnix {

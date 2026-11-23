@@ -49,7 +49,7 @@ class ConvertCommand {
             cmd.SetAction(
                 async (parse ParseResult, ct CancellationToken) -> {
                     let globals = resolveGlobals(parse)
-                    let asins = parse.GetValue(asinArg) ?? Array.Empty[string]()
+                    let asins = DownloadCommand.ExpandStdin(parse.GetValue(asinArg) ?? Array.Empty[string]()).ToArray()
                     let outputDir = parse.GetValue(outputDirOpt)
                     let profile = parse.GetValue(profileOpt)
                     let concurrency = parse.GetValue(concurrencyOpt)

@@ -51,6 +51,21 @@ class QueueScreenTests : IDisposable {
         Assert.Equal([]string{"A1", "A2"}, s.Entries.Select((e QueueEntry) -> e.Asin).ToArray())
     }
 
+    @Theory
+    @InlineData(ConsoleKey.DownArrow)
+    @InlineData(ConsoleKey.J)
+    @InlineData(ConsoleKey.PageDown)
+    async func Empty_Queue_Navigation_Does_Not_Poison_Later_Selection(key ConsoleKey) {
+        let queue = InMemoryQueueService()
+        let screen = NewScreen(queue)
+        screen.HandleKey(Key('j', key))
+        Assert.Equal(0, screen.Cursor)
+        await queue.AddAsync(E("one"))
+        await WaitForLoad(screen, NullNavigator())
+        Assert.Equal(0, screen.Cursor)
+        Assert.NotNull(screen.Render(80, 20))
+    }
+
     @Fact
     async func ShiftDown_Moves_Cursor_Entry_Down() {
         let q = InMemoryQueueService()

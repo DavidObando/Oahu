@@ -13,6 +13,7 @@ import System.Runtime.CompilerServices
 import System.Threading
 import System.Threading.Channels
 import System.Threading.Tasks
+import SystemObject = System.Object
 
 class JobSchedulerOptions {
     init() {
@@ -48,7 +49,8 @@ class JobSchedulerOptions {
 /// Bounded-Channel-backed job scheduler. (cref:IJobService.SubmitAsync) awaits
 /// when the worker buffer is full (so backpressure is invisible to the caller — never
 /// throws "queue full"). Per-job updates are fanned out to any number of observers
-/// via per-subscriber bounded channels; slow observers cannot stall the workers.
+/// via per-subscriber channels with a bounded progress backlog and a reliable
+/// terminal tail; slow observers cannot stall the workers.
 class JobScheduler : IJobService, IAsyncDisposable {
     private let executor IJobExecutor
     private let history JsonlHistoryStore?
@@ -63,6 +65,7 @@ class JobScheduler : IJobService, IAsyncDisposable {
     ]()
     private let jobs ConcurrentDictionary[string, JobLifecycle] = ConcurrentDictionary[string, JobLifecycle]()
     private var disposed int32
+    private let persistenceLock object = SystemObject()
 
     init(
         executor IJobExecutor,
@@ -93,7 +96,8 @@ class JobScheduler : IJobService, IAsyncDisposable {
 
     async func SubmitAsync(request JobRequest, cancellationToken CancellationToken = default(CancellationToken)) {
         ArgumentNullException.ThrowIfNull(request)
-        let lifecycle = JobLifecycle(request, DateTimeOffset.UtcNow)
+        ObjectDisposedException.ThrowIf(disposed != 0, this)
+        let lifecycle = JobLifecycle(request, DateTimeOffset.UtcNow, shutdownCts.Token)
         if !jobs.TryAdd(request.Id, lifecycle) {
             throw InvalidOperationException("Job ${request.Id} is already known to the scheduler.")
         }
@@ -124,7 +128,7 @@ class JobScheduler : IJobService, IAsyncDisposable {
 
     func ObserveAll(cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[JobUpdate] {
         let (ch, key) = RegisterSubscriber()
-        return Drain(ch, key, (_ JobUpdate) -> true, cancellationToken)
+        return Drain(ch, key, (_ JobUpdate) -> true, false, cancellationToken)
     }
 
     func ObserveAsync(jobId string, cancellationToken CancellationToken = default(CancellationToken)) IAsyncEnumerable[
@@ -132,13 +136,17 @@ class JobScheduler : IJobService, IAsyncDisposable {
     ] {
         ArgumentException.ThrowIfNullOrWhiteSpace(jobId)
         let (ch, key) = RegisterSubscriber()
-        return Drain(ch, key, (u JobUpdate) -> u.JobId == jobId, cancellationToken)
+        return Drain(ch, key, (u JobUpdate) -> u.JobId == jobId, true, cancellationToken)
     }
 
     func Cancel(jobId string) bool {
         if jobs.TryGetValue(jobId, out var lc) {
-            lc.Cts.Cancel()
-            return true
+            try {
+                lc.Cts.Cancel()
+                return true
+            } catch (ObjectDisposedException) {
+                return false
+            }
         }
         return false
     }
@@ -178,6 +186,10 @@ class JobScheduler : IJobService, IAsyncDisposable {
             // expected on shutdown
 
         }
+        while work.Reader.TryRead(out var pending) {
+            await RunOneAsync(pending).ConfigureAwait(false)
+        }
+        PersistActiveJobs()
         for sub in subscribers.Values {
             sub.Writer.TryComplete()
         }
@@ -210,6 +222,7 @@ class JobScheduler : IJobService, IAsyncDisposable {
         var terminal = JobPhase.Completed
         var error string? = nil
         try {
+            ct.ThrowIfCancellationRequested()
             await for update in executor.ExecuteAsync(request, ct).ConfigureAwait(false) {
                 await Publish(update).ConfigureAwait(false)
                 if IsTerminal(update.Phase) {
@@ -250,30 +263,34 @@ class JobScheduler : IJobService, IAsyncDisposable {
                     Quality: request.Quality
                 }
             )
+            PersistActiveJobs()
         }
     }
 
     private async func Publish(update JobUpdate) ValueTask {
         // Update the per-job lifecycle so GetSnapshot/ListActive return fresh state.
+        var phaseChanged = false
         if jobs.TryGetValue(update.JobId, out var lc) {
+            phaseChanged = lc.LastPhase != update.Phase || update.Phase == JobPhase.Queued
             lc.LastPhase = update.Phase
             lc.LastProgress = update.Progress ?? lc.LastProgress
             lc.LastMessage = update.Message ?? lc.LastMessage
             lc.LastUpdatedAt = update.Timestamp
         }
         for (key, ch) in subscribers {
-            // Per-subscriber backpressure: drop oldest rather than stall the worker.
-            // (Subscribers wanting reliable delivery must keep up with their channel.)
-            // The channel is configured DropOldest, so TryWrite should always succeed
-            // unless the writer was already completed. If it failed, the subscriber is
-            // gone (its iterator finished/disposed) — drop it from the map and move on.
-            // We never block the worker on a slow/dead observer.
+            // Progress may be coalesced, but terminal updates must never be evicted.
+            // The reliable tail can grow with completed jobs, not progress ticks.
+            if !IsTerminal(update.Phase) && ch.Reader.Count >= 256 {
+                continue
+            }
             if !ch.Writer.TryWrite(update) {
                 subscribers.TryRemove(key, out _)
                 ch.Writer.TryComplete()
             }
         }
-        PersistActiveJobs()
+        if phaseChanged {
+            PersistActiveJobs()
+        }
         await Task.CompletedTask.ConfigureAwait(false)
     }
 
@@ -281,10 +298,9 @@ class JobScheduler : IJobService, IAsyncDisposable {
         // Register synchronously at call time (NOT lazily inside the async
         // iterator) so that callers which subscribe-then-submit are
         // guaranteed to see every update produced after the call returns.
-        let ch = Channel.CreateBounded[JobUpdate](
-            BoundedChannelOptions(256){
-                FullMode = BoundedChannelFullMode.DropOldest,
-                SingleReader = true,
+        let ch = Channel.CreateUnbounded[JobUpdate](
+            UnboundedChannelOptions(){
+                SingleReader = false,
                 SingleWriter = false
             }
         )
@@ -297,12 +313,16 @@ class JobScheduler : IJobService, IAsyncDisposable {
         ch Channel[JobUpdate],
         key Guid,
         filter(JobUpdate) -> bool,
+        stopAtTerminal bool,
         @EnumeratorCancellation cancellationToken CancellationToken
     ) IAsyncEnumerable[JobUpdate] {
         try {
             await for u in ch.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false) {
                 if filter(u) {
                     yield u
+                    if stopAtTerminal && IsTerminal(u.Phase) {
+                        yield break
+                    }
                 }
             }
         } finally {
@@ -351,6 +371,12 @@ class JobScheduler : IJobService, IAsyncDisposable {
     }
 
     private func PersistActiveJobs() {
+        lock persistenceLock {
+            PersistActiveJobsLocked()
+        }
+    }
+
+    private func PersistActiveJobsLocked() {
         let path = options.ActiveJobsStatePath
         if string.IsNullOrEmpty(path) {
             return
@@ -407,8 +433,8 @@ class JobScheduler : IJobService, IAsyncDisposable {
     }
 
     private class JobLifecycle {
-        init(request JobRequest, startedAt DateTimeOffset) {
-            Cts = CancellationTokenSource()
+        init(request JobRequest, startedAt DateTimeOffset, shutdownToken CancellationToken) {
+            Cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownToken)
             Request = request
             StartedAt = startedAt
             LastUpdatedAt = startedAt

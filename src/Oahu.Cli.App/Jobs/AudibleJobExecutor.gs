@@ -175,15 +175,9 @@ class AudibleJobExecutor : IJobExecutor {
                 // directory: the decrypted artifact already has .m4b extension
                 // (M4B-brand MP4) per Oahu.Core.Properties.Resources.
                 if request.ExportToM4b {
-                    try {
-                        let src = book.Conversion!!.DownloadFileName + ".m4b"
-                        if File.Exists(src) {
-                            let dest = Path.Combine(capturedExportDir, Path.GetFileName(src))
-                            File.Copy(src, dest, overwrite: true)
-                        }
-                    } catch (ex Exception) {
-                        logger.LogWarning(ex, "m4b export copy failed for {Asin}.", request.Asin)
-                    }
+                    let src = book.Conversion!!.DownloadFileName + ".m4b"
+                    let dest = Path.Combine(capturedExportDir, Path.GetFileName(src))
+                    File.Copy(src, dest, overwrite: true)
                 }
             }
         }
@@ -212,14 +206,17 @@ class AudibleJobExecutor : IJobExecutor {
             linkedToken
         )
         var seenTerminal = false
+        var terminalUpdate JobUpdate? = nil
         var runError Exception? = nil
         var canceled = false
         try {
             while await channel.Reader.WaitToReadAsync(linkedToken).ConfigureAwait(false) {
                 while channel.Reader.TryRead(out var update) {
-                    yield update
                     if (update.Phase is JobPhase.Completed or JobPhase.Failed or JobPhase.Canceled) {
                         seenTerminal = true
+                        terminalUpdate = update
+                    } else {
+                        yield update
                     }
                 }
             }
@@ -248,6 +245,10 @@ class AudibleJobExecutor : IJobExecutor {
         }
         if runError != nil {
             yield JobUpdate{JobId: request.Id, Phase: JobPhase.Failed, Message: runError.Message}
+            yield break
+        }
+        if terminalUpdate != nil {
+            yield terminalUpdate
             yield break
         }
         if !seenTerminal {

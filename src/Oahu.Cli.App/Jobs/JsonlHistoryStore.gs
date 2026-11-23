@@ -12,13 +12,12 @@ import System.Runtime.CompilerServices
 import System.Text.Json
 import System.Threading
 import System.Threading.Tasks
-import SystemObject = System.Object
 
 /// Append-only JSONL history store. Records are written one-per-line so a partial
 /// record on crash can be skipped without corrupting the rest of the file.
 class JsonlHistoryStore {
     private let path string
-    private let writeLock object = SystemObject()
+    private let writeLock SemaphoreSlim = SemaphoreSlim(1, 1)
     private let options JsonSerializerOptions
     private let logger ILogger
 
@@ -32,7 +31,8 @@ class JsonlHistoryStore {
 
     func Append(record JobRecord) {
         ArgumentNullException.ThrowIfNull(record)
-        lock writeLock {
+        writeLock.Wait()
+        try {
             let dir = Path.GetDirectoryName(path)
             if !string.IsNullOrEmpty(dir) {
                 Directory.CreateDirectory(dir)
@@ -42,6 +42,8 @@ class JsonlHistoryStore {
             writer.WriteLine(JsonSerializer.Serialize(record, options))
             writer.Flush()
             stream.Flush(flushToDisk: true)
+        } finally {
+            writeLock.Release()
         }
     }
 
@@ -98,35 +100,36 @@ class JsonlHistoryStore {
         keep int32? = nil,
         cancellationToken CancellationToken = default(CancellationToken)
     ) int32 {
-        if !File.Exists(path) {
-            return 0
-        }
-        let asinSet HashSet[string]? = if asins != nil && asins.Count > 0 {
-            HashSet[string](asins, StringComparer.OrdinalIgnoreCase)
-        } else {
-            default(HashSet[string]?)
-        }
-        let all = List[JobRecord]()
-        await for rec in ReadAllAsync(cancellationToken).ConfigureAwait(false) {
-            all.Add(rec)
-        }
-        var kept = List[JobRecord](all.Count)
-        for rec in all {
-            let matchesAsin = asinSet != nil && asinSet.Contains(rec.Asin)
-            let matchesBefore = before is {} b && rec.CompletedAt < b
-            if matchesAsin || matchesBefore {
-                continue
+        await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false)
+        try {
+            if !File.Exists(path) {
+                return 0
             }
-            kept.Add(rec)
-        }
-        if keep is {} n && kept.Count > n {
-            kept = kept
-                .OrderByDescending((r JobRecord) -> r.CompletedAt)
-                .Take(n)
-                .OrderBy((r JobRecord) -> r.CompletedAt)
-                .ToList()
-        }
-        lock writeLock {
+            let asinSet HashSet[string]? = if asins != nil && asins.Count > 0 {
+                HashSet[string](asins, StringComparer.OrdinalIgnoreCase)
+            } else {
+                default(HashSet[string]?)
+            }
+            let all = List[JobRecord]()
+            await for rec in ReadAllAsync(cancellationToken).ConfigureAwait(false) {
+                all.Add(rec)
+            }
+            var kept = List[JobRecord](all.Count)
+            for rec in all {
+                let matchesAsin = asinSet != nil && asinSet.Contains(rec.Asin)
+                let matchesBefore = before is {} b && rec.CompletedAt < b
+                if matchesAsin || matchesBefore {
+                    continue
+                }
+                kept.Add(rec)
+            }
+            if keep is {} n && kept.Count > n {
+                kept = kept
+                    .OrderByDescending((r JobRecord) -> r.CompletedAt)
+                    .Take(n)
+                    .OrderBy((r JobRecord) -> r.CompletedAt)
+                    .ToList()
+            }
             let dir = Path.GetDirectoryName(path)
             if !string.IsNullOrEmpty(dir) {
                 Directory.CreateDirectory(dir)
@@ -144,7 +147,9 @@ class JsonlHistoryStore {
                 }
             }
             File.Move(tmp, path, overwrite: true)
+            return all.Count - kept.Count
+        } finally {
+            writeLock.Release()
         }
-        return all.Count - kept.Count
     }
 }

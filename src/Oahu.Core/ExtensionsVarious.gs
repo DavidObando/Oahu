@@ -431,8 +431,8 @@ internal func (other IConversion?) Copy() Conversion? {
     }
     return Conversion(other.Id){
         State = other.State,
-        DownloadFileName = other.DownloadFileName!!,
-        DestDirectory = other.DestDirectory!!
+        DownloadFileName = other.DownloadFileName,
+        DestDirectory = other.DestDirectory
     }
 }
 

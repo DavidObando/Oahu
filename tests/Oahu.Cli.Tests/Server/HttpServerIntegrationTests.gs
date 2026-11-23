@@ -6,6 +6,7 @@ import System.Linq
 import System.Net.Http
 import System.Net.Http.Headers
 import System.Threading.Tasks
+import System.Threading
 import Microsoft.AspNetCore.Builder
 import Microsoft.AspNetCore.Hosting.Server
 import Microsoft.AspNetCore.Hosting.Server.Features
@@ -109,6 +110,58 @@ class HttpServerIntegrationTests {
             )
         } finally {
             File.Delete(tokenPath)
+        }
+    }
+
+    @Fact
+    async func Chunked_Post_Cannot_Bypass_The_Body_Limit() {
+        let (options, factories, token, tokenPath) = Build()
+        let app = ServerHost.BuildHttpApp(options, factories)
+        await app.StartAsync()
+        try {
+            using let client = HttpClient{BaseAddress: Uri(ResolveBaseUrl(app))}
+            client.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue("Bearer", token)
+            using let body = UnknownLengthContent("{\"asins\":[\"" + System.String('x', 300000) + "\"]}")
+            using let response = await client.PostAsync("/v1/queue", body)
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode)
+            Assert.Empty(await factories.Queue().ListAsync())
+        } finally {
+            await app.StopAsync()
+            await app.DisposeAsync()
+            await cast[IAsyncDisposable](factories.Job()).DisposeAsync()
+            File.Delete(tokenPath)
+        }
+    }
+
+    @Fact
+    func Unix_Listener_Does_Not_Delete_An_Existing_File() {
+        if OperatingSystem.IsWindows() { return }
+        let (options, factories, _, tokenPath) = Build()
+        let path = Path.Combine(Path.GetTempPath(), "oahu-socket-" + Guid.NewGuid().ToString("N"))
+        try {
+            File.WriteAllText(path, "keep this file")
+            let unix = ServerOptions{EnableHttp: true, UnixSocketPath: path, TokenPath: options.TokenPath}
+            Assert.Throws[IOException](() -> ServerHost.BuildHttpApp(unix, factories))
+            Assert.Equal("keep this file", File.ReadAllText(path))
+        } finally {
+            cast[IAsyncDisposable](factories.Job()).DisposeAsync().AsTask().GetAwaiter().GetResult()
+            File.Delete(path)
+            File.Delete(tokenPath)
+        }
+    }
+
+    private class UnknownLengthContent : HttpContent {
+        private let bytes[]uint8
+        init(text string) {
+            bytes = Encoding.UTF8.GetBytes(text)
+            this.Headers.ContentType = MediaTypeHeaderValue("application/json")
+        }
+        protected override func TryComputeLength(out length int64) bool {
+            length = 0L
+            return false
+        }
+        protected override async func SerializeToStreamAsync(stream Stream, context TransportContext?) {
+            await stream.WriteAsync(bytes)
         }
     }
 

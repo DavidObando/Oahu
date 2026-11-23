@@ -108,7 +108,7 @@ internal class WindowsConsoleInput {
                 }
                 let wait = WaitForSingleObject(stdInHandle, remaining)
                 if wait != WaitObject0 {
-                    timedOut = true
+                    timedOut = wait == 258u
                     return nil
                 }
                 if !ReadConsoleInput(stdInHandle, out var rec, 1, out var read) || read == 0 {

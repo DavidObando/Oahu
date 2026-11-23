@@ -119,8 +119,9 @@ internal class AudibleApi : IAudibleApi {
     async func GetUserProfileAsync() string? {
         using let logGuard = LogGuard(3, this)
         await RefreshTokenAsyncFunc()
-        let url = "/user/profile?access_token=${Profile!!.Token.AccessToken}"
-        let request = HttpRequestMessage(HttpMethod.Get, url)
+        let url = "/user/profile"
+        using let request = HttpRequestMessage(HttpMethod.Get, url)
+        request.Headers.Authorization = System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Profile!!.Token.AccessToken)
         return await SendForStringAsync(request, HttpClient)
     }
 
@@ -209,28 +210,30 @@ internal class AudibleApi : IAudibleApi {
         using let logGuard = LogGuard(3, this, () -> conversion.ToString())
         try {
             if conversion.DownloadUrl == nil {
+                conversion.State = EConversionState.DownloadError
                 return false
             }
             let requestUri = Uri(conversion.DownloadUrl!!)
-            let request = HttpRequestMessage(HttpMethod.Get, requestUri)
+            using let request = HttpRequestMessage(HttpMethod.Get, requestUri)
             request.Headers.UserAgent.ParseAdd(UserAgent)
-            let response = await HttpClientAudible!!.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
+            using let response = await HttpClientAudible!!.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancToken)
             response.EnsureSuccessStatusCode()
             let destfilename = (conversion.DownloadFileName + R.EncryptedFileExt).AsUncIfLong()
             let sourceFileSize = conversion.BookCommon!!.FileSizeBytes ?? int64(0)
-            if sourceFileSize == int64(0) {
+            if sourceFileSize <= int64(0) {
+                conversion.State = EConversionState.DownloadError
                 return false
             }
             Log(3, this, () -> "$conversion; size=${sourceFileSize / int64((1024 * 1024))} MB")
             using let networkStream = await response.Content.ReadAsStreamAsync(cancToken)
             using let rdr = BufferedStream(networkStream)
-            using let fileStream = File.OpenWrite(destfilename)
+            using let fileStream = File.Create(destfilename)
             using let wrtr = BufferedStream(fileStream)
             let accusize = await Task.Run(
                 async () -> await CopyStreams(conversion, rdr, wrtr, progressAction, cancToken),
                 cancToken
             )
-            let succ = accusize >= sourceFileSize
+            let succ = accusize == sourceFileSize
             if !succ {
                 conversion.State = EConversionState.DownloadError
             } else {
@@ -238,6 +241,9 @@ internal class AudibleApi : IAudibleApi {
             }
             Log(3, this, () -> "$conversion; download finished, succ=$succ.")
             return succ
+        } catch (exc OperationCanceledException) when cancToken.IsCancellationRequested {
+            conversion.State = EConversionState.Download
+            rethrow
         } catch (exc Exception) {
             conversion.State = EConversionState.DownloadError
             Log(1, this, () -> "$conversion; ${exc.Summary()}")
@@ -274,6 +280,7 @@ internal class AudibleApi : IAudibleApi {
         }
         try {
             if !File.Exists(inputFile) {
+                conversion.State = EConversionState.UnlockingFailed
                 return false
             }
             {
@@ -282,7 +289,7 @@ internal class AudibleApi : IAudibleApi {
                 aaxFile.SetDecryptionKey(conversion.BookCommon!!.LicenseKey!!, conversion.BookCommon!!.LicenseIv!!)
                 numChannels = aaxFile.AudioChannels
                 {
-                    using let fileStream = File.OpenWrite(outputFile)
+                    using let fileStream = File.Create(outputFile)
                     operation = aaxFile.ConvertToMp4aAsync(fileStream)
                     operation.ConversionProgressUpdate += AaxFileConversionProgressUpdate
                     await operation
@@ -423,7 +430,7 @@ internal class AudibleApi : IAudibleApi {
                 if libraryResponse == nil {
                     return nil
                 }
-                if !(libraryResponse?.Items!!.Any() ?? false) {
+                if !(libraryResponse.Items?.Any() ?? false) {
                     break
                 }
                 let pageProducts = libraryResponse.Items
@@ -510,12 +517,12 @@ internal class AudibleApi : IAudibleApi {
         jsonBody string? = nil,
         decorate((HttpRequestMessage) -> void)? = nil
     ) string? {
-        let request = MakeSignedRequest(relUrl, jsonBody, decorate)
+        using let request = MakeSignedRequest(relUrl, jsonBody, decorate)
         return await SendForStringAsync(request, HttpClientAudible)
     }
 
     private async func CallAudibleApiSignedForBytesAsync(relUrl string, jsonBody string? = nil)[]?uint8 {
-        let request = MakeSignedRequest(relUrl, jsonBody, nil)
+        using let request = MakeSignedRequest(relUrl, jsonBody, nil)
         return await SendForBytesAsync(request, HttpClientAudible)
     }
 
@@ -553,7 +560,7 @@ internal class AudibleApi : IAudibleApi {
                 httpClient!!.CookieContainer,
                 httpClient!!.BaseAddress
             )
-            let response = await httpClient!!.SendAsync(request)
+            using let response = await httpClient!!.SendAsync(request)
             await response.LogAsync(4, this, httpClient!!.CookieContainer, httpClient!!.BaseAddress)
             content = await response.Content.ReadAsStringAsync()
             if !response.IsSuccessStatusCode {
@@ -590,9 +597,10 @@ internal class AudibleApi : IAudibleApi {
             let content = await response.Content.ReadAsByteArrayAsync()
             return content
         } catch (exc Exception) {
-            let content = await response!!.Content.ReadAsStringAsync()
-            Log(1, this, () -> "${exc.Summary()}${Environment.NewLine}$content")
+            Log(1, this, () -> exc.Summary())
             return nil
+        } finally {
+            response?.Dispose()
         }
     }
 

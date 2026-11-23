@@ -16,8 +16,16 @@ class ProcessList : IDisposable, IProcessList {
     }
 
     func Add(process Process) bool {
-        Notify?.Add(process)
         lock lockable {
+            if disposed {
+                try {
+                    process.Kill()
+                } catch (InvalidOperationException) {
+                    // Already exited or never started.
+                }
+                throw ObjectDisposedException("ProcessList")
+            }
+            Notify?.Add(process)
             return processes.Add(process)
         }
     }
@@ -35,15 +43,19 @@ class ProcessList : IDisposable, IProcessList {
     }
 
     private func Dispose(disposing bool) {
-        if disposed {
-            return
-        }
-        if disposing { }
         lock lockable {
-            for p in processes {
-                p.Kill()
+            if disposed {
+                return
             }
+            disposed = true
+            for p in processes {
+                try {
+                    p.Kill()
+                } catch (InvalidOperationException) {
+                    // Already exited or never started.
+                }
+            }
+            processes.Clear()
         }
-        disposed = true
     }
 }

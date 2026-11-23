@@ -66,7 +66,8 @@ open class StszBox : FullBox, IStszBox {
         sampleSizes16 = sampleSizes
     }
 
-    open override prop RenderSize int64 -> base.RenderSize + int64(8) + int64(SampleCount * 4)
+    open override prop RenderSize int64 -> base.RenderSize + int64(8) +
+        (if SampleSize > 0 { int64(0) } else { int64(SampleCount) * int64(4) })
 
     prop SampleSize int32 {
         get;
@@ -76,7 +77,7 @@ open class StszBox : FullBox, IStszBox {
     prop SampleCount int32 -> sampleSizes32?.Count ?? sampleSizes16?.Count ?? origSampleCount
     prop MaxSize int32 -> sampleSizes32?.Max() ?? sampleSizes16?.Max() ?? SampleSize
     prop TotalSize int64 -> sampleSizes32?.Sum((s int32) -> int64(s)) ?? sampleSizes16?.Sum((s uint16) -> int64(s)) ??
-        int64(SampleSize * origSampleCount)
+        int64(SampleSize) * int64(origSampleCount)
 
     func GetSizeAtIndex(index int32) int32 -> sampleSizes32?[index] ?? sampleSizes16?[index] ?? SampleSize
 
@@ -90,11 +91,9 @@ open class StszBox : FullBox, IStszBox {
             file.WriteInt32BE(SampleSize)
             file.WriteUInt32BE(uint32(SampleCount))
             if sampleSizes32 != nil {
-                let intSpan = CollectionsMarshal.AsSpan(sampleSizes32)
-                if BitConverter.IsLittleEndian {
-                    BinaryPrimitives.ReverseEndianness(intSpan, intSpan)
+                for size in sampleSizes32!! {
+                    file.WriteInt32BE(size)
                 }
-                file.Write(MemoryMarshal.AsBytes(intSpan))
             } else if sampleSizes16 != nil {
                 for size in sampleSizes16!! {
                     file.WriteInt32BE(size)

@@ -12,6 +12,7 @@ import System.Collections.Concurrent
 import System.Collections.Generic
 import System.IO
 import System.Linq
+import System.Runtime.ExceptionServices
 import System.Threading
 import System.Threading.Tasks
 
@@ -21,7 +22,7 @@ class DownloadDecryptJob[T ICancellation] : IDisposable {
         ThreadProgressBase[ProgressMessage]
     ] = ConcurrentDictionary[(Conversion, int32), ThreadProgressBase[ProgressMessage]]()
     private let runningTasks ConcurrentBag[Task] = ConcurrentBag[Task]()
-    private let booksForConversion ConcurrentBag[Book] = ConcurrentBag[Book]()
+    private let booksForConversion ConcurrentDictionary[int32, bool] = ConcurrentDictionary[int32, bool]()
     private let throttlingSemaphore Semaphore? = Semaphore(MaxDecrypts, MaxDecrypts)
 
     init(api IAudibleApi, settings IDownloadSettings, onNewStateCallback(Conversion) -> void) {
@@ -63,16 +64,30 @@ class DownloadDecryptJob[T ICancellation] : IDisposable {
         )
         progress.Report(ProgressMessage(selectedConversions.Count(), nil, nil, nil))
         let convs = selectedConversions.ToList()
-        for conv in convs {
-            if context.CancellationToken.IsCancellationRequested {
-                return
+        var failure ExceptionDispatchInfo? = nil
+        try {
+            for conv in convs {
+                if context.CancellationToken.IsCancellationRequested {
+                    break
+                }
+                progress.Report(ProgressMessage(nil, 1, nil, nil))
+                await GetLicenseAndDownloadAsync(conv, progress, context, convertAction)
             }
-            progress.Report(ProgressMessage(nil, 1, nil, nil))
-            await GetLicenseAndDownloadAsync(conv, progress, context, convertAction)
+        } catch (exc Exception) {
+            failure = ExceptionDispatchInfo.Capture(exc)
         }
-        while runningTasks.Any((t Task) -> !t.IsCompleted) {
-            await Task.WhenAll(runningTasks.ToArray())
+        while !runningTasks.IsEmpty {
+            let batch = runningTasks.ToArray()
+            try {
+                await Task.WhenAll(batch)
+            } catch (exc Exception) {
+                failure ??= ExceptionDispatchInfo.Capture(exc)
+            }
+            if runningTasks.Count == batch.Length {
+                break
+            }
         }
+        failure?.Throw()
     }
 
     private async func GetLicenseAndDownloadAsync(
@@ -165,7 +180,7 @@ class DownloadDecryptJob[T ICancellation] : IDisposable {
         // Do we need to decrypt?
         let savedState = AudibleApi.GetPersistentState(conversion)
         // the unlocked file may already exist
-        var hasUnlockedFile = File.Exists(conversion.DownloadFileName + R.DecryptedFileExt)
+        var hasUnlockedFile = File.Exists((conversion.DownloadFileName + R.DecryptedFileExt).AsUncIfLong())
         // decrypt if file does not exist or state too low
         let doDecrypt = savedState < EConversionState.LocalUnlocked || !hasUnlockedFile
         if doDecrypt {
@@ -182,7 +197,7 @@ class DownloadDecryptJob[T ICancellation] : IDisposable {
             }
             try {
                 if succ && !Settings.KeepEncryptedFiles {
-                    File.Delete(conversion.DownloadFileName + R.EncryptedFileExt)
+                    File.Delete((conversion.DownloadFileName + R.EncryptedFileExt).AsUncIfLong())
                 }
             } catch (Exception) { }
         } else {
@@ -204,8 +219,7 @@ class DownloadDecryptJob[T ICancellation] : IDisposable {
                         }
                     }
                 }
-                if filesExist && !booksForConversion.Contains(book) {
-                    booksForConversion.Add(book)
+                if filesExist && booksForConversion.TryAdd(book.Id, true) {
                     Log(3, this, () -> "$conversion; submit for conversion.")
                     let convertTask = Task.Run(() -> convertAction(book, context, OnNewStateCallback))
                     runningTasks.Add(convertTask)

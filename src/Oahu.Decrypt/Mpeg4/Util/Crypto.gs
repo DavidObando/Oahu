@@ -1,5 +1,6 @@
 package Oahu.Decrypt.Mpeg4.Util
 
+import System
 import System.Security.Cryptography
 
 class Crypto {
@@ -14,6 +15,9 @@ class Crypto {
 
         func Sha1(blocks ...(Bytes[]uint8, Start int32, Length int32))[]uint8 {
             using let sha = SHA1.Create()
+            if blocks.Length == 0 {
+                return sha.ComputeHash(Array.Empty[uint8]())
+            }
             var i = 0
             for ; i < blocks.Length - 1; i++ {
                 sha.TransformBlock(blocks[i].Bytes, blocks[i].Start, blocks[i].Length, nil, 0)

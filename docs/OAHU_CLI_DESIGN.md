@@ -440,7 +440,7 @@ In command mode `Ctrl+C` cancels the current operation, waits up to a configurab
 | Mode | Trigger | Shape |
 |------|---------|-------|
 | Pretty | TTY, no flag | Spectre tables, colors, spinners |
-| Plain | `--plain` or non-TTY | Tab- or pipe-separated text, no escapes |
+| Plain | `--plain` or non-TTY | Tab-separated text, no ANSI escapes. Within fields, backslash, tab, CR and LF are encoded as `\\`, `\t`, `\r`, `\n`. Collections are comma-joined display values; use `--json` for lossless arrays. |
 | JSON | `--json` | Stable, documented schema (versioned via `_schemaVersion`); arrays for collections, objects for single resources |
 
 A small `IOutputWriter` interface handles all three. Every command picks a default and lets `--json`/`--plain` override.

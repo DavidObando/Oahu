@@ -129,6 +129,7 @@ class LibraryScreenTests : IDisposable {
                 MakeItem("2", "Moby Dick"),
                 MakeItem("3", "Gatsby Returns")
             }
+
         )
         screen.Reload()
         Assert.Equal(3, screen.Items.Count)
@@ -140,6 +141,31 @@ class LibraryScreenTests : IDisposable {
         screen.HandleKey(Key('\r', ConsoleKey.Enter))
         Assert.Equal(2, screen.Items.Count) // "Gatsby" matches 2
 
+    }
+
+    @Fact
+    func Select_All_Toggles_Visible_Membership_And_Preserves_Hidden_Selections() {
+        let screen = CreateScreen([]LibraryItem{
+            MakeItem("1", "Alpha"), MakeItem("2", "Alpine"),
+            MakeItem("3", "Beta"), MakeItem("4", "Betty")
+        })
+        screen.Reload()
+        screen.HandleKey(Key('/', ConsoleKey.Oem2))
+        screen.HandleKey(Key('A'))
+        screen.HandleKey(Key('l'))
+        screen.HandleKey(Key('\r', ConsoleKey.Enter))
+        screen.HandleKey(Key('a', ConsoleKey.A))
+        Assert.Equal(2, screen.SelectedCount)
+        screen.HandleKey(Key(char(27), ConsoleKey.Escape))
+        screen.HandleKey(Key('/', ConsoleKey.Oem2))
+        screen.HandleKey(Key('B'))
+        screen.HandleKey(Key('e'))
+        screen.HandleKey(Key('\r', ConsoleKey.Enter))
+        Assert.Equal(2, screen.Items.Count)
+        screen.HandleKey(Key('a', ConsoleKey.A))
+        Assert.Equal(4, screen.SelectedCount)
+        screen.HandleKey(Key('a', ConsoleKey.A))
+        Assert.Equal(2, screen.SelectedCount)
     }
 
     @Fact

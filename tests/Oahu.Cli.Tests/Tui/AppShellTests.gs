@@ -3,11 +3,15 @@ package Oahu.Cli.Tests.Tui
 import Oahu.Cli.Tui.Logging
 import Oahu.Cli.Tui.Shell
 import Oahu.Cli.Tui.Themes
+import Oahu.Cli.App.Jobs
+import Oahu.Cli.App.Models
 import Spectre.Console
 import Spectre.Console.Rendering
 import Spectre.Console.Testing
 import System
 import System.Collections.Generic
+import System.Threading
+import System.Threading.Tasks
 import Xunit
 
 @Collection("EnvVarSerial")
@@ -97,6 +101,33 @@ class AppShellTests : IDisposable {
         shell.ShowModal(TestModal())
         shell.DispatchMouse(MouseEvent(MouseEventKind.Click, 20, 0))
         Assert.Equal(0, shell.ActiveTab)
+    }
+
+    @Fact
+    func Background_Navigation_And_Modals_Are_Applied_Only_On_Shell_Dispatch() {
+        let shell = NewShell()
+        Task.Run(() -> {
+            shell.SwitchTab(1)
+            shell.ShowModal(TestModal())
+        }).GetAwaiter().GetResult()
+        Assert.Equal(0, shell.ActiveTab)
+        Assert.Null(shell.ActiveModal)
+        shell.Dispatch(Key('\0', ConsoleKey.F12))
+        Assert.Equal(1, shell.ActiveTab)
+        Assert.NotNull(shell.ActiveModal)
+    }
+
+    @Fact
+    async func CtrlC_Cancels_Active_Jobs_Instead_Of_Prompting_To_Quit() {
+        await using let scheduler = JobScheduler(FakeJobExecutor(delayPerPhase: TimeSpan.FromMinutes(1)))
+        await scheduler.SubmitAsync(JobRequest{Asin: "active", Title: "Active"})
+        let shell = AppShell(NewConsole(), AppShellOptions{JobServiceFactory: () -> scheduler})
+        Assert.Equal(ShellAction.Continue, shell.Dispatch(Key(char(3), ConsoleKey.C, ConsoleModifiers.Control)))
+        using let timeout = CancellationTokenSource(TimeSpan.FromSeconds(5))
+        while scheduler.ListActive().Count > 0 {
+            await Task.Delay(10, timeout.Token)
+        }
+        Assert.Empty(scheduler.ListActive())
     }
 
     private class ScrollRecordingScreen : ITabScreen {

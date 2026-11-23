@@ -277,8 +277,8 @@ partial class ProfileWizardViewModel : ObservableObject {
             switch result.Result {
                 case EAuthorizeResult.Succ, EAuthorizeResult.DeregistrationFailed {
                     ProfileKey = key
-                    CustomerName = (key?.AccountName)!!
-                    AccountAlias = (key?.AccountName)!!
+                    CustomerName = key?.AccountName ?? string.Empty
+                    AccountAlias = key?.AccountName ?? string.Empty
                     RegistrationSucceeded = true
                     // Advance to account alias step
                     CurrentStep = 2
@@ -335,8 +335,8 @@ partial class ProfileWizardViewModel : ObservableObject {
             switch result.Result {
                 case EAuthorizeResult.Succ, EAuthorizeResult.DeregistrationFailed {
                     ProfileKey = key
-                    CustomerName = (key?.AccountName)!!
-                    AccountAlias = (key?.AccountName)!!
+                    CustomerName = key?.AccountName ?? string.Empty
+                    AccountAlias = key?.AccountName ?? string.Empty
                     RegistrationSucceeded = true
                     CurrentStep = 2
                     UpdateStepState()
@@ -560,9 +560,9 @@ Export folder: ` + "$ExportDirectory")
     private func GetAccountAliasFromWizard(ctxt AccountAliasContext) bool {
         // Pre-populate from context; the user will edit on step 2
         if ctxt.Alias.IsNullOrWhiteSpace() {
-            ctxt.Alias = ctxt.CustomerName!!
+            ctxt.Alias = ctxt.CustomerName ?? string.Empty
         }
-        CustomerName = ctxt.CustomerName!!
+        CustomerName = ctxt.CustomerName ?? string.Empty
         AccountAlias = ctxt.Alias!!
         return true
     }

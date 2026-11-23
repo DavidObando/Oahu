@@ -56,7 +56,7 @@ internal class Authorize {
             let request = BuildRegisterRequest(profile)
             let http HttpClientEx? = HttpClient(profile)
             await request.LogAsync(4, this, http!!.DefaultRequestHeaders, http!!.CookieContainer, http!!.BaseAddress)
-            let response = await http!!.SendAsync(request)
+            using let response = await http!!.SendAsync(request)
             await response.LogAsync(4, this, http!!.CookieContainer, http!!.BaseAddress)
             response.EnsureSuccessStatusCode()
             let content = await response.Content.ReadAsStringAsync()
@@ -74,7 +74,7 @@ internal class Authorize {
             let request = BuildDeregisterRequest(profile)
             let http HttpClientEx? = HttpClient(profile)
             await request.LogAsync(4, this, http!!.DefaultRequestHeaders, http!!.CookieContainer, http!!.BaseAddress)
-            let response = await http!!.SendAsync(request)
+            using let response = await http!!.SendAsync(request)
             await response.LogAsync(4, this, http!!.CookieContainer, http!!.BaseAddress)
             response.EnsureSuccessStatusCode()
             let content = await response.Content.ReadAsStringAsync()
@@ -143,7 +143,7 @@ internal class Authorize {
         )
         EnsureHttpClient(profile)
         await ReadConfigurationAsync()
-        if onAutoRefreshOnly && (Settings?.AutoRefresh ?? false) {
+        if !onAutoRefreshOnly || (Settings?.AutoRefresh ?? false) {
             if profile is Profile prof1 && (Configuration!!.Profiles?.Contains(prof1) ?? false) {
                 await RefreshTokenCoreAsync(prof1)
             } else {
@@ -257,7 +257,7 @@ internal class Authorize {
             let request = BuildRefreshRequest(profile)
             let http HttpClientEx? = HttpClient(profile)
             await request.LogAsync(4, this, http!!.DefaultRequestHeaders, http!!.CookieContainer, http!!.BaseAddress)
-            let response = await http!!.SendAsync(request)
+            using let response = await http!!.SendAsync(request)
             await response.LogAsync(4, this, http!!.CookieContainer, http!!.BaseAddress)
             response.EnsureSuccessStatusCode()
             let content = await response.Content.ReadAsStringAsync()

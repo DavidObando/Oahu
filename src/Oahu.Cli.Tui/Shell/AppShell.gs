@@ -2,6 +2,7 @@ package Oahu.Cli.Tui.Shell
 
 import System
 import System.Collections.Generic
+import System.Collections.Concurrent
 import System.IO
 import System.Linq
 import Oahu.Cli.App.Config
@@ -86,6 +87,8 @@ class AppShell : IAppShellNavigator {
     private let tabs IReadOnlyList[ITabScreen]
     private let ctrlC CtrlCState
     private let loadSpinner PulseSpinner = PulseSpinner()
+    private let pendingActions ConcurrentQueue[Action] = ConcurrentQueue[Action]()
+    private var shellThreadId int32 = Environment.CurrentManagedThreadId
     private let graphics TerminalGraphics = TerminalGraphics()
     private var loadFrame int32
     private var activeTab int32
@@ -136,11 +139,13 @@ class AppShell : IAppShellNavigator {
 
     /// Show a modal overlay. Keys route to the modal until it completes.
     func ShowModal(modal IModal) {
+        if PostIfBackground(() -> ShowModal(modal)) { return }
         activeModal = modal ?? throw ArgumentNullException("modal")
     }
 
     /// Dismiss the active modal.
     func DismissModal() {
+        if PostIfBackground(DismissModal) { return }
         activeModal = nil
     }
 
@@ -151,6 +156,7 @@ class AppShell : IAppShellNavigator {
     /// <inheritdoc />
     /// ```
     func TrackLoad(loadTask Task) {
+        if PostIfBackground(() -> TrackLoad(loadTask)) { return }
         ArgumentNullException.ThrowIfNull(loadTask)
         screenLoadTask = loadTask
         screenLoadPending = true
@@ -161,6 +167,7 @@ class AppShell : IAppShellNavigator {
 
     /// Switch to a specific tab by index.
     func SwitchTab(index int32) {
+        if PostIfBackground(() -> SwitchTab(index)) { return }
         if index >= 0 && index < tabs.Count && index != activeTab {
             ChangeActiveTab(index)
         }
@@ -178,6 +185,7 @@ class AppShell : IAppShellNavigator {
 
     /// Show a transient toast (warning style). Cleared on next key press.
     func ShowToast(message string) {
+        if PostIfBackground(() -> ShowToast(message)) { return }
         toast = message ?? string.Empty
         toastShownAt = DateTimeOffset.UtcNow
     }
@@ -219,6 +227,7 @@ class AppShell : IAppShellNavigator {
     /// cooperative state machine fails to drain in time.
     func Run(keyReader IKeyReader) int32 {
         ArgumentNullException.ThrowIfNull(keyReader)
+        shellThreadId = Environment.CurrentManagedThreadId
         try {
             try {
                 let task Task? = tabs[activeTab].OnActivatedAsync(this)
@@ -232,6 +241,9 @@ class AppShell : IAppShellNavigator {
             }
             Render()
             while true {
+                if DrainPendingActions() {
+                    Render()
+                }
                 // Poll for broker modal requests before blocking for input.
                 PollBroker()
                 if needsTimedRefresh {
@@ -257,12 +269,9 @@ class AppShell : IAppShellNavigator {
                     Render()
                     continue
                 }
-                // When a broker is attached, poll briefly so background-arriving
-                // challenges become visible promptly rather than waiting for the
-                // next user keystroke. Without a broker, fall back to a fully
-                // blocking read so unit tests that drive a fixed key queue exit
-                // cleanly when the queue drains.
-                if activeBroker != nil {
+                // Production input polls so background navigation and broker
+                // challenges are handled even while the screen is idle.
+                if activeBroker != nil || keyReader is ConsoleKeyReader {
                     if keyReader.TryReadEvent(250, out var idleEv) {
                         let idleAction = DispatchEvent(idleEv)
                         if exitRequested {
@@ -384,6 +393,7 @@ class AppShell : IAppShellNavigator {
     /// Dispatch a single key. Public for tests; production callers use
     /// (cref:Run(IKeyReader)).
     func Dispatch(key ConsoleKeyInfo) ShellAction {
+        DrainPendingActions()
         // Toast auto-clears on any key after the window has elapsed.
         if !ctrlC.ToastActive {
             toast = nil
@@ -398,10 +408,24 @@ class AppShell : IAppShellNavigator {
                 ctrlC.Reset()
                 return ShellAction.Continue
             }
+            let jobs = options.JobServiceFactory?()
+            let activeJobs = jobs?.ListActive().Where(
+                (j Oahu.Cli.App.Models.JobSnapshot) -> j.Phase is not(
+                    Oahu.Cli.App.Models.JobPhase.Completed or Oahu.Cli.App.Models.JobPhase.Failed or Oahu.Cli.App.Models.JobPhase.Canceled
+                )
+            ).ToArray()
+            ctrlC.HasActiveJob = activeJobs?.Length > 0
             switch ctrlC.OnPress() {
-                case CtrlCAction.CancelActiveJob, CtrlCAction.CloseDialog {
-                    toast = "Press Ctrl+C again to quit · Esc to stay"
+                case CtrlCAction.CancelActiveJob {
+                    for job in activeJobs!! {
+                        jobs!!.Cancel(job.JobId)
+                    }
+                    toast = "Canceling active jobs"
                     toastShownAt = DateTimeOffset.UtcNow
+                    return ShellAction.Continue
+                }
+                case CtrlCAction.CloseDialog {
+                    DismissModal()
                     return ShellAction.Continue
                 }
                 case CtrlCAction.PromptToExit {
@@ -669,7 +693,26 @@ class AppShell : IAppShellNavigator {
         }
     }
 
+    private func PostIfBackground(action Action) bool {
+        if Environment.CurrentManagedThreadId == shellThreadId {
+            return false
+        }
+        pendingActions.Enqueue(action)
+        return true
+    }
+
+    private func DrainPendingActions() bool {
+        shellThreadId = Environment.CurrentManagedThreadId
+        var changed = false
+        while pendingActions.TryDequeue(out var action) {
+            action()
+            changed = true
+        }
+        return changed
+    }
+
     private func Render() {
+        DrainPendingActions()
         let screen = tabs[activeTab]
         let imageScreen = screen as LibraryScreen
         if imageScreen != nil {
@@ -677,6 +720,7 @@ class AppShell : IAppShellNavigator {
             imageScreen.CellWidth = graphics.CellWidth
             imageScreen.CellHeight = graphics.CellHeight
         }
+
         let width = console.Profile.Width
         let height = Math.Max(10, console.Profile.Height)
         // Chrome is exactly four rows: header, spacer, footer rule, footer.

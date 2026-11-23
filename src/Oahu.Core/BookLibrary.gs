@@ -69,7 +69,9 @@ internal class BookLibrary : IBookLibrary {
             try {
                 await File.WriteAllBytesAsync(path, img)
                 book.CoverImageFile = path
-            } catch (Exception) { }
+            } catch (exc Exception) {
+                Log(1, this, () -> "Cover save failed for ${book.Asin}: ${exc.Summary()}")
+            }
         }
         dbContext.SaveChanges()
     }
@@ -297,6 +299,9 @@ internal class BookLibrary : IBookLibrary {
             if item is Book book {
                 dbContext.Books.Attach(book)
                 dbContext.Entry(book).Reference((b Book) -> b.ChapterInfo).Load()
+                if book.ChapterInfo == nil {
+                    return
+                }
                 dbContext
                     .Entry(book.ChapterInfo!!)
                     .Collection((ci Oahu.BooksDatabase.ChapterInfo) -> ci.Chapters)
@@ -304,10 +309,16 @@ internal class BookLibrary : IBookLibrary {
             } else if item is Component comp {
                 dbContext.Components.Attach(comp)
                 dbContext.Entry(comp).Reference((c Component) -> c.ChapterInfo).Load()
+                if comp.ChapterInfo == nil {
+                    return
+                }
                 dbContext
                     .Entry(comp.ChapterInfo!!)
                     .Collection((ci Oahu.BooksDatabase.ChapterInfo) -> ci.Chapters)
                     .Load()
+            }
+            if item.ChapterInfo?.Chapters == nil {
+                return
             }
             GetChapters(dbContext, item.ChapterInfo!!.Chapters!!)
             SortChapters(item.ChapterInfo!!.Chapters!!)
@@ -375,6 +386,7 @@ internal class BookLibrary : IBookLibrary {
         using let lg = LogGuard(3, this)
         using let dbContext = BookDbContextLazyLoad(DbDir)
         let collectedCallbacks = List[IConversion]()
+        var checkUpdateAnswer bool? = nil
         let Callback = func (conv IConversion) {
             collectedCallbacks.Add(conv)
         }
@@ -405,7 +417,7 @@ internal class BookLibrary : IBookLibrary {
             CheckRemoved(conv, Callback)
         }
         if collectedCallbacks.Any() {
-            if !checkUpdateAnswered && interactCallback != nil {
+            if interactCallback != nil {
                 checkUpdateAnswer = interactCallback.Interact(
                     InteractionMessage[BookLibInteract](
                         ECallbackType.Question3,
@@ -413,14 +425,16 @@ internal class BookLibrary : IBookLibrary {
                         BookLibInteract(EBookLibInteract.CheckFile)
                     )
                 )
-                checkUpdateAnswered = true
             }
             Log(3, this, () -> "Interact response=$checkUpdateAnswer")
             if !(checkUpdateAnswer != nil) {
                 return
             }
-            collectedCallbacks.ForEach((c IConversion) -> callbackRefConversion(c))
-            if (checkUpdateAnswer != nil) && checkUpdateAnswer!! {
+            for id in collectedCallbacks.Select((c IConversion) -> c.Id).Distinct() {
+                let resolved = dbContext.Conversions.Local.First((c Conversion) -> c.Id == id)
+                callbackRefConversion(resolved)
+            }
+            if checkUpdateAnswer {
                 dbContext.SaveChanges()
             }
         }
@@ -1017,8 +1031,6 @@ internal class BookLibrary : IBookLibrary {
         private const RegexSeriesPattern string = "(\\d+)(\\.(\\d+))?"
         private let Extensions IEnumerable[string] = []string{".m3u", ".mp3", ".m4a", ".m4b"}
         private let RegexSeries Regex = Regex(RegexSeriesPattern, RegexOptions.Compiled)
-        private var checkUpdateAnswered bool
-        private var checkUpdateAnswer bool?
 
         private func OutputFileExists(conv Conversion, ext string?, directory string?) bool {
             if conv.DownloadFileName != nil {
