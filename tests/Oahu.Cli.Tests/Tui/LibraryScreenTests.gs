@@ -6,9 +6,13 @@ import Oahu.Cli.App.Queue
 import Oahu.Cli.Tui.Screens
 import Oahu.Cli.Tui.Shell
 import Oahu.Cli.Tui.Themes
+import Oahu.Cli.Tui.Widgets
+import Spectre.Console
+import Spectre.Console.Testing
 import System
 import System.Collections.Generic
 import System.Linq
+import System.IO
 import System.Threading
 import System.Threading.Tasks
 import Xunit
@@ -41,6 +45,59 @@ class LibraryScreenTests : IDisposable {
         Assert.Equal(1, screen.Cursor)
         screen.HandleKey(Key('k', ConsoleKey.K))
         Assert.Equal(0, screen.Cursor)
+    }
+
+    @Theory
+    @InlineData(ConsoleKey.J)
+    @InlineData(ConsoleKey.DownArrow)
+    @InlineData(ConsoleKey.PageDown)
+    func Navigation_Before_Library_Load_Does_Not_Create_A_Negative_Cursor(key ConsoleKey) {
+        let lib = LibraryScreenTests.FakeLibraryService()
+        let screen = LibraryScreen(AppShellState(), () -> lib)
+        screen.HandleKey(Key('j', key))
+        Assert.Equal(0, screen.Cursor)
+        lib.Items = []LibraryItem{MakeItem("A1", "Alpha")}
+        screen.Reload()
+        Assert.NotNull(screen.Render(120, 20))
+        Assert.Equal(0, screen.Cursor)
+    }
+
+    @Theory
+    @InlineData("kitty")
+    @InlineData("sixel")
+    func Native_Covers_Survive_Layout_Composition_And_Are_Hidden_By_Clipping(protocol string) {
+        let path = Path.Combine(Path.GetTempPath(), "oahu-cover-layout-" + Guid.NewGuid().ToString("N") + ".png")
+        File.WriteAllBytes(path, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DA8J+BkYHh////DAAe9gT9Ce00PgAAAABJRU5ErkJggg=="))
+        try {
+            let screen = CreateScreen([]LibraryItem{LibraryItem{Asin: "A1", Title: "Alpha", CoverImagePath: path}})
+            screen.NativeProtocol = if protocol == "kitty" { ImageProtocol.Kitty } else { ImageProtocol.Sixel }
+            screen.CellWidth = 10
+            screen.CellHeight = 20
+            screen.Reload()
+            Assert.True(SpinWait.SpinUntil(() -> CoverArt.TryGetNative(path, nil).State != CoverArt.CoverState.Pending, 2000))
+            let graphics = TerminalGraphics()
+            graphics.Configure("\u001B_Gi=2147483647;OK\u001B\\\u001B[?62;4c\u001B[6;20;10t", protocol, 120, 30)
+            let frame = screen.Render(120, 30)
+            Assert.NotNull(screen.NativePlacement)
+            let console = TestConsole()
+            console.Profile.Width = 120
+            console.Write(frame)
+            let painted = graphics.Paint(console.Output, screen.NativePlacement)
+            let nativeSequence = if protocol == "kitty" { "\u001B_Ga=p," } else { "\u001BP0;1;0q" }
+            Assert.Contains(nativeSequence, painted)
+            Assert.DoesNotContain(char(0xe000).ToString(), painted)
+            let overlay = TestConsole()
+            overlay.Profile.Width = 120
+            overlay.Write(Overlay(frame, Rows(Enumerable.Range(0, 24).Select((_ int32) -> Markup("Dialog"))), 100))
+            let covered = graphics.Paint(overlay.Output, screen.NativePlacement)
+            Assert.DoesNotContain(nativeSequence, covered)
+            Assert.DoesNotContain(char(0xe000).ToString(), covered)
+            screen.Render(80, 30)
+            Assert.Null(screen.NativePlacement)
+            Assert.False(screen.NeedsTimedRefresh)
+        } finally {
+            File.Delete(path)
+        }
     }
 
     @Fact

@@ -5,6 +5,7 @@ import Oahu.Cli.App.Models
 import Oahu.Cli.App.Queue
 import Oahu.Cli.Tui.Shell
 import Oahu.Cli.Tui.Tokens
+import Oahu.Cli.Tui.Widgets
 import Spectre.Console
 import Spectre.Console.Rendering
 import System
@@ -50,6 +51,10 @@ class LibraryScreen : ITabScreen {
     prop Cursor int32 -> cursor
     prop SelectedCount int32 -> selected.Count
     prop Items IReadOnlyList[LibraryItem] -> filtered
+    internal prop NativeProtocol ImageProtocol
+    internal prop CellWidth int32
+    internal prop CellHeight int32
+    internal prop NativePlacement ImagePlacement? { get; private set; }
 
     prop Hints IEnumerable[KeyValuePair[string, string?]] {
         get {
@@ -86,6 +91,8 @@ class LibraryScreen : ITabScreen {
     }
 
     func Render(width int32, height int32) IRenderable {
+        NativePlacement = nil
+        coverPending = false
         // Master/detail split on wide terminals: list on the left, a detail
         // pane (cover art + metadata) for the cursor item on the right.
         let detailWidth = if width >= 96 {
@@ -206,8 +213,8 @@ class LibraryScreen : ITabScreen {
         return Rows(lines)
     }
 
-    /// The right-hand detail pane for the cursor item: cover art (half-block
-    /// truecolor) plus metadata. Cover decoding runs in the background; while
+    /// The right-hand detail pane for the cursor item: cover art plus metadata.
+    /// Cover decoding runs in the background; while
     /// pending this screen reports (cref:NeedsTimedRefresh) so the shell keeps
     /// re-rendering until the art pops in.
     private func RenderDetail(width int32, height int32) IRenderable {
@@ -222,11 +229,25 @@ class LibraryScreen : ITabScreen {
             return Rows(lines)
         }
         let item = filtered[cursor]
-        // Cover art (skipped in Mono/ASCII where half-blocks would degrade).
+        // Mono/ASCII retain the existing text-only path.
         if Tokens.HasBackdrop && !Icons.Icons.ForceAscii {
             let coverWidth = Math.Min(width, 26)
-            let cover = Widgets.CoverArt.TryGet(item.CoverImagePath, item.CoverImageUrl, coverWidth)
-            if cover.State == Widgets.CoverArt.CoverState.Ready && cover.Lines != nil {
+            let native = NativeProtocol != ImageProtocol.Quadrant
+            let cover = if native {
+                CoverArt.TryGetNative(item.CoverImagePath, item.CoverImageUrl)
+            } else {
+                CoverArt.TryGet(item.CoverImagePath, item.CoverImageUrl, coverWidth)
+            }
+            if cover.State == CoverArt.CoverState.Ready && cover.Image is {} image {
+                let ratio = if CellWidth > 0 && CellHeight > 0 { float64(CellWidth) / float64(CellHeight) } else { 0.5d }
+                let rows = Math.Clamp(int32(Math.Ceiling(float64(coverWidth) * ratio * image.Height / image.Width)), 1, Math.Max(1, height - 2))
+                let background = Tokens.BackgroundSecondary.Value
+                NativePlacement = ImagePlacement(image, coverWidth, rows, CoverPixel(background.R, background.G, background.B, 255))
+                for var row = 0; row < rows; row++ {
+                    lines.Add(Markup(TerminalGraphics.Marker(row, coverWidth)))
+                }
+                lines.Add(Markup(" "))
+            } else if cover.State == Widgets.CoverArt.CoverState.Ready && cover.Lines != nil {
                 for line in cover.Lines {
                     lines.Add(Markup(line))
                 }
@@ -338,7 +359,7 @@ class LibraryScreen : ITabScreen {
                 return true
             }
             case ConsoleKey.DownArrow, ConsoleKey.J {
-                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + 1))
+                cursor = Math.Min(Math.Max(0, filtered.Count - 1), Math.Max(0, cursor + 1))
                 return true
             }
             case ConsoleKey.PageUp {
@@ -346,7 +367,7 @@ class LibraryScreen : ITabScreen {
                 return true
             }
             case ConsoleKey.PageDown {
-                cursor = Math.Min(filtered.Count - 1, Math.Max(0, cursor + lastListHeight))
+                cursor = Math.Min(Math.Max(0, filtered.Count - 1), Math.Max(0, cursor + lastListHeight))
                 return true
             }
             case ConsoleKey.Home {
@@ -523,7 +544,7 @@ class LibraryScreen : ITabScreen {
             )
                 .ToArray()
         }
-        cursor = Math.Min(cursor, Math.Max(0, filtered.Count - 1))
+        cursor = Math.Clamp(cursor, 0, Math.Max(0, filtered.Count - 1))
     }
 
     private func AdjustScroll(visibleHeight int32) {
